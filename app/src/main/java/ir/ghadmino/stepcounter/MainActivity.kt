@@ -20,9 +20,23 @@ import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Settings
 
-import androidx.compose.material3.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,20 +54,17 @@ class MainActivity : ComponentActivity() {
         registerForActivityResult(
             ActivityResultContracts.RequestMultiplePermissions()
         ) {
+            // نتیجه مجوزها در ادامه بررسی می‌شود.
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-
         super.onCreate(savedInstanceState)
 
         requestPermissions()
 
         setContent {
-
             GhadminoTheme {
-
                 GhadminoApp()
-
             }
         }
 
@@ -62,8 +73,7 @@ class MainActivity : ComponentActivity() {
 
     private fun requestPermissions() {
 
-        val permissions =
-            mutableListOf<String>()
+        val permissions = mutableListOf<String>()
 
         if (
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
@@ -71,7 +81,6 @@ class MainActivity : ComponentActivity() {
                 Manifest.permission.ACTIVITY_RECOGNITION
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-
             permissions.add(
                 Manifest.permission.ACTIVITY_RECOGNITION
             )
@@ -83,14 +92,12 @@ class MainActivity : ComponentActivity() {
                 Manifest.permission.POST_NOTIFICATIONS
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-
             permissions.add(
                 Manifest.permission.POST_NOTIFICATIONS
             )
         }
 
         if (permissions.isNotEmpty()) {
-
             permissionLauncher.launch(
                 permissions.toTypedArray()
             )
@@ -105,17 +112,13 @@ class MainActivity : ComponentActivity() {
                 StepCounterService::class.java
             )
 
-        if (
-            Build.VERSION.SDK_INT >=
-            Build.VERSION_CODES.O
-        ) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
 
             startForegroundService(intent)
 
         } else {
 
             startService(intent)
-
         }
     }
 }
@@ -248,6 +251,7 @@ fun GhadminoApp() {
                     Icon(
                         imageVector =
                             Icons.Default.DirectionsWalk,
+
                         contentDescription = null,
 
                         modifier =
@@ -282,9 +286,7 @@ fun GhadminoApp() {
 
                     LinearProgressIndicator(
 
-                        progress = {
-                            progress
-                        },
+                        progress = progress,
 
                         modifier =
                             Modifier.fillMaxWidth()
@@ -376,6 +378,7 @@ fun GhadminoApp() {
 
                     Text(
                         "هدف روزانه",
+
                         style =
                             MaterialTheme
                                 .typography
@@ -425,6 +428,7 @@ fun GhadminoApp() {
 
                     Text(
                         "وضعیت قدم‌شمار",
+
                         style =
                             MaterialTheme
                                 .typography
@@ -460,6 +464,7 @@ fun GhadminoApp() {
 
             Text(
                 "قدمینو • نسخه 1.0.0",
+
                 style =
                     MaterialTheme
                         .typography
@@ -500,6 +505,7 @@ fun StatCard(
 
             Text(
                 title,
+
                 style =
                     MaterialTheme
                         .typography
@@ -508,6 +514,7 @@ fun StatCard(
 
             Text(
                 value,
+
                 fontWeight =
                     FontWeight.Bold
             )
