@@ -15,11 +15,11 @@
         </item>
 
         <item name="android:statusBarColor">
-            #FFFFFF
+            #F8FAF9
         </item>
 
         <item name="android:navigationBarColor">
-            #FFFFFF
+            #F8FAF9
         </item>
 
     </style>
