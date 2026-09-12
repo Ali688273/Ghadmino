@@ -1,0 +1,389 @@
+package ir.ghadmino.stepcounter.step
+
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+
+import android.content.Context
+import android.content.Intent
+
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
+
+import android.os.Build
+import android.os.IBinder
+
+import androidx.core.app.NotificationCompat
+
+import android.app.Service
+
+import ir.ghadmino.stepcounter.MainActivity
+import ir.ghadmino.stepcounter.R
+
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+class StepCounterService :
+    Service(),
+    SensorEventListener {
+
+    private lateinit var sensorManager: SensorManager
+
+    private var stepSensor: Sensor? = null
+
+    private val prefs by lazy {
+
+        getSharedPreferences(
+            "step_state",
+            Context.MODE_PRIVATE
+        )
+    }
+
+    companion object {
+
+        @Volatile
+        var todaySteps: Int = 0
+
+        @Volatile
+        var sensorAvailable: Boolean = false
+
+        private const val CHANNEL_ID =
+            "ghadmino_steps"
+
+        private const val NOTIFICATION_ID =
+            1001
+
+        private const val KEY_DATE =
+            "date"
+
+        private const val KEY_BASELINE =
+            "baseline"
+
+        private const val KEY_LAST_TOTAL =
+            "last_total"
+    }
+
+    override fun onCreate() {
+
+        super.onCreate()
+
+        createNotificationChannel()
+
+        startForeground(
+            NOTIFICATION_ID,
+            buildNotification()
+        )
+
+        sensorManager =
+            getSystemService(
+                SENSOR_SERVICE
+            ) as SensorManager
+
+        stepSensor =
+            sensorManager.getDefaultSensor(
+                Sensor.TYPE_STEP_COUNTER
+            )
+
+        sensorAvailable =
+            stepSensor != null
+
+        stepSensor?.let { sensor ->
+
+            sensorManager.registerListener(
+
+                this,
+
+                sensor,
+
+                SensorManager.SENSOR_DELAY_NORMAL
+            )
+        }
+
+        loadToday()
+    }
+
+    override fun onSensorChanged(
+        event: SensorEvent?
+    ) {
+
+        if (event == null) return
+
+        val total =
+            event.values
+                .firstOrNull()
+                ?.toLong()
+                ?.coerceAtLeast(0)
+                ?: return
+
+        val today =
+            currentDate()
+
+        val savedDate =
+            prefs.getString(
+                KEY_DATE,
+                null
+            )
+
+        var baseline =
+            prefs.getLong(
+                KEY_BASELINE,
+                -1L
+            )
+
+        val lastTotal =
+            prefs.getLong(
+                KEY_LAST_TOTAL,
+                -1L
+            )
+
+        /*
+         * اگر مقدار سنسور کمتر از مقدار قبلی شد،
+         * احتمالاً گوشی ری‌استارت شده یا سنسور reset شده است.
+         */
+
+        if (
+            lastTotal >= 0 &&
+            total < lastTotal
+        ) {
+
+            baseline = total
+        }
+
+        /*
+         * شروع روز جدید
+         */
+
+        if (
+            savedDate != today ||
+            baseline < 0
+        ) {
+
+            baseline = total
+
+            prefs.edit()
+
+                .putString(
+                    KEY_DATE,
+                    today
+                )
+
+                .putLong(
+                    KEY_BASELINE,
+                    baseline
+                )
+
+                .apply()
+        }
+
+        val steps =
+            (total - baseline)
+                .coerceAtLeast(0)
+                .coerceAtMost(
+                    Int.MAX_VALUE.toLong()
+                )
+
+        todaySteps =
+            steps.toInt()
+
+        prefs.edit()
+
+            .putLong(
+                KEY_LAST_TOTAL,
+                total
+            )
+
+            .apply()
+
+        updateNotification()
+    }
+
+    private fun loadToday() {
+
+        if (
+            prefs.getString(
+                KEY_DATE,
+                null
+            ) != currentDate()
+        ) {
+
+            todaySteps = 0
+
+            prefs.edit()
+
+                .putString(
+                    KEY_DATE,
+                    currentDate()
+                )
+
+                .remove(
+                    KEY_BASELINE
+                )
+
+                .apply()
+
+        } else {
+
+            val baseline =
+                prefs.getLong(
+                    KEY_BASELINE,
+                    -1L
+                )
+
+            val last =
+                prefs.getLong(
+                    KEY_LAST_TOTAL,
+                    -1L
+                )
+
+            todaySteps =
+
+                if (
+                    baseline >= 0 &&
+                    last >= baseline
+                ) {
+
+                    (
+                        last - baseline
+                    )
+                        .coerceAtMost(
+                            Int.MAX_VALUE.toLong()
+                        )
+                        .toInt()
+
+                } else {
+
+                    0
+                }
+        }
+    }
+
+    private fun currentDate(): String {
+
+        return SimpleDateFormat(
+            "yyyy-MM-dd",
+            Locale.US
+        ).format(Date())
+    }
+
+    private fun buildNotification():
+        Notification {
+
+        val intent =
+            Intent(
+                this,
+                MainActivity::class.java
+            )
+
+        val flags =
+            PendingIntent.FLAG_UPDATE_CURRENT or
+                PendingIntent.FLAG_IMMUTABLE
+
+        val pendingIntent =
+            PendingIntent.getActivity(
+                this,
+                0,
+                intent,
+                flags
+            )
+
+        return NotificationCompat.Builder(
+            this,
+            CHANNEL_ID
+        )
+
+            .setSmallIcon(
+                R.drawable.ic_walk
+            )
+
+            .setContentTitle(
+                "قدم‌شمار قدمینو"
+            )
+
+            .setContentText(
+                "$todaySteps قدم امروز"
+            )
+
+            .setContentIntent(
+                pendingIntent
+            )
+
+            .setOngoing(true)
+
+            .setOnlyAlertOnce(true)
+
+            .setCategory(
+                NotificationCompat.CATEGORY_SERVICE
+            )
+
+            .build()
+    }
+
+    private fun updateNotification() {
+
+        val manager =
+            getSystemService(
+                NotificationManager::class.java
+            )
+
+        manager.notify(
+            NOTIFICATION_ID,
+            buildNotification()
+        )
+    }
+
+    private fun createNotificationChannel() {
+
+        if (
+            Build.VERSION.SDK_INT >=
+            Build.VERSION_CODES.O
+        ) {
+
+            val channel =
+                NotificationChannel(
+
+                    CHANNEL_ID,
+
+                    "شمارش قدم",
+
+                    NotificationManager
+                        .IMPORTANCE_LOW
+                )
+
+            channel.description =
+                "وضعیت قدم‌شمار قدمینو"
+
+            getSystemService(
+                NotificationManager::class.java
+            )
+                .createNotificationChannel(
+                    channel
+                )
+        }
+    }
+
+    override fun onAccuracyChanged(
+        sensor: Sensor?,
+        accuracy: Int
+    ) {
+        // نیازی نیست.
+    }
+
+    override fun onDestroy() {
+
+        sensorManager
+            .unregisterListener(this)
+
+        super.onDestroy()
+    }
+
+    override fun onBind(
+        intent: Intent?
+    ): IBinder? {
+
+        return null
+    }
+}
