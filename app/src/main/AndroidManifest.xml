@@ -3,31 +3,45 @@
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- دسترسی به حسگر فعالیت -->
     <uses-permission
         android:name="android.permission.ACTIVITY_RECOGNITION" />
 
+    <!-- اعلان -->
     <uses-permission
         android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- سرویس پس‌زمینه -->
     <uses-permission
         android:name="android.permission.FOREGROUND_SERVICE" />
 
+    <!-- سرویس سلامت / فعالیت -->
     <uses-permission
         android:name="android.permission.FOREGROUND_SERVICE_HEALTH" />
 
+    <!-- حسگر قدم -->
     <uses-feature
         android:name="android.hardware.sensor.stepcounter"
         android:required="false" />
 
     <application
+
         android:allowBackup="true"
+
         android:icon="@drawable/ic_walk"
+
         android:label="@string/app_name"
+
         android:supportsRtl="true"
+
         android:theme="@style/Theme.Ghadmino">
 
+        <!-- صفحه اصلی -->
+
         <activity
+
             android:name=".MainActivity"
+
             android:exported="true">
 
             <intent-filter>
@@ -42,10 +56,17 @@
 
         </activity>
 
+
+        <!-- سرویس قدم‌شمار -->
+
         <service
+
             android:name=".step.StepCounterService"
+
             android:enabled="true"
+
             android:exported="false"
+
             android:foregroundServiceType="health" />
 
     </application>
