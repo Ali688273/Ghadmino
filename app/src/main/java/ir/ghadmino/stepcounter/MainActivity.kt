@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Settings
 
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -47,6 +48,7 @@ import ir.ghadmino.stepcounter.step.StepCounterService
 import ir.ghadmino.stepcounter.ui.theme.GhadminoTheme
 
 import kotlinx.coroutines.delay
+
 
 class MainActivity : ComponentActivity() {
 
@@ -123,6 +125,8 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GhadminoApp() {
 
@@ -149,9 +153,12 @@ fun GhadminoApp() {
 
     val progress =
         if (goal > 0) {
+
             (steps.toFloat() / goal.toFloat())
                 .coerceIn(0f, 1f)
+
         } else {
+
             0f
         }
 
@@ -225,6 +232,7 @@ fun GhadminoApp() {
                     Modifier.height(12.dp)
             )
 
+
             Card(
 
                 modifier =
@@ -232,6 +240,7 @@ fun GhadminoApp() {
 
                 colors =
                     CardDefaults.cardColors(
+
                         containerColor =
                             MaterialTheme
                                 .colorScheme
@@ -249,6 +258,7 @@ fun GhadminoApp() {
                 ) {
 
                     Icon(
+
                         imageVector =
                             Icons.Default.DirectionsWalk,
 
@@ -277,7 +287,9 @@ fun GhadminoApp() {
                             FontWeight.Bold
                     )
 
-                    Text("قدم امروز")
+                    Text(
+                        "قدم امروز"
+                    )
 
                     Spacer(
                         modifier =
@@ -303,10 +315,12 @@ fun GhadminoApp() {
                 }
             }
 
+
             Spacer(
                 modifier =
                     Modifier.height(16.dp)
             )
+
 
             Row(
 
@@ -339,6 +353,7 @@ fun GhadminoApp() {
                         )
                 )
 
+
                 StatCard(
 
                     modifier =
@@ -359,10 +374,12 @@ fun GhadminoApp() {
                 )
             }
 
+
             Spacer(
                 modifier =
                     Modifier.height(16.dp)
             )
+
 
             Card(
 
@@ -377,6 +394,7 @@ fun GhadminoApp() {
                 ) {
 
                     Text(
+
                         "هدف روزانه",
 
                         style =
@@ -390,7 +408,9 @@ fun GhadminoApp() {
                             Modifier.height(8.dp)
                     )
 
-                    Text("$goal قدم")
+                    Text(
+                        "$goal قدم"
+                    )
 
                     Slider(
 
@@ -409,10 +429,12 @@ fun GhadminoApp() {
                 }
             }
 
+
             Spacer(
                 modifier =
                     Modifier.height(16.dp)
             )
+
 
             Card(
 
@@ -427,6 +449,7 @@ fun GhadminoApp() {
                 ) {
 
                     Text(
+
                         "وضعیت قدم‌شمار",
 
                         style =
@@ -457,12 +480,15 @@ fun GhadminoApp() {
                 }
             }
 
+
             Spacer(
                 modifier =
                     Modifier.height(24.dp)
             )
 
+
             Text(
+
                 "قدمینو • نسخه 1.0.0",
 
                 style =
@@ -473,6 +499,7 @@ fun GhadminoApp() {
         }
     }
 }
+
 
 @Composable
 fun StatCard(
@@ -488,10 +515,13 @@ fun StatCard(
 ) {
 
     Card(
-        modifier = modifier
+
+        modifier =
+            modifier
     ) {
 
         Column(
+
             modifier =
                 Modifier.padding(16.dp)
         ) {
@@ -504,6 +534,7 @@ fun StatCard(
             )
 
             Text(
+
                 title,
 
                 style =
@@ -513,6 +544,7 @@ fun StatCard(
             )
 
             Text(
+
                 value,
 
                 fontWeight =
