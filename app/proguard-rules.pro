@@ -1,0 +1,1 @@
+# Ghadmino custom ProGuard rules
