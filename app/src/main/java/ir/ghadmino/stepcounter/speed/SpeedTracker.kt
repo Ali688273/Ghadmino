@@ -10,7 +10,6 @@ import android.location.LocationManager
 import androidx.core.content.ContextCompat
 import kotlin.math.max
 
-
 class SpeedTracker(
     private val context: Context
 ) {
@@ -39,6 +38,10 @@ class SpeedTracker(
     private var speedSamples = 0
     private var speedTotal = 0f
 
+    private var lastLocation: Location? = null
+
+    private var lastSpeedTimeMillis: Long = 0L
+
     private val locationListener =
         object : LocationListener {
 
@@ -46,26 +49,103 @@ class SpeedTracker(
                 location: Location
             ) {
 
-                val speedMps =
-                    if (
-                        location.hasSpeed()
-                    ) {
-                        location.speed
-                    } else {
-                        0f
-                    }
+                if (!location.hasAccuracy()) {
+                    return
+                }
 
-                val speedKmh =
-                    max(
+                if (location.accuracy > 50f) {
+                    return
+                }
+
+                val now = System.currentTimeMillis()
+
+                var speedKmh = 0f
+
+                if (location.hasSpeed()) {
+
+                    speedKmh =
+                        max(
+                            0f,
+                            location.speed * 3.6f
+                        )
+                }
+
+                val previousLocation =
+                    lastLocation
+
+                if (
+                    previousLocation != null &&
+                    lastSpeedTimeMillis > 0L
+                ) {
+
+                    val timeSeconds =
+                        (
+                            now -
+                                lastSpeedTimeMillis
+                            ) / 1000f
+
+                    if (timeSeconds >= 0.5f) {
+
+                        val distanceMeters =
+                            previousLocation.distanceTo(
+                                location
+                            )
+
+                        val calculatedSpeedKmh =
+                            if (distanceMeters >= 0f) {
+
+                                (
+                                    distanceMeters /
+                                        timeSeconds
+                                ) * 3.6f
+
+                            } else {
+                                0f
+                            }
+
+                        if (
+                            calculatedSpeedKmh >
+                            0.1f
+                        ) {
+
+                            if (
+                                speedKmh <= 0.1f
+                            ) {
+
+                                speedKmh =
+                                    calculatedSpeedKmh
+
+                            } else {
+
+                                speedKmh =
+                                    (
+                                        speedKmh +
+                                            calculatedSpeedKmh
+                                        ) / 2f
+                            }
+                        }
+                    }
+                }
+
+                lastLocation =
+                    Location(location)
+
+                lastSpeedTimeMillis =
+                    now
+
+                speedKmh =
+                    speedKmh.coerceIn(
                         0f,
-                        speedMps * 3.6f
+                        25f
                     )
 
                 currentSpeedKmh =
                     speedKmh
 
-                // سرعت‌های خیلی پایین
-                // را برای آمار حرکتی حساب نمی‌کنیم.
+                /*
+                 * فقط سرعت‌های معقول حرکتی
+                 * وارد آمار می‌شوند.
+                 */
                 if (speedKmh >= 0.5f) {
 
                     speedSamples++
@@ -98,7 +178,6 @@ class SpeedTracker(
                 }
             }
         }
-
 
     @SuppressLint("MissingPermission")
     fun start() {
@@ -145,10 +224,9 @@ class SpeedTracker(
         } catch (
             _: SecurityException
         ) {
-            // مجوز مکان وجود ندارد.
+            // مجوز مکان در دسترس نیست.
         }
     }
-
 
     fun stop() {
 
@@ -161,10 +239,9 @@ class SpeedTracker(
         } catch (
             _: SecurityException
         ) {
-            // مجوز مکان وجود ندارد.
+            // مجوز مکان در دسترس نیست.
         }
     }
-
 
     fun resetDailyStats() {
 
@@ -179,5 +256,9 @@ class SpeedTracker(
         speedSamples = 0
 
         speedTotal = 0f
+
+        lastLocation = null
+
+        lastSpeedTimeMillis = 0L
     }
 }
