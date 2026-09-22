@@ -182,6 +182,7 @@ private object SpeedTrackerState {
             val date = today()
 
             if (prefs.getString(KEY_DATE, null) != date) {
+                archiveCurrentDay(context, prefs)
                 reset(context)
             }
 
@@ -203,6 +204,16 @@ private object SpeedTrackerState {
             minimumSpeedKmh = min
             maximumSpeedKmh = max
         }
+    }
+
+    private fun archiveCurrentDay(context: Context, prefs: android.content.SharedPreferences) {
+        val oldDate = prefs.getString(KEY_DATE, null) ?: return
+        val samples = prefs.getLong(KEY_SAMPLES, 0L)
+        if (samples <= 0L) return
+        val total = prefs.getFloat(KEY_TOTAL, 0f)
+        val average = total / samples
+        val maximum = prefs.getFloat(KEY_MAX, 0f)
+        ir.ghadmino.stepcounter.stats.SpeedHistoryRepository.save(context, oldDate, average, maximum)
     }
 
     private fun load(context: Context) {
