@@ -28,16 +28,11 @@ object CoinWallet {
         val date = today()
         val blocks = steps.coerceAtLeast(0) / 1000
         val key = "rewarded_blocks_" + date
-        var old = prefs.getInt(key, -1)
-
-        if (old < 0) {
-            val legacy = prefs.getInt("rewarded_blocks", -1)
-            old = if (legacy in 0..blocks) legacy else 0
-        }
+        val old = prefs.getInt(key, 0)
 
         if (blocks > old) {
             add(c, (blocks - old) * 5)
-            prefs.edit().putInt(key, blocks).putInt("rewarded_blocks", blocks).apply()
+            prefs.edit().putInt(key, blocks).apply()
         } else if (!prefs.contains(key)) {
             prefs.edit().putInt(key, blocks).apply()
         }
@@ -48,10 +43,17 @@ object CoinWallet {
     }
 
     private fun checkMilestones(c: Context, steps: Int) {
-        val milestones = listOf(10000 to 25, 25000 to 50, 50000 to 100, 100000 to 250, 250000 to 500)
-        milestones.forEach { item ->
-            val target = item.first
-            val reward = item.second
+        val milestones = listOf(
+            10000 to 25,
+            25000 to 50,
+            50000 to 100,
+            100000 to 250,
+            250000 to 500,
+            500000 to 750,
+            1000000 to 1500
+        )
+
+        milestones.forEach { (target, reward) ->
             val key = "milestone_" + target
             if (steps >= target && !p(c).getBoolean(key, false)) {
                 add(c, reward)
@@ -60,7 +62,13 @@ object CoinWallet {
         }
     }
 
-    fun claimDailyMission(c: Context, missionId: String, target: Int, reward: Int, steps: Int): Boolean {
+    fun claimDailyMission(
+        c: Context,
+        missionId: String,
+        target: Int,
+        reward: Int,
+        steps: Int
+    ): Boolean {
         if (steps < target) return false
         val key = "mission_" + missionId + "_date"
         if (p(c).getString(key, null) == today()) return false
@@ -76,7 +84,8 @@ object CoinWallet {
         return true
     }
 
-    fun canClaimAdReward(c: Context) = p(c).getString("ad_date", null) != today()
+    fun canClaimAdReward(c: Context) =
+        p(c).getString("ad_date", null) != today()
 
     fun claimAdReward(c: Context, amount: Int = 100): Boolean {
         if (!canClaimAdReward(c)) return false
