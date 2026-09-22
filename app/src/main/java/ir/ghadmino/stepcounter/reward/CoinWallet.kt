@@ -29,6 +29,32 @@ object CoinWallet {
             add(c, (blocks - old) * 5)
             p(c).edit().putInt("rewarded_blocks", blocks).apply()
         }
+        val lifetime = p(c).getInt("lifetime_steps", 0)
+        val newLifetime = maxOf(lifetime, steps)
+        p(c).edit().putInt("lifetime_steps", newLifetime).apply()
+        checkMilestones(c, newLifetime)
+    }
+
+    private fun checkMilestones(c: Context, steps: Int) {
+        val milestones = listOf(10000 to 25, 25000 to 50, 50000 to 100, 100000 to 250, 250000 to 500)
+        milestones.forEach { item ->
+            val target = item.first
+            val reward = item.second
+            val key = "milestone_" + target
+            if (steps >= target && !p(c).getBoolean(key, false)) {
+                add(c, reward)
+                p(c).edit().putBoolean(key, true).apply()
+            }
+        }
+    }
+
+    fun claimDailyMission(c: Context, missionId: String, target: Int, reward: Int, steps: Int): Boolean {
+        if (steps < target) return false
+        val key = "mission_" + missionId + "_date"
+        if (p(c).getString(key, null) == today()) return false
+        add(c, reward)
+        p(c).edit().putString(key, today()).apply()
+        return true
     }
 
     fun claimGoalReward(c: Context): Boolean {
