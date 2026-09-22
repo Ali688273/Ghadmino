@@ -181,6 +181,9 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
                 }
             }
         }
+        "manual_activity" -> FullPageDialog("ثبت فعالیت دستی", onClose = { morePage = null }) {
+            ManualActivityScreen()
+        }
         "goal" -> FullPageDialog("تنظیم هدف", onClose = { morePage = null }) {
             Column(
                 Modifier.fillMaxWidth(),
@@ -321,6 +324,7 @@ private fun MorePage(
         MoreItem("🎨", "شخصی‌سازی", "قاب، نشان و امکانات قابل خرید") { onOpen("extras") }
         MoreItem("📅", "تاریخچه", "مشاهده قدم‌های روزهای اخیر") { onOpen("history") }
         MoreItem("🎯", "تنظیم هدف", "تغییر هدف روزانه قدم‌ها") { onOpen("goal") }
+        MoreItem("➕", "ثبت فعالیت دستی", "ثبت قدم یا فعالیتی که حسگر ثبت نکرده") { onOpen("manual_activity") }
     }
 }
 
