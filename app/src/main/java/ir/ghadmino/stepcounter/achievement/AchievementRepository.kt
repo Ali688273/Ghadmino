@@ -18,9 +18,13 @@ object AchievementRepository {
         Achievement("first_1000", "اولین هزار قدم", "در یک روز به ۱۰۰۰ قدم برس.", "🥉", 10, false),
         Achievement("five_k_day", "نیمه‌راه", "در یک روز به ۵۰۰۰ قدم برس.", "🥈", 20, false),
         Achievement("ten_k_day", "ده‌هزاری", "در یک روز به ۱۰۰۰۰ قدم برس.", "🏅", 40, false),
+        Achievement("twenty_five_k_day", "ابرپیاده‌رو", "در یک روز به ۲۵۰۰۰ قدم برس.", "🚀", 100, false),
         Achievement("seven_day_streak", "هفته طلایی", "هفت روز پشت‌سرهم حداقل ۳۰۰۰ قدم ثبت کن.", "🔥", 75, false),
+        Achievement("thirty_day_streak", "ماه پرتلاش", "۳۰ روز پشت‌سرهم حداقل ۳۰۰۰ قدم ثبت کن.", "📅", 250, false),
         Achievement("lifetime_100k", "صد هزار قدم", "در مجموع ۱۰۰۰۰۰ قدم ثبت کن.", "🏆", 150, false),
-        Achievement("lifetime_250k", "یک‌ربع میلیون", "در مجموع ۲۵۰۰۰۰ قدم ثبت کن.", "💎", 300, false)
+        Achievement("lifetime_250k", "یک‌ربع میلیون", "در مجموع ۲۵۰۰۰۰ قدم ثبت کن.", "💎", 300, false),
+        Achievement("lifetime_500k", "نیم میلیون", "در مجموع ۵۰۰۰۰۰ قدم ثبت کن.", "👑", 600, false),
+        Achievement("lifetime_1m", "یک میلیون قدم", "در مجموع ۱۰۰۰۰۰۰ قدم ثبت کن.", "🌟", 1200, false)
     )
 
     fun evaluate(context: Context): List<Achievement> {
@@ -34,19 +38,25 @@ object AchievementRepository {
                 "first_1000" -> bestDay >= 1000
                 "five_k_day" -> bestDay >= 5000
                 "ten_k_day" -> bestDay >= 10000
+                "twenty_five_k_day" -> bestDay >= 25000
                 "seven_day_streak" -> streak >= 7
+                "thirty_day_streak" -> streak >= 30
                 "lifetime_100k" -> lifetime >= 100000
                 "lifetime_250k" -> lifetime >= 250000
+                "lifetime_500k" -> lifetime >= 500000
+                "lifetime_1m" -> lifetime >= 1000000
                 else -> false
             }
+
             if (reached) {
-                val key = "achievement_claimed_" + item.id
                 val prefs = context.getSharedPreferences("ghadmino_achievements", Context.MODE_PRIVATE)
+                val key = "achievement_claimed_" + item.id
                 if (!prefs.getBoolean(key, false)) {
                     CoinWallet.add(context, item.reward)
                     prefs.edit().putBoolean(key, true).apply()
                 }
             }
+
             item.copy(unlocked = reached)
         }
     }
