@@ -262,7 +262,7 @@ class StepCounterService : Service(), SensorEventListener {
             CHANNEL_ID
         )
             .setSmallIcon(
-                R.drawable.ic_walk
+                R.drawable.ic_launcher
             )
             .setContentTitle(
                 "قدم‌شمار قدمینو"
