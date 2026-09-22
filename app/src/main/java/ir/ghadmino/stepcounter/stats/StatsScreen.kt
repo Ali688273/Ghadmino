@@ -140,6 +140,7 @@ fun StatsScreen(stats: GhadminoStats, goal: Int) {
                 }
             }
         }
+        item { SpeedChart() }
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.EmojiEvents, null)
@@ -162,6 +163,50 @@ fun StatsScreen(stats: GhadminoStats, goal: Int) {
                 },
                 trailingContent = { Text(item.second.toString() + " قدم") }
             )
+        }
+    }
+}
+
+@Composable
+private fun SpeedChart() {
+    val points = SpeedHistoryRepository.recent(7)
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.TrendingUp, null)
+                Spacer(Modifier.width(8.dp))
+                Text("نمودار سرعت", style = MaterialTheme.typography.titleLarge)
+            }
+            Spacer(Modifier.height(6.dp))
+            Text("میانگین سرعت ثبت‌شده در روزهای اخیر (km/h)", style = MaterialTheme.typography.bodySmall)
+            Spacer(Modifier.height(12.dp))
+            if (points.isEmpty()) {
+                Text("هنوز داده سرعت کافی ثبت نشده است.")
+            } else {
+                val maxSpeed = max(1f, points.maxOfOrNull { it.second } ?: 1f)
+                Row(
+                    Modifier.fillMaxWidth().height(160.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    points.forEach { item ->
+                        Column(
+                            Modifier.weight(1f).fillMaxHeight(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Bottom
+                        ) {
+                            Text(String.format("%.1f", item.second), style = MaterialTheme.typography.labelSmall)
+                            Spacer(Modifier.height(3.dp))
+                            Box(
+                                Modifier.fillMaxWidth().height(
+                                    (120f * item.second / maxSpeed).coerceAtLeast(4f).dp
+                                ).background(MaterialTheme.colorScheme.secondary, MaterialTheme.shapes.small)
+                            )
+                            Text(StatsRepository.label(item.first), style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+            }
         }
     }
 }
