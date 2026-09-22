@@ -255,7 +255,7 @@ private fun HomePage(
                 )
                 Text("قدم امروز", style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(16.dp))
-                LinearProgressIndicator(progress = { progress }, Modifier.fillMaxWidth())
+                LinearProgressIndicator(progress = progress, Modifier.fillMaxWidth())
                 Spacer(Modifier.height(8.dp))
                 Text((progress * 100).toInt().toString() + "٪ از هدف " + goal)
             }
