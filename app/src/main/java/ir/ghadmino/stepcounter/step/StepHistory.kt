@@ -31,6 +31,23 @@ object StepHistory {
         return result
     }
 
+    fun totalLifetime(context: Context, days: Int = 3650): Int {
+        var total = 0L
+        for (i in 0 until days) {
+            total += get(context, dateOffset(i))
+            if (total >= Int.MAX_VALUE) return Int.MAX_VALUE
+        }
+        return total.toInt()
+    }
+
+    fun currentStreak(context: Context, minimumSteps: Int): Int {
+        var streak = 0
+        for (i in 0 until 3650) {
+            if (get(context, dateOffset(i)) >= minimumSteps) streak++ else break
+        }
+        return streak
+    }
+
     private fun today() = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
 
     private fun dateOffset(daysAgo: Int): String {
