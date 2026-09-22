@@ -13,6 +13,7 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.max
+import android.os.SystemClock
 
 class SpeedTracker(private val context: Context) {
 
@@ -34,7 +35,7 @@ class SpeedTracker(private val context: Context) {
     }
 
     fun stop() {
-        // عمدی: سرویس قدم‌شمار مالک چرخه عمر GPS است تا با بسته‌شدن Activity ردیابی متوقف نشود.
+        SpeedTrackerState.stop(context.applicationContext)
     }
 
     fun resetDailyStats() {
@@ -60,6 +61,7 @@ private object SpeedTrackerState {
         private set
 
     private var started = false
+    private var lastStartElapsed = 0L
     private var lastLocation: Location? = null
     private var lastSpeedTimeMillis = 0L
     private var smoothedSpeedKmh = 0f
@@ -67,6 +69,8 @@ private object SpeedTrackerState {
     @SuppressLint("MissingPermission")
     fun start(context: Context) {
         if (started) return
+        if (SystemClock.elapsedRealtime() - lastStartElapsed < 800L) return
+        lastStartElapsed = SystemClock.elapsedRealtime()
 
         val fineGranted = ContextCompat.checkSelfPermission(
             context,
@@ -214,6 +218,22 @@ private object SpeedTrackerState {
         averageSpeedKmh = if (samples > 0) total / samples else 0f
         minimumSpeedKmh = if (samples > 0) prefs.getFloat(KEY_MIN, 0f) else 0f
         maximumSpeedKmh = if (samples > 0) prefs.getFloat(KEY_MAX, 0f) else 0f
+    }
+
+    fun stop(context: Context) {
+        try {
+            currentListener?.let { listener ->
+                locationManager?.removeUpdates(listener)
+            }
+        } catch (_: SecurityException) {
+        }
+        currentListener = null
+        locationManager = null
+        started = false
+        lastLocation = null
+        lastSpeedTimeMillis = 0L
+        smoothedSpeedKmh = 0f
+        currentSpeedKmh = 0f
     }
 
     fun reset(context: Context) {
