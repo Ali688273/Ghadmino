@@ -16,6 +16,7 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
     var morePage by remember { mutableStateOf<String?>(null) }
     var info by remember { mutableStateOf<String?>(null) }
     var profileName by remember { mutableStateOf(ProfileRepository.load(context).name) }
+    var insights by remember { mutableStateOf(ActivityInsightsRepository.calculate(context, goal)) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
@@ -29,6 +30,7 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
             averageSpeed = speedTracker.averageSpeedKmh
             minimumSpeed = speedTracker.minimumSpeedKmh
             maximumSpeed = speedTracker.maximumSpeedKmh
+            insights = ActivityInsightsRepository.calculate(context, goal)
             delay(1000)
         }
     }
@@ -167,6 +169,9 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
         }
         "extras" -> FullPageDialog("شخصی‌سازی", onClose = { morePage = null }) {
             ProfileExtrasScreen { coins = CoinWallet.balance(context) }
+        }
+        "insights" -> FullPageDialog("تحلیل فعالیت", onClose = { morePage = null }) {
+            ActivityInsightsScreen(insights, ActivityInsightsRepository.hourly(context))
         }
         "history" -> FullPageDialog("تاریخچه ۷ روزه", onClose = { morePage = null }) {
             Column(
@@ -325,6 +330,7 @@ private fun MorePage(
         MoreItem("⭐", "سطح و XP", "سطح کاربر و میزان پیشرفت") { onOpen("level") }
         MoreItem("🎨", "شخصی‌سازی", "قاب، نشان و امکانات قابل خرید") { onOpen("extras") }
         MoreItem("📅", "تاریخچه", "مشاهده قدم‌های روزهای اخیر") { onOpen("history") }
+        MoreItem("📈", "تحلیل فعالیت", "امتیاز، فعالیت ساعتی و پیش‌بینی هدف") { onOpen("insights") }
         MoreItem("🎯", "تنظیم هدف", "تغییر هدف روزانه قدم‌ها") { onOpen("goal") }
         MoreItem("➕", "ثبت فعالیت دستی", "ثبت قدم یا فعالیتی که حسگر ثبت نکرده") { onOpen("manual_activity") }
     }
