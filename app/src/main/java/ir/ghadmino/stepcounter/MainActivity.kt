@@ -4,7 +4,7 @@ import androidx.compose.ui.graphics.vector.ImageVector\nimport androidx.compose.
 fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("ghadmino_ui", Context.MODE_PRIVATE) }
-    var goal by remember { mutableIntStateOf(prefs.getInt("daily_goal", 8000)) }
+    var goal by remember { mutableIntStateOf(ProfileRepository.load(context).dailyGoal) }
     var steps by remember { mutableIntStateOf(StepCounterService.todaySteps) }
     var currentSpeed by remember { mutableFloatStateOf(speedTracker.currentSpeedKmh) }
     var averageSpeed by remember { mutableFloatStateOf(speedTracker.averageSpeedKmh) }
@@ -109,6 +109,8 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
                 maximumSpeed = maximumSpeed,
                 onGoalChanged = {
                     goal = it
+                    val profile = ProfileRepository.load(context)
+                    ProfileRepository.save(context, profile.copy(dailyGoal = it))
                     prefs.edit().putInt("daily_goal", it).apply()
                 }
             )
