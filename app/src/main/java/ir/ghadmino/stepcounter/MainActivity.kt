@@ -184,6 +184,8 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
         "manual_activity" -> FullPageDialog("ثبت فعالیت دستی", onClose = { morePage = null }) {
             ManualActivityScreen()
         }
+        "challenges" -> FullPageDialog("چالش‌ها", onClose = { morePage = null }) { ChallengesScreen { coins = CoinWallet.balance(context) } }
+        "settings" -> FullPageDialog("تنظیمات", onClose = { morePage = null }) { SettingsScreen() }
         "goal" -> FullPageDialog("تنظیم هدف", onClose = { morePage = null }) {
             Column(
                 Modifier.fillMaxWidth(),
