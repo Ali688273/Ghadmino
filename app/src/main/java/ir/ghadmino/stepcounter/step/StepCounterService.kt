@@ -17,6 +17,7 @@ import androidx.core.app.NotificationCompat
 import ir.ghadmino.stepcounter.MainActivity
 import ir.ghadmino.stepcounter.R
 import ir.ghadmino.stepcounter.reward.CoinWallet
+import ir.ghadmino.stepcounter.speed.SpeedTracker
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -24,6 +25,7 @@ import java.util.Locale
 class StepCounterService : Service(), SensorEventListener {
     private lateinit var sensorManager: SensorManager
     private var stepSensor: Sensor? = null
+    private lateinit var speedTracker: SpeedTracker
     private val prefs by lazy { getSharedPreferences("ghadmino_steps", Context.MODE_PRIVATE) }
 
     companion object {
@@ -40,11 +42,23 @@ class StepCounterService : Service(), SensorEventListener {
         super.onCreate()
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, buildNotification())
+
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
         stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
         sensorAvailable = stepSensor != null
-        stepSensor?.let { sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL) }
+        stepSensor?.let {
+            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
+        }
+
+        speedTracker = SpeedTracker(this)
+        speedTracker.start()
+
         loadToday()
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        speedTracker.start()
+        return START_STICKY
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
@@ -58,15 +72,26 @@ class StepCounterService : Service(), SensorEventListener {
         if (last >= 0 && total < last) baseline = total
 
         if (savedDate != null && savedDate != today && baseline >= 0 && last >= baseline) {
-            StepHistory.saveDate(this, savedDate, (last - baseline).coerceAtLeast(0).coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
+            StepHistory.saveDate(
+                this,
+                savedDate,
+                (last - baseline).coerceAtLeast(0).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+            )
         }
 
         if (savedDate != today || baseline < 0) {
             baseline = total
-            prefs.edit().putString(KEY_DATE, today).putLong(KEY_BASELINE, baseline).apply()
+            prefs.edit()
+                .putString(KEY_DATE, today)
+                .putLong(KEY_BASELINE, baseline)
+                .apply()
         }
 
-        todaySteps = (total - baseline).coerceAtLeast(0).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        todaySteps = (total - baseline)
+            .coerceAtLeast(0)
+            .coerceAtMost(Int.MAX_VALUE.toLong())
+            .toInt()
+
         prefs.edit().putLong(KEY_LAST_TOTAL, total).apply()
         CoinWallet.syncStepReward(this, todaySteps)
         updateNotification()
@@ -75,50 +100,85 @@ class StepCounterService : Service(), SensorEventListener {
     private fun loadToday() {
         val today = currentDate()
         val savedDate = prefs.getString(KEY_DATE, null)
+
         if (savedDate != today) {
             if (savedDate != null) {
                 val baseline = prefs.getLong(KEY_BASELINE, -1L)
                 val last = prefs.getLong(KEY_LAST_TOTAL, -1L)
                 if (baseline >= 0 && last >= baseline) {
-                    StepHistory.saveDate(this, savedDate, (last - baseline).coerceAtLeast(0).coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
+                    StepHistory.saveDate(
+                        this,
+                        savedDate,
+                        (last - baseline).coerceAtLeast(0)
+                            .coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+                    )
                 }
             }
+
             todaySteps = 0
-            prefs.edit().putString(KEY_DATE, today).remove(KEY_BASELINE).remove(KEY_LAST_TOTAL).apply()
+            prefs.edit()
+                .putString(KEY_DATE, today)
+                .remove(KEY_BASELINE)
+                .remove(KEY_LAST_TOTAL)
+                .apply()
             return
         }
+
         val baseline = prefs.getLong(KEY_BASELINE, -1L)
         val last = prefs.getLong(KEY_LAST_TOTAL, -1L)
-        todaySteps = if (baseline >= 0 && last >= baseline) (last - baseline).coerceAtMost(Int.MAX_VALUE.toLong()).toInt() else 0
+        todaySteps =
+            if (baseline >= 0 && last >= baseline)
+                (last - baseline).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+            else 0
     }
 
-    private fun currentDate() = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+    private fun currentDate(): String =
+        SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
 
     private fun buildNotification(): Notification {
-        val pendingIntent = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_UPDATE_CURRENT or if (Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0)
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            Intent(this, MainActivity::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT or
+                if (Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0
+        )
+
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher)
             .setContentTitle("قدم‌شمار قدمینو")
             .setContentText("$todaySteps قدم امروز")
             .setContentIntent(pendingIntent)
-            .setOngoing(true).setOnlyAlertOnce(true)
-            .setCategory(NotificationCompat.CATEGORY_SERVICE).build()
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .build()
     }
 
     private fun updateNotification() {
-        getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, buildNotification())
+        getSystemService(NotificationManager::class.java)
+            .notify(NOTIFICATION_ID, buildNotification())
     }
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(CHANNEL_ID, "شمارش قدم", NotificationManager.IMPORTANCE_LOW)
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                "شمارش قدم",
+                NotificationManager.IMPORTANCE_LOW
+            )
             channel.description = "نمایش وضعیت قدم‌شمار قدمینو"
-            getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+            getSystemService(NotificationManager::class.java)
+                .createNotificationChannel(channel)
         }
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
-    override fun onDestroy() { sensorManager.unregisterListener(this); super.onDestroy() }
+
+    override fun onDestroy() {
+        sensorManager.unregisterListener(this)
+        super.onDestroy()
+    }
+
     override fun onBind(intent: Intent?): IBinder? = null
 }
