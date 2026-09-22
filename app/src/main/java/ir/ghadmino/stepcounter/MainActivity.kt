@@ -16,6 +16,7 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
     var morePage by remember { mutableStateOf<String?>(null) }
     var info by remember { mutableStateOf<String?>(null) }
     var profileName by remember { mutableStateOf(ProfileRepository.load(context).name) }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -37,6 +38,7 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
     val calories = steps * 0.04
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -115,6 +117,7 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
             2 -> RewardCenter(
                 coins = coins,
                 adAvailable = false,
+                onCoinsChanged = { coins = CoinWallet.balance(context) },
                 selectedTheme = selectedTheme,
                 onWatchAd = {
                     info = "تبلیغ جایزه‌ای در مرحله نهایی تبلیغات متصل می‌شود."
@@ -198,15 +201,11 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
         }
     }
 
-    info?.let { message ->
-        LaunchedEffect(message) {
-            delay(2500)
+    LaunchedEffect(info) {
+        info?.let { message ->
+            snackbarHostState.showSnackbar(message)
             info = null
         }
-        SnackbarHost(
-            hostState = remember { SnackbarHostState() },
-            modifier = Modifier.padding(bottom = 80.dp)
-        )
     }
 }
 
