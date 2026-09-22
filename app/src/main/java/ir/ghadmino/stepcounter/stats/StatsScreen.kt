@@ -20,6 +20,8 @@ import kotlin.math.max
 
 @Composable
 fun StatsScreen(stats: GhadminoStats, goal: Int) {
+    val context = LocalContext.current
+    val speed = SpeedTracker(context)
     val week = stats.days.take(7)
     val weekTotal = week.sumOf { it.second }
     val weekAverage = if (week.isEmpty()) 0 else weekTotal / week.size
@@ -138,6 +140,19 @@ fun StatsScreen(stats: GhadminoStats, goal: Int) {
                     }
                     Spacer(Modifier.height(6.dp))
                     Text("هدف روزانه: " + goal + " قدم", style = MaterialTheme.typography.labelMedium)
+                }
+            }
+        }
+        item {
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp)) {
+                    Text("خلاصه سرعت امروز", style = MaterialTheme.typography.titleLarge)
+                    Spacer(Modifier.height(8.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Metric(Modifier.weight(1f), "میانگین", String.format("%.1f", speed.averageSpeedKmh), "km/h")
+                        Metric(Modifier.weight(1f), "کمینه", String.format("%.1f", speed.minimumSpeedKmh), "km/h")
+                        Metric(Modifier.weight(1f), "بیشینه", String.format("%.1f", speed.maximumSpeedKmh), "km/h")
+                    }
                 }
             }
         }
