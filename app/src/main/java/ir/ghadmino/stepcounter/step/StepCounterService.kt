@@ -17,6 +17,7 @@ import androidx.core.app.NotificationCompat
 import ir.ghadmino.stepcounter.MainActivity
 import ir.ghadmino.stepcounter.R
 import ir.ghadmino.stepcounter.reward.CoinWallet
+import ir.ghadmino.stepcounter.insights.ActivityInsightsRepository
 import ir.ghadmino.stepcounter.speed.SpeedTracker
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -87,10 +88,16 @@ class StepCounterService : Service(), SensorEventListener {
                 .apply()
         }
 
-        todaySteps = (total - baseline)
+        val newTodaySteps = (total - baseline)
             .coerceAtLeast(0)
             .coerceAtMost(Int.MAX_VALUE.toLong())
             .toInt()
+
+        val delta = (newTodaySteps - todaySteps).coerceAtLeast(0)
+        todaySteps = newTodaySteps
+        if (delta > 0) {
+            ActivityInsightsRepository.recordStepChange(this, delta)
+        }
 
         prefs.edit().putLong(KEY_LAST_TOTAL, total).apply()
         CoinWallet.syncStepReward(this, todaySteps)
