@@ -38,7 +38,7 @@ fun ActivityInsightsScreen(insights: ActivityInsights, hourly: List<Int>) {
                     Text("\${insights.score} از ۱۰۰", style = MaterialTheme.typography.displaySmall)
                     Text(insights.message)
                     Spacer(Modifier.height(10.dp))
-                    LinearProgressIndicator(progress = { insights.score / 100f }, Modifier.fillMaxWidth())
+                    LinearProgressIndicator(progress = insights.score / 100f, Modifier.fillMaxWidth())
                 }
             }
         }
