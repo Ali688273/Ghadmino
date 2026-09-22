@@ -19,6 +19,7 @@ import ir.ghadmino.stepcounter.R
 import ir.ghadmino.stepcounter.reward.CoinWallet
 import ir.ghadmino.stepcounter.insights.ActivityInsightsRepository
 import ir.ghadmino.stepcounter.speed.SpeedTracker
+import ir.ghadmino.stepcounter.widget.GhadminoWidgetProvider
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -97,11 +98,15 @@ class StepCounterService : Service(), SensorEventListener {
         todaySteps = newTodaySteps
         if (delta > 0) {
             ActivityInsightsRepository.recordStepChange(this, delta)
+            sendBroadcast(Intent(GhadminoWidgetProvider.ACTION_REFRESH).setPackage(packageName))
         }
 
         prefs.edit().putLong(KEY_LAST_TOTAL, total).apply()
         CoinWallet.syncStepReward(this, todaySteps)
         updateNotification()
+        if (delta == 0) {
+            sendBroadcast(Intent(GhadminoWidgetProvider.ACTION_REFRESH).setPackage(packageName))
+        }
     }
 
     private fun loadToday() {
