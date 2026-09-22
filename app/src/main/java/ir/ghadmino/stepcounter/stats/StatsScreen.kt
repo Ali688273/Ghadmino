@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import kotlin.math.max
 
 @Composable
@@ -169,7 +170,8 @@ fun StatsScreen(stats: GhadminoStats, goal: Int) {
 
 @Composable
 private fun SpeedChart() {
-    val points = SpeedHistoryRepository.recent(7)
+    val context = LocalContext.current
+    val points = SpeedHistoryRepository.recent(context, 7)
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
