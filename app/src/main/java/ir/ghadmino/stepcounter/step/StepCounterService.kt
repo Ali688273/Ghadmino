@@ -18,7 +18,6 @@ import ir.ghadmino.stepcounter.MainActivity
 import ir.ghadmino.stepcounter.R
 import ir.ghadmino.stepcounter.reward.CoinWallet
 import ir.ghadmino.stepcounter.insights.ActivityInsightsRepository
-import ir.ghadmino.stepcounter.speed.SpeedTracker
 import ir.ghadmino.stepcounter.widget.GhadminoWidgetProvider
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -27,7 +26,6 @@ import java.util.Locale
 class StepCounterService : Service(), SensorEventListener {
     private lateinit var sensorManager: SensorManager
     private var stepSensor: Sensor? = null
-    private lateinit var speedTracker: SpeedTracker
     private val prefs by lazy { getSharedPreferences("ghadmino_steps", Context.MODE_PRIVATE) }
 
     companion object {
@@ -52,14 +50,10 @@ class StepCounterService : Service(), SensorEventListener {
             sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
         }
 
-        speedTracker = SpeedTracker(this)
-        speedTracker.start()
-
         loadToday()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        speedTracker.start()
         return START_STICKY
     }
 
