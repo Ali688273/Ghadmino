@@ -1,6 +1,7 @@
 package ir.ghadmino.stepcounter.reward
 
 import android.content.Context
+import ir.ghadmino.stepcounter.step.StepHistory
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -23,16 +24,27 @@ object CoinWallet {
     }
 
     fun syncStepReward(c: Context, steps: Int) {
+        val prefs = p(c)
+        val date = today()
         val blocks = steps.coerceAtLeast(0) / 1000
-        val old = p(c).getInt("rewarded_blocks", 0)
+        val key = "rewarded_blocks_" + date
+        var old = prefs.getInt(key, -1)
+
+        if (old < 0) {
+            val legacy = prefs.getInt("rewarded_blocks", -1)
+            old = if (legacy in 0..blocks) legacy else 0
+        }
+
         if (blocks > old) {
             add(c, (blocks - old) * 5)
-            p(c).edit().putInt("rewarded_blocks", blocks).apply()
+            prefs.edit().putInt(key, blocks).putInt("rewarded_blocks", blocks).apply()
+        } else if (!prefs.contains(key)) {
+            prefs.edit().putInt(key, blocks).apply()
         }
-        val lifetime = p(c).getInt("lifetime_steps", 0)
-        val newLifetime = maxOf(lifetime, steps)
-        p(c).edit().putInt("lifetime_steps", newLifetime).apply()
-        checkMilestones(c, newLifetime)
+
+        val lifetime = StepHistory.totalLifetime(c)
+        prefs.edit().putInt("lifetime_steps", lifetime).apply()
+        checkMilestones(c, lifetime)
     }
 
     private fun checkMilestones(c: Context, steps: Int) {
