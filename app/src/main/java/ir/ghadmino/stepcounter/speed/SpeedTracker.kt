@@ -11,6 +11,7 @@ import androidx.core.content.ContextCompat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.abs
 import kotlin.math.max
 
 class SpeedTracker(private val context: Context) {
@@ -33,7 +34,7 @@ class SpeedTracker(private val context: Context) {
     }
 
     fun stop() {
-        // عمدی: ردیابی سرعت متعلق به سرویس پس‌زمینه است و با بسته شدن Activity متوقف نمی‌شود.
+        // عمدی: سرویس قدم‌شمار مالک چرخه عمر GPS است تا با بسته‌شدن Activity ردیابی متوقف نشود.
     }
 
     fun resetDailyStats() {
@@ -61,16 +62,19 @@ private object SpeedTrackerState {
     private var started = false
     private var lastLocation: Location? = null
     private var lastSpeedTimeMillis = 0L
+    private var smoothedSpeedKmh = 0f
 
     @SuppressLint("MissingPermission")
     fun start(context: Context) {
         if (started) return
 
         val fineGranted = ContextCompat.checkSelfPermission(
-            context, Manifest.permission.ACCESS_FINE_LOCATION
+            context,
+            Manifest.permission.ACCESS_FINE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
         val coarseGranted = ContextCompat.checkSelfPermission(
-            context, Manifest.permission.ACCESS_COARSE_LOCATION
+            context,
+            Manifest.permission.ACCESS_COARSE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
 
         if (!fineGranted && !coarseGranted) return
@@ -123,30 +127,53 @@ private object SpeedTrackerState {
         if (location.hasAccuracy() && location.accuracy > 60f) return
 
         val now = System.currentTimeMillis()
-        var speed = if (location.hasSpeed()) {
+        val rawGpsSpeed = if (location.hasSpeed()) {
             max(0f, location.speed * 3.6f)
         } else 0f
 
         val previous = lastLocation
-        if (previous != null && lastSpeedTimeMillis > 0L) {
-            val seconds = (now - lastSpeedTimeMillis) / 1000f
-            if (seconds >= 0.5f) {
-                val meters = previous.distanceTo(location)
-                if (meters >= 0f) {
-                    val calculated = (meters / seconds) * 3.6f
-                    if (calculated > 0.1f && speed <= 0.1f) speed = calculated
-                    else if (calculated > 0.1f) speed = (speed + calculated) / 2f
-                }
+        val seconds = if (lastSpeedTimeMillis > 0L) {
+            (now - lastSpeedTimeMillis) / 1000f
+        } else 0f
+
+        var calculatedSpeed = 0f
+        if (previous != null && seconds >= 0.5f && seconds <= 10f) {
+            val meters = previous.distanceTo(location)
+            if (meters >= 0f) {
+                calculatedSpeed = (meters / seconds) * 3.6f
             }
+        }
+
+        var speed = when {
+            rawGpsSpeed > 0.2f && calculatedSpeed > 0.2f ->
+                (rawGpsSpeed * 0.65f) + (calculatedSpeed * 0.35f)
+            rawGpsSpeed > 0.2f -> rawGpsSpeed
+            calculatedSpeed > 0.2f -> calculatedSpeed
+            else -> 0f
         }
 
         lastLocation = Location(location)
         lastSpeedTimeMillis = now
 
-        speed = speed.coerceIn(0f, 25f)
-        currentSpeedKmh = speed
+        speed = speed.coerceIn(0f, 35f)
 
-        if (speed >= 0.5f) {
+        if (speed < 0.4f) {
+            smoothedSpeedKmh *= 0.55f
+            if (smoothedSpeedKmh < 0.15f) smoothedSpeedKmh = 0f
+        } else {
+            val jump = abs(speed - smoothedSpeedKmh)
+            val factor = when {
+                smoothedSpeedKmh == 0f -> 1f
+                jump > 12f -> 0.20f
+                jump > 6f -> 0.35f
+                else -> 0.55f
+            }
+            smoothedSpeedKmh += (speed - smoothedSpeedKmh) * factor
+        }
+
+        currentSpeedKmh = smoothedSpeedKmh.coerceIn(0f, 35f)
+
+        if (currentSpeedKmh >= 0.5f) {
             val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             val date = today()
 
@@ -155,10 +182,10 @@ private object SpeedTrackerState {
             }
 
             val samples = prefs.getLong(KEY_SAMPLES, 0L) + 1L
-            val total = prefs.getFloat(KEY_TOTAL, 0f) + speed
+            val total = prefs.getFloat(KEY_TOTAL, 0f) + currentSpeedKmh
             val oldMin = prefs.getFloat(KEY_MIN, Float.MAX_VALUE)
-            val min = minOf(oldMin, speed)
-            val max = maxOf(prefs.getFloat(KEY_MAX, 0f), speed)
+            val min = minOf(oldMin, currentSpeedKmh)
+            val max = maxOf(prefs.getFloat(KEY_MAX, 0f), currentSpeedKmh)
 
             prefs.edit()
                 .putString(KEY_DATE, date)
@@ -205,6 +232,7 @@ private object SpeedTrackerState {
         maximumSpeedKmh = 0f
         lastLocation = null
         lastSpeedTimeMillis = 0L
+        smoothedSpeedKmh = 0f
     }
 
     private fun today(): String =
