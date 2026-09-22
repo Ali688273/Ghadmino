@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@drawable/widget_background">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="قدمینو"
+        android:textStyle="bold"
+        android:textSize="16sp"
+        android:textColor="@android:color/white" />
+
+    <TextView
+        android:id="@+id/widget_steps"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="0"
+        android:textStyle="bold"
+        android:textSize="32sp"
+        android:textColor="@android:color/white" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="قدم امروز"
+        android:textSize="13sp"
+        android:textColor="@android:color/white" />
+
+    <TextView
+        android:id="@+id/widget_goal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="هدف 8000 قدم"
+        android:textSize="12sp"
+        android:textColor="@android:color/white" />
+
+    <TextView
+        android:id="@+id/widget_progress"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:text="0٪"
+        android:textStyle="bold"
+        android:textSize="13sp"
+        android:textColor="@android:color/white" />
+
+</LinearLayout>
