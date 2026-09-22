@@ -1,5 +1,6 @@
 package ir.ghadmino.stepcounter.widget
 
+import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
@@ -8,6 +9,7 @@ import android.content.Intent
 import android.widget.RemoteViews
 import ir.ghadmino.stepcounter.MainActivity
 import ir.ghadmino.stepcounter.R
+import ir.ghadmino.stepcounter.profile.ProfileRepository
 import ir.ghadmino.stepcounter.step.StepCounterService
 
 class GhadminoWidgetProvider : AppWidgetProvider() {
@@ -37,9 +39,8 @@ class GhadminoWidgetProvider : AppWidgetProvider() {
             if (ids.isEmpty()) return
 
             val steps = StepCounterService.todaySteps
-            val goal = context.getSharedPreferences("ghadmino_ui", Context.MODE_PRIVATE)
-                .getInt("daily_goal", 8000)
-            val progress = if (goal > 0) ((steps * 100L) / goal).coerceIn(0L, 100L) else 0L
+            val goal = ProfileRepository.load(context).dailyGoal.coerceAtLeast(1)
+            val progress = ((steps * 100L) / goal).coerceIn(0L, 100L)
 
             ids.forEach { id ->
                 val views = RemoteViews(context.packageName, R.layout.widget_ghadmino)
@@ -48,12 +49,11 @@ class GhadminoWidgetProvider : AppWidgetProvider() {
                 views.setTextViewText(R.id.widget_progress, "$progress٪")
                 views.setOnClickPendingIntent(
                     R.id.widget_root,
-                    android.app.PendingIntent.getActivity(
+                    PendingIntent.getActivity(
                         context,
                         7000 + id,
                         Intent(context, MainActivity::class.java),
-                        android.app.PendingIntent.FLAG_UPDATE_CURRENT or
-                            android.app.PendingIntent.FLAG_IMMUTABLE
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                     )
                 )
                 manager.updateAppWidget(id, views)
