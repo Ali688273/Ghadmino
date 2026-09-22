@@ -28,6 +28,7 @@ object LevelRepository {
 
     fun recordMission(context: Context) {
         val p = context.getSharedPreferences("ghadmino_level", Context.MODE_PRIVATE)
-        p.edit().putInt("missions_completed", p.getInt("missions_completed", 0) + 1).apply()
+        val current = p.getInt("missions_completed", 0)
+        p.edit().putInt("missions_completed", current + 1).apply()
     }
 }
