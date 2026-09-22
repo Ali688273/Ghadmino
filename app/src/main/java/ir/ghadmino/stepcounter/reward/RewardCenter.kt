@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import ir.ghadmino.stepcounter.level.LevelRepository
 import ir.ghadmino.stepcounter.step.StepCounterService
 
 data class ThemeOffer(val id: String, val title: String, val cost: Int, val emoji: String)
@@ -105,8 +106,7 @@ fun RewardCenter(
                     completed = steps >= 3000,
                     claimed = isMissionClaimed(context, "3000"),
                     onClaim = {
-                        CoinWallet.claimDailyMission(context, "3000", 3000, 10, steps)
-                        onCoinsChanged()
+                        claimMission(context, "3000", 3000, 10, steps, onCoinsChanged)
                     }
                 )
                 MissionRow(
@@ -115,8 +115,7 @@ fun RewardCenter(
                     completed = steps >= 7000,
                     claimed = isMissionClaimed(context, "7000"),
                     onClaim = {
-                        CoinWallet.claimDailyMission(context, "7000", 7000, 20, steps)
-                        onCoinsChanged()
+                        claimMission(context, "7000", 7000, 20, steps, onCoinsChanged)
                     }
                 )
                 MissionRow(
@@ -125,8 +124,7 @@ fun RewardCenter(
                     completed = steps >= 10000,
                     claimed = isMissionClaimed(context, "10000"),
                     onClaim = {
-                        CoinWallet.claimDailyMission(context, "10000", 10000, 40, steps)
-                        onCoinsChanged()
+                        claimMission(context, "10000", 10000, 40, steps, onCoinsChanged)
                     }
                 )
             }
@@ -233,6 +231,28 @@ fun RewardCenter(
                 }
             }
         }
+    }
+}
+
+private fun claimMission(
+    context: android.content.Context,
+    missionId: String,
+    target: Int,
+    reward: Int,
+    steps: Int,
+    onCoinsChanged: () -> Unit
+) {
+    val claimed = CoinWallet.claimDailyMission(
+        context = context,
+        missionId = missionId,
+        target = target,
+        reward = reward,
+        steps = steps
+    )
+
+    if (claimed) {
+        LevelRepository.recordMission(context)
+        onCoinsChanged()
     }
 }
 
