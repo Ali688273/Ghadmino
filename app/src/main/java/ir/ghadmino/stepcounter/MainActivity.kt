@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import ir.ghadmino.stepcounter.speed.SpeedTracker
 import ir.ghadmino.stepcounter.step.StepCounterService
+import ir.ghadmino.stepcounter.step.StepHistory
 import ir.ghadmino.stepcounter.ui.theme.GhadminoTheme
 import kotlinx.coroutines.delay
 
@@ -67,12 +68,13 @@ fun GhadminoApp(speedTracker: SpeedTracker) {
     var minimumSpeed by remember { mutableFloatStateOf(speedTracker.minimumSpeedKmh) }
     var maximumSpeed by remember { mutableFloatStateOf(speedTracker.maximumSpeedKmh) }
     var showGoalDialog by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { while (true) { steps = StepCounterService.todaySteps; currentSpeed = speedTracker.currentSpeedKmh; averageSpeed = speedTracker.averageSpeedKmh; minimumSpeed = speedTracker.minimumSpeedKmh; maximumSpeed = speedTracker.maximumSpeedKmh; delay(1000) } }
+    var showHistory by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { while (true) { steps = StepCounterService.todaySteps; StepHistory.saveToday(context, steps); currentSpeed = speedTracker.currentSpeedKmh; averageSpeed = speedTracker.averageSpeedKmh; minimumSpeed = speedTracker.minimumSpeedKmh; maximumSpeed = speedTracker.maximumSpeedKmh; delay(1000) } }
     val progress = if (goal > 0) (steps.toFloat() / goal.toFloat()).coerceIn(0f, 1f) else 0f
     val distanceKm = steps * 0.00075
     val calories = steps * 0.04
     Scaffold(topBar = {
-        TopAppBar(title = { Column { Text("قدم‌شمار قدمینو", fontWeight = FontWeight.Bold); Text("فعالیت امروز", style = MaterialTheme.typography.labelSmall) } }, actions = { IconButton(onClick = { showGoalDialog = true }) { Icon(Icons.Default.Settings, "تنظیمات") } })
+        TopAppBar(title = { Column { Text("قدم‌شمار قدمینو", fontWeight = FontWeight.Bold); Text("فعالیت امروز", style = MaterialTheme.typography.labelSmall) } }, actions = { IconButton(onClick = { showHistory = true }) { Icon(Icons.Default.Route, "تاریخچه") }; IconButton(onClick = { showGoalDialog = true }) { Icon(Icons.Default.Settings, "تنظیمات") } })
     }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp, vertical = 12.dp).verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
             Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
@@ -102,6 +104,7 @@ fun GhadminoApp(speedTracker: SpeedTracker) {
             Spacer(Modifier.height(20.dp)); Text("قدمینو • نسخه 1.0.0", style = MaterialTheme.typography.labelSmall); Spacer(Modifier.height(8.dp))
         }
     }
+    if (showHistory) AlertDialog(onDismissRequest = { showHistory = false }, title = { Text("۷ روز اخیر") }, text = { Column { StepHistory.recent(context).forEach { (date, value) -> Text(date + "   " + value + " قدم", modifier = Modifier.padding(vertical = 5.dp)) } } }, confirmButton = { Button({ showHistory = false }) { Text("بستن") } })
     if (showGoalDialog) AlertDialog(onDismissRequest = { showGoalDialog = false }, title = { Text("تنظیم هدف") }, text = { Column { Text("هدف فعلی: " + goal + " قدم"); Spacer(Modifier.height(12.dp)); Slider(value = goal.toFloat(), onValueChange = { goal = it.toInt(); prefs.edit().putInt("daily_goal", goal).apply() }, valueRange = 1000f..30000f, steps = 28) } }, confirmButton = { Button({ showGoalDialog = false }) { Text("ذخیره") } }, dismissButton = { OutlinedButton({ showGoalDialog = false }) { Text("بستن") } })
 }
 
