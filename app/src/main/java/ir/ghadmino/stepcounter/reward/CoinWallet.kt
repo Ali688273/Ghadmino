@@ -53,4 +53,14 @@ object CoinWallet {
         p(c).edit().putBoolean("unlock_" + id, true).apply()
         return true
     }
+
+    fun isUnlocked(c: Context, id: String): Boolean =
+        p(c).getBoolean("unlock_" + id, false)
+
+    fun setSelectedTheme(c: Context, themeId: String) {
+        p(c).edit().putString("selected_theme", themeId).apply()
+    }
+
+    fun selectedTheme(c: Context): String =
+        p(c).getString("selected_theme", "default") ?: "default"
 }
