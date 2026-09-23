@@ -3,6 +3,10 @@ package ir.ghadmino.stepcounter.profile
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Paid
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,6 +26,7 @@ fun ProfileExtrasScreen(onChanged: () -> Unit = {}) {
     val unlockedCount = ProfileExtrasRepository.items.count {
         ProfileExtrasRepository.isUnlocked(context, it.id)
     }
+    val selectedItem = ProfileExtrasRepository.items.firstOrNull { it.id == selected }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -35,25 +40,43 @@ fun ProfileExtrasScreen(onChanged: () -> Unit = {}) {
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
             ) {
-                Row(
-                    Modifier.fillMaxWidth().padding(18.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(Modifier.weight(1f)) {
+                Column(Modifier.padding(18.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Paid, null, Modifier.size(30.dp))
+                        Spacer(Modifier.width(10.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                "فروشگاه شخصی‌سازی",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                unlockedCount.toString() + " از " +
+                                    ProfileExtrasRepository.items.size + " آیتم باز شده"
+                            )
+                        }
                         Text(
-                            "فروشگاه شخصی‌سازی",
-                            style = MaterialTheme.typography.titleLarge,
+                            coins.toString() + " 🪙",
+                            style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
-                        Spacer(Modifier.height(4.dp))
-                        Text(unlockedCount.toString() + " از " +
-                            ProfileExtrasRepository.items.size + " آیتم باز شده")
                     }
-                    Text(
-                        coins.toString() + " 🪙",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+
+                    selectedItem?.let {
+                        Spacer(Modifier.height(12.dp))
+                        HorizontalDivider()
+                        Spacer(Modifier.height(10.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(it.emoji, style = MaterialTheme.typography.headlineSmall)
+                            Spacer(Modifier.width(8.dp))
+                            Column {
+                                Text("آیتم فعال", style = MaterialTheme.typography.labelMedium)
+                                Text(it.title, fontWeight = FontWeight.Bold)
+                            }
+                            Spacer(Modifier.weight(1f))
+                            Icon(Icons.Default.CheckCircle, null)
+                        }
+                    }
                 }
             }
         }
@@ -83,7 +106,7 @@ fun ProfileExtrasScreen(onChanged: () -> Unit = {}) {
                     if (success) {
                         selected = item.id
                         coins = CoinWallet.balance(context)
-                        message = "آیتم انتخاب شد."
+                        message = "«" + item.title + "» فعال شد."
                         onChanged()
                     } else {
                         message = "سکه کافی نیست."
@@ -118,7 +141,7 @@ fun ProfileExtrasScreen(onChanged: () -> Unit = {}) {
                     if (success) {
                         selected = item.id
                         coins = CoinWallet.balance(context)
-                        message = "امکان ویژه فعال شد."
+                        message = "«" + item.title + "» فعال شد."
                         onChanged()
                     } else {
                         message = "سکه کافی نیست."
@@ -129,14 +152,21 @@ fun ProfileExtrasScreen(onChanged: () -> Unit = {}) {
 
         message?.let { text ->
             item {
-                Text(
-                    text,
-                    color = if (text == "سکه کافی نیست.")
-                        MaterialTheme.colorScheme.error
-                    else
-                        MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold
-                )
+                Card(
+                    Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (text == "سکه کافی نیست.")
+                            MaterialTheme.colorScheme.errorContainer
+                        else
+                            MaterialTheme.colorScheme.secondaryContainer
+                    )
+                ) {
+                    Text(
+                        text,
+                        Modifier.padding(14.dp),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
 
@@ -164,7 +194,15 @@ private fun ExtraItemCard(
     selected: Boolean,
     onClick: () -> Unit
 ) {
-    Card(Modifier.fillMaxWidth()) {
+    Card(
+        Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (selected)
+                MaterialTheme.colorScheme.secondaryContainer
+            else
+                MaterialTheme.colorScheme.surface
+        )
+    ) {
         Row(
             Modifier.fillMaxWidth().padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -175,21 +213,24 @@ private fun ExtraItemCard(
                 Text(item.title, fontWeight = FontWeight.Bold)
                 Text(
                     when {
-                        selected -> "فعال"
-                        unlocked -> "باز شده؛ برای فعال‌سازی لمس کن"
+                        selected -> "فعال است"
+                        unlocked -> "باز شده؛ آماده انتخاب"
                         else -> item.cost.toString() + " سکه"
                     },
                     style = MaterialTheme.typography.bodySmall
                 )
             }
-            Button(onClick = onClick) {
-                Text(
-                    when {
-                        selected -> "فعال"
-                        unlocked -> "انتخاب"
-                        else -> "باز کردن"
+
+            if (selected) {
+                Icon(Icons.Default.CheckCircle, null)
+            } else {
+                Button(onClick = onClick) {
+                    if (!unlocked) {
+                        Icon(Icons.Default.Lock, null, Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
                     }
-                )
+                    Text(if (unlocked) "انتخاب" else "باز کردن")
+                }
             }
         }
     }
