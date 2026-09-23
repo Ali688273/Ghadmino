@@ -99,4 +99,6 @@ dependencies {
     implementation(
         "androidx.datastore:datastore-preferences:1.1.0"
     )
+
+    implementation("androidx.health.connect:connect-client:1.1.0")
 }
