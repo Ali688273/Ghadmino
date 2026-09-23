@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import ir.ghadmino.stepcounter.reward.CoinWallet
+import ir.ghadmino.stepcounter.backup.BackupScreen
 import ir.ghadmino.stepcounter.insights.ActivityInsightsRepository
 import ir.ghadmino.stepcounter.insights.ActivityInsightsScreen
 import ir.ghadmino.stepcounter.health.HealthConnectScreen
@@ -294,6 +295,9 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
         "plan" -> FullPageDialog("برنامه افزایش قدم", onClose = { morePage = null }) {
             StepPlanScreen()
         }
+        "backup" -> FullPageDialog("پشتیبان‌گیری و بازیابی", onClose = { morePage = null }) {
+            BackupScreen()
+        }
         "goal" -> FullPageDialog("تنظیم هدف", onClose = { morePage = null }) {
             Column(
                 Modifier.fillMaxWidth(),
@@ -438,6 +442,7 @@ private fun MorePage(
         MoreItem("❤️", "Health Connect", "اتصال قدمینو به داده‌های سلامت اندروید") { onOpen("health") }
         MoreItem("🏃", "تمرین پیاده‌روی", "شروع، توقف و ثبت یک جلسه واقعی") { onOpen("workout") }
         MoreItem("📆", "برنامه افزایش قدم", "هدف‌گذاری تدریجی و قابل پیگیری") { onOpen("plan") }
+        MoreItem("💾", "پشتیبان‌گیری", "ذخیره و بازیابی رایگان اطلاعات روی فایل") { onOpen("backup") }
         MoreItem("➕", "ثبت فعالیت دستی", "ثبت قدم یا فعالیتی که حسگر ثبت نکرده") { onOpen("manual_activity") }
     }
 }
