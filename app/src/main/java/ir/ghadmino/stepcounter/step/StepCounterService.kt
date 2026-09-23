@@ -30,6 +30,16 @@ class StepCounterService : Service(), SensorEventListener {
 
     companion object {
         @Volatile var todaySteps = 0
+        fun persistedTodaySteps(context: Context): Int {
+            val prefs = context.getSharedPreferences("ghadmino_steps", Context.MODE_PRIVATE)
+            val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+            if (prefs.getString(KEY_DATE, null) != today) return 0
+            val baseline = prefs.getLong(KEY_BASELINE, -1L)
+            val last = prefs.getLong(KEY_LAST_TOTAL, -1L)
+            if (baseline < 0L || last < baseline) return 0
+            return (last - baseline).coerceAtLeast(0L)
+                .coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        }
         @Volatile var sensorAvailable = false
         private const val CHANNEL_ID = "ghadmino_steps"
         private const val NOTIFICATION_ID = 1001
