@@ -2,6 +2,8 @@ package ir.ghadmino.stepcounter.reward
 
 import android.content.Context
 import ir.ghadmino.stepcounter.step.StepHistory
+import ir.ghadmino.stepcounter.achievement.AchievementRepository
+import ir.ghadmino.stepcounter.level.LevelRepository
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -40,6 +42,15 @@ object CoinWallet {
         val lifetime = StepHistory.totalLifetime(c)
         prefs.edit().putInt("lifetime_steps", lifetime).apply()
         checkMilestones(c, lifetime)
+
+        // Achievement evaluation is throttled to meaningful step/date changes
+        // so the main refresh loop does not repeatedly scan the full history.
+        val achievementCheckKey = "achievement_check_" + date
+        val currentCheckKey = date + ":" + blocks
+        if (prefs.getString(achievementCheckKey, null) != currentCheckKey) {
+            AchievementRepository.evaluate(c)
+            prefs.edit().putString(achievementCheckKey, currentCheckKey).apply()
+        }
     }
 
     private fun checkMilestones(c: Context, steps: Int) {
@@ -73,6 +84,7 @@ object CoinWallet {
         val key = "mission_" + missionId + "_date"
         if (p(c).getString(key, null) == today()) return false
         add(c, reward)
+        LevelRepository.recordMission(c)
         p(c).edit().putString(key, today()).apply()
         return true
     }
