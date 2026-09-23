@@ -80,7 +80,7 @@ fun ChallengesScreen(onChanged: () -> Unit = {}) {
                     Spacer(Modifier.height(12.dp))
 
                     LinearProgressIndicator(
-                        progress = { progress.percent / 100f },
+                        progress = progress.percent / 100f,
                         modifier = Modifier.fillMaxWidth()
                     )
 
