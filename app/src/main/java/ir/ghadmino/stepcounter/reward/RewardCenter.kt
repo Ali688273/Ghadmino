@@ -243,7 +243,7 @@ private fun claimMission(
     onCoinsChanged: () -> Unit
 ) {
     val claimed = CoinWallet.claimDailyMission(
-        context = context,
+        c = context,
         missionId = missionId,
         target = target,
         reward = reward,
