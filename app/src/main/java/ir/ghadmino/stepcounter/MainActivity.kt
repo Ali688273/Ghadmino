@@ -33,6 +33,8 @@ import ir.ghadmino.stepcounter.reward.CoinWallet
 import ir.ghadmino.stepcounter.insights.ActivityInsightsRepository
 import ir.ghadmino.stepcounter.insights.ActivityInsightsScreen
 import ir.ghadmino.stepcounter.health.HealthConnectScreen
+import ir.ghadmino.stepcounter.workout.WorkoutScreen
+import ir.ghadmino.stepcounter.plan.StepPlanScreen
 import ir.ghadmino.stepcounter.activity.ManualActivityScreen
 import ir.ghadmino.stepcounter.challenge.ChallengesScreen
 import ir.ghadmino.stepcounter.settings.SettingsScreen
@@ -286,6 +288,12 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
         "health" -> FullPageDialog("Health Connect", onClose = { morePage = null }) {
             HealthConnectScreen()
         }
+        "workout" -> FullPageDialog("تمرین پیاده‌روی", onClose = { morePage = null }) {
+            WorkoutScreen()
+        }
+        "plan" -> FullPageDialog("برنامه افزایش قدم", onClose = { morePage = null }) {
+            StepPlanScreen()
+        }
         "goal" -> FullPageDialog("تنظیم هدف", onClose = { morePage = null }) {
             Column(
                 Modifier.fillMaxWidth(),
@@ -428,6 +436,8 @@ private fun MorePage(
         MoreItem("📈", "تحلیل فعالیت", "امتیاز، فعالیت ساعتی و پیش‌بینی هدف") { onOpen("insights") }
         MoreItem("🎯", "تنظیم هدف", "تغییر هدف روزانه قدم‌ها") { onOpen("goal") }
         MoreItem("❤️", "Health Connect", "اتصال قدمینو به داده‌های سلامت اندروید") { onOpen("health") }
+        MoreItem("🏃", "تمرین پیاده‌روی", "شروع، توقف و ثبت یک جلسه واقعی") { onOpen("workout") }
+        MoreItem("📆", "برنامه افزایش قدم", "هدف‌گذاری تدریجی و قابل پیگیری") { onOpen("plan") }
         MoreItem("➕", "ثبت فعالیت دستی", "ثبت قدم یا فعالیتی که حسگر ثبت نکرده") { onOpen("manual_activity") }
     }
 }
