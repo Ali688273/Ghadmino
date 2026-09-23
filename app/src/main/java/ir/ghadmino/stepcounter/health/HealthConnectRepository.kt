@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.aggregate.AggregateRequest
 import androidx.health.connect.client.records.StepsRecord
+import androidx.health.connect.client.records.DistanceRecord
+import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
 import androidx.health.connect.client.time.TimeRangeFilter
 import java.time.Instant
 import java.time.ZoneId
@@ -38,6 +40,32 @@ object HealthConnectRepository {
             )
         )
         return result[StepsRecord.COUNT_TOTAL]
+    }
+
+    suspend fun todayDistanceMeters(context: Context): Double? {
+        val healthClient = client(context) ?: return null
+        val zone = ZoneId.systemDefault()
+        val start = ZonedDateTime.now(zone).toLocalDate().atStartOfDay(zone).toInstant()
+        val result = healthClient.aggregate(
+            AggregateRequest(
+                metrics = setOf(DistanceRecord.DISTANCE_TOTAL),
+                timeRangeFilter = TimeRangeFilter.between(start, Instant.now())
+            )
+        )
+        return result[DistanceRecord.DISTANCE_TOTAL]?.inMeters
+    }
+
+    suspend fun todayCalories(context: Context): Double? {
+        val healthClient = client(context) ?: return null
+        val zone = ZoneId.systemDefault()
+        val start = ZonedDateTime.now(zone).toLocalDate().atStartOfDay(zone).toInstant()
+        val result = healthClient.aggregate(
+            AggregateRequest(
+                metrics = setOf(TotalCaloriesBurnedRecord.ENERGY_TOTAL),
+                timeRangeFilter = TimeRangeFilter.between(start, Instant.now())
+            )
+        )
+        return result[TotalCaloriesBurnedRecord.ENERGY_TOTAL]?.inKilocalories
     }
 
     fun manageDataIntent(context: Context) =
