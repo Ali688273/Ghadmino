@@ -53,7 +53,7 @@ fun LevelScreen() {
                 Spacer(Modifier.height(16.dp))
 
                 LinearProgressIndicator(
-                    progress = { info.progress },
+                    progress = info.progress,
                     modifier = Modifier.fillMaxWidth()
                 )
 
