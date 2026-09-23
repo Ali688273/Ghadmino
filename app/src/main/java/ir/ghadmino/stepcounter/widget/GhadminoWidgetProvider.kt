@@ -37,7 +37,7 @@ class GhadminoWidgetProvider : AppWidgetProvider() {
             val ids = manager.getAppWidgetIds(component)
             if (ids.isEmpty()) return
 
-            val steps = StepCounterService.todaySteps
+            val steps = StepCounterService.persistedTodaySteps(context)
             val goal = ProfileRepository.load(context).dailyGoal.coerceAtLeast(1)
             val progress = ((steps * 100L) / goal).coerceIn(0L, 100L)
             val selected = ProfileExtrasRepository.selected(context)
