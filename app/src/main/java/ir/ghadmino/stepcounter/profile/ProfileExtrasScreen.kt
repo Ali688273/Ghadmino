@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import ir.ghadmino.stepcounter.reward.CoinWallet
+import ir.ghadmino.stepcounter.widget.GhadminoWidgetProvider
 
 @Composable
 fun ProfileExtrasScreen(onChanged: () -> Unit = {}) {
@@ -106,6 +107,7 @@ fun ProfileExtrasScreen(onChanged: () -> Unit = {}) {
                     if (success) {
                         selected = item.id
                         coins = CoinWallet.balance(context)
+                        GhadminoWidgetProvider.updateAll(context)
                         message = "«" + item.title + "» فعال شد."
                         onChanged()
                     } else {
