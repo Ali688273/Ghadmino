@@ -28,7 +28,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import ir.ghadmino.stepcounter.reward.CoinWallet
+import ir.ghadmino.stepcounter.insights.ActivityInsightsRepository
+import ir.ghadmino.stepcounter.insights.ActivityInsightsScreen
+import ir.ghadmino.stepcounter.activity.ManualActivityScreen
+import ir.ghadmino.stepcounter.challenge.ChallengesScreen
+import ir.ghadmino.stepcounter.settings.SettingsScreen
 import ir.ghadmino.stepcounter.profile.ProfileRepository
 import ir.ghadmino.stepcounter.profile.ProfileScreen
 import ir.ghadmino.stepcounter.profile.ProfileExtrasScreen
@@ -451,7 +457,7 @@ private fun FullPageDialog(
     onClose: () -> Unit,
     content: @Composable () -> Unit
 ) {
-    BasicAlertDialog(onDismissRequest = onClose) {
+    Dialog(onDismissRequest = onClose) {
         Surface(
             Modifier.fillMaxWidth().fillMaxHeight(0.92f),
             shape = MaterialTheme.shapes.large,
