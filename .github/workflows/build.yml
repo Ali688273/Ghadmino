@@ -20,11 +20,11 @@ jobs:
 
       - name: Download compatible Gradle
         run: |
-          curl -fsSL https://services.gradle.org/distributions/gradle-8.2.1-bin.zip -o /tmp/gradle.zip
+          curl -fsSL https://services.gradle.org/distributions/gradle-8.13-bin.zip -o /tmp/gradle.zip
           unzip -q /tmp/gradle.zip -d /tmp
 
       - name: Build debug APK
-        run: /tmp/gradle-8.2.1/bin/gradle assembleDebug --no-daemon
+        run: /tmp/gradle-8.13/bin/gradle assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
