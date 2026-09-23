@@ -17,7 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import ir.ghadmino.stepcounter.level.LevelRepository
 import ir.ghadmino.stepcounter.step.StepCounterService
 
 data class ThemeOffer(val id: String, val title: String, val cost: Int, val emoji: String)
@@ -251,7 +250,6 @@ private fun claimMission(
     )
 
     if (claimed) {
-        LevelRepository.recordMission(context)
         onCoinsChanged()
     }
 }
