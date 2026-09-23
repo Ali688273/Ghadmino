@@ -72,7 +72,7 @@ fun BackupScreen() {
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp)) {
                 Text("چه چیزهایی پشتیبان می‌شوند؟", fontWeight = FontWeight.Bold)
-                Text("پروفایل، تنظیمات، سکه‌ها، تاریخچه قدم‌ها، دستاوردها و چالش‌ها، شخصی‌سازی، جلسات تمرین و برنامه ۳۰ روزه.")
+                Text("پروفایل، تنظیمات، سکه‌ها، تاریخچه قدم‌ها، سرعت و تاریخچه سرعت، سطح و XP، دستاوردها و مدال‌ها، چالش‌ها، شخصی‌سازی، فعالیت‌های دستی، جلسات تمرین و برنامه ۳۰ روزه.")
                 Spacer(Modifier.height(6.dp))
                 Text("فایل پشتیبان را فقط در اختیار افراد مورد اعتماد قرار بده.", style = MaterialTheme.typography.bodySmall)
             }
