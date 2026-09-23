@@ -64,7 +64,7 @@ fun ProfileExtrasScreen(onChanged: () -> Unit = {}) {
 
                     selectedItem?.let {
                         Spacer(Modifier.height(12.dp))
-                        HorizontalDivider()
+                        Divider()
                         Spacer(Modifier.height(10.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(it.emoji, style = MaterialTheme.typography.headlineSmall)

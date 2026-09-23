@@ -1,5 +1,94 @@
-package ir.ghadmino.stepcounter\n\nimport android.Manifest\nimport android.content.Context\nimport android.content.Intent\nimport android.content.pm.PackageManager\nimport android.os.Build\nimport android.os.Bundle\nimport androidx.activity.ComponentActivity\nimport androidx.activity.compose.setContent\nimport androidx.activity.result.contract.ActivityResultContracts\nimport androidx.compose.foundation.layout.*\nimport androidx.compose.foundation.rememberScrollState\nimport androidx.compose.foundation.verticalScroll\nimport androidx.compose.material.icons.Icons\nimport androidx.compose.material.icons.filled.BarChart\nimport androidx.compose.material.icons.filled.DirectionsWalk\nimport androidx.compose.material.icons.filled.LocalFireDepartment\nimport androidx.compose.material.icons.filled.Paid\nimport androidx.compose.material.icons.filled.Route\nimport androidx.compose.material.icons.filled.Settings\nimport androidx.compose.material.icons.filled.Speed\nimport androidx.compose.material3.*
-import androidx.compose.ui.graphics.vector.ImageVector\nimport androidx.compose.runtime.*\nimport androidx.compose.ui.Alignment\nimport androidx.compose.ui.Modifier\nimport androidx.compose.ui.platform.LocalContext\nimport androidx.compose.ui.text.font.FontWeight\nimport androidx.compose.ui.unit.dp\nimport ir.ghadmino.stepcounter.reward.CoinWallet\nimport ir.ghadmino.stepcounter.profile.ProfileRepository\nimport ir.ghadmino.stepcounter.profile.ProfileScreen\nimport ir.ghadmino.stepcounter.profile.ProfileExtrasScreen\nimport ir.ghadmino.stepcounter.achievement.AchievementsScreen\nimport ir.ghadmino.stepcounter.level.LevelScreen\nimport ir.ghadmino.stepcounter.reward.RewardCenter\nimport ir.ghadmino.stepcounter.speed.SpeedTracker\nimport ir.ghadmino.stepcounter.stats.StatsRepository\nimport ir.ghadmino.stepcounter.stats.StatsScreen\nimport ir.ghadmino.stepcounter.step.StepCounterService\nimport ir.ghadmino.stepcounter.step.StepHistory\nimport ir.ghadmino.stepcounter.ui.theme.GhadminoTheme\nimport kotlinx.coroutines.delay\n\nclass MainActivity : ComponentActivity() {\n    private lateinit var speedTracker: SpeedTracker\n    private val permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { speedTracker.start() }\n\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        speedTracker = SpeedTracker(this)\n        requestPermissions()\n        setContent {\n            var themeId by remember { mutableStateOf(CoinWallet.selectedTheme(this@MainActivity)) }\n            GhadminoTheme(themeId = themeId) {\n                GhadminoApp(speedTracker) { newTheme ->\n                    CoinWallet.setSelectedTheme(this@MainActivity, newTheme)\n                    themeId = newTheme\n                }\n            }\n        }\n        startStepService()\n    }\n\n    override fun onResume() { super.onResume(); if (::speedTracker.isInitialized) speedTracker.start() }\n    override fun onPause() { if (::speedTracker.isInitialized) speedTracker.stop(); super.onPause() }\n\n    private fun requestPermissions() {\n        val permissions = mutableListOf<String>()\n        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && checkSelfPermission(Manifest.permission.ACTIVITY_RECOGNITION) != PackageManager.PERMISSION_GRANTED) permissions.add(Manifest.permission.ACTIVITY_RECOGNITION)\n        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) permissions.add(Manifest.permission.POST_NOTIFICATIONS)\n        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {\n            permissions.add(Manifest.permission.ACCESS_FINE_LOCATION); permissions.add(Manifest.permission.ACCESS_COARSE_LOCATION)\n        }\n        if (permissions.isNotEmpty()) permissionLauncher.launch(permissions.toTypedArray())\n    }\n\n    private fun startStepService() {\n        val intent = Intent(this, StepCounterService::class.java)\n        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent) else startService(intent)\n    }\n}\n\n@OptIn(ExperimentalMaterial3Api::class)
+package ir.ghadmino.stepcounter
+
+import android.Manifest
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.DirectionsWalk
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Paid
+import androidx.compose.material.icons.filled.Route
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material3.*
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import ir.ghadmino.stepcounter.reward.CoinWallet
+import ir.ghadmino.stepcounter.insights.ActivityInsightsRepository
+import ir.ghadmino.stepcounter.insights.ActivityInsightsScreen
+import ir.ghadmino.stepcounter.activity.ManualActivityScreen
+import ir.ghadmino.stepcounter.challenge.ChallengesScreen
+import ir.ghadmino.stepcounter.settings.SettingsScreen
+import ir.ghadmino.stepcounter.profile.ProfileRepository
+import ir.ghadmino.stepcounter.profile.ProfileScreen
+import ir.ghadmino.stepcounter.profile.ProfileExtrasScreen
+import ir.ghadmino.stepcounter.achievement.AchievementsScreen
+import ir.ghadmino.stepcounter.level.LevelScreen
+import ir.ghadmino.stepcounter.reward.RewardCenter
+import ir.ghadmino.stepcounter.speed.SpeedTracker
+import ir.ghadmino.stepcounter.stats.StatsRepository
+import ir.ghadmino.stepcounter.stats.StatsScreen
+import ir.ghadmino.stepcounter.step.StepCounterService
+import ir.ghadmino.stepcounter.step.StepHistory
+import ir.ghadmino.stepcounter.ui.theme.GhadminoTheme
+import kotlinx.coroutines.delay
+
+class MainActivity : ComponentActivity() {
+    private lateinit var speedTracker: SpeedTracker
+    private val permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { speedTracker.start() }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        speedTracker = SpeedTracker(this)
+        requestPermissions()
+        setContent {
+            var themeId by remember { mutableStateOf(CoinWallet.selectedTheme(this@MainActivity)) }
+            GhadminoTheme(themeId = themeId) {
+                GhadminoApp(speedTracker) { newTheme ->
+                    CoinWallet.setSelectedTheme(this@MainActivity, newTheme)
+                    themeId = newTheme
+                }
+            }
+        }
+        startStepService()
+    }
+
+    override fun onResume() { super.onResume(); if (::speedTracker.isInitialized) speedTracker.start() }
+    override fun onPause() { if (::speedTracker.isInitialized) speedTracker.stop(); super.onPause() }
+
+    private fun requestPermissions() {
+        val permissions = mutableListOf<String>()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && checkSelfPermission(Manifest.permission.ACTIVITY_RECOGNITION) != PackageManager.PERMISSION_GRANTED) permissions.add(Manifest.permission.ACTIVITY_RECOGNITION)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) permissions.add(Manifest.permission.POST_NOTIFICATIONS)
+        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            permissions.add(Manifest.permission.ACCESS_FINE_LOCATION); permissions.add(Manifest.permission.ACCESS_COARSE_LOCATION)
+        }
+        if (permissions.isNotEmpty()) permissionLauncher.launch(permissions.toTypedArray())
+    }
+
+    private fun startStepService() {
+        val intent = Intent(this, StepCounterService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent) else startService(intent)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
     val context = LocalContext.current
@@ -368,7 +457,7 @@ private fun FullPageDialog(
     onClose: () -> Unit,
     content: @Composable () -> Unit
 ) {
-    BasicAlertDialog(onDismissRequest = onClose) {
+    Dialog(onDismissRequest = onClose) {
         Surface(
             Modifier.fillMaxWidth().fillMaxHeight(0.92f),
             shape = MaterialTheme.shapes.large,

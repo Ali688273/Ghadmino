@@ -55,6 +55,4 @@ object MedalRepository {
 
     fun lifetimeSteps(context: Context): Int =
         StepHistory.totalLifetime(context)
-            .coerceAtMost(Int.MAX_VALUE.toLong())
-            .toInt()
 }

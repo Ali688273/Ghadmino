@@ -48,11 +48,14 @@ object StatsRepository {
         )
     }
 
-    fun label(date: String): String = try {
-        val d = SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(date) ?: return date
-        SimpleDateFormat("MM/dd", Locale.US).format(d)
-    } catch (_: Exception) {
-        date
+    fun label(date: String): String {
+        return try {
+            val d = SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(date)
+                ?: return date
+            SimpleDateFormat("MM/dd", Locale.US).format(d)
+        } catch (_: Exception) {
+            date
+        }
     }
 
     private fun today() =
