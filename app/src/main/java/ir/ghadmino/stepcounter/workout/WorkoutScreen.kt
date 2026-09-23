@@ -34,13 +34,20 @@ fun WorkoutScreen() {
 
     val totalSteps = sessions.sumOf { it.steps }
     val totalDistance = sessions.sumOf { it.distanceMeters }
+    val totalCalories = sessions.sumOf { it.calories }
+    val bestSteps = sessions.maxOfOrNull { it.steps } ?: 0
+    val bestDistance = sessions.maxOfOrNull { it.distanceMeters } ?: 0.0
+    val longest = sessions.maxOfOrNull { it.durationMinutes } ?: 0
+    val fastest = sessions.maxOfOrNull { it.averageSpeedKmh } ?: 0.0
 
     Column(
         Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Card(Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
+        Card(
+            Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+        ) {
             Column(Modifier.padding(20.dp)) {
                 Icon(Icons.Default.DirectionsWalk, null, Modifier.size(44.dp))
                 Spacer(Modifier.height(8.dp))
@@ -50,22 +57,29 @@ fun WorkoutScreen() {
                 Text("زمان: %02d:%02d".format(seconds / 60, seconds % 60))
                 Text("قدم امروز: " + steps)
                 Spacer(Modifier.height(12.dp))
+
                 if (!running) {
-                    Button(onClick = {
-                        seconds = 0
-                        tracker.start()
-                        running = tracker.isRunning()
-                    }, Modifier.fillMaxWidth()) {
+                    Button(
+                        onClick = {
+                            seconds = 0
+                            tracker.start()
+                            running = tracker.isRunning()
+                        },
+                        Modifier.fillMaxWidth()
+                    ) {
                         Text("شروع تمرین")
                     }
                 } else {
-                    Button(onClick = {
-                        val result = tracker.stop()
-                        summary = result
-                        WorkoutRepository.save(context, result)
-                        sessions = WorkoutRepository.load(context)
-                        running = false
-                    }, Modifier.fillMaxWidth()) {
+                    Button(
+                        onClick = {
+                            val result = tracker.stop()
+                            summary = result
+                            WorkoutRepository.save(context, result)
+                            sessions = WorkoutRepository.load(context)
+                            running = false
+                        },
+                        Modifier.fillMaxWidth()
+                    ) {
                         Text("پایان تمرین و ذخیره")
                     }
                 }
@@ -86,37 +100,60 @@ fun WorkoutScreen() {
         }
 
         Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("خلاصه تمرین‌ها", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                Text("آمار کلی تمرین‌ها", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Text("تعداد جلسات: " + sessions.size)
                 Text("مجموع قدم تمرینی: " + totalSteps)
                 Text("مجموع مسافت: " + String.format("%.2f km", totalDistance / 1000.0))
-                Text("رکورد قدم در یک جلسه: " + (sessions.maxOfOrNull { it.steps } ?: 0))
-                Text("رکورد مسافت: " + String.format("%.2f km", (sessions.maxOfOrNull { it.distanceMeters } ?: 0.0) / 1000.0))
+                Text("مجموع کالری تخمینی: " + totalCalories + " kcal")
+            }
+        }
+
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                Text("رکوردهای شخصی", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("بیشترین قدم در یک جلسه: " + bestSteps)
+                Text("بیشترین مسافت: " + String.format("%.2f km", bestDistance / 1000.0))
+                Text("طولانی‌ترین جلسه: " + longest + " دقیقه")
+                Text("بیشترین سرعت میانگین: " + String.format("%.1f km/h", fastest))
             }
         }
 
         Text("تاریخچه جلسات", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+
         if (sessions.isEmpty()) {
             Card(Modifier.fillMaxWidth()) {
-                Text("هنوز جلسه‌ای ذخیره نشده است. بعد از پایان اولین تمرین، تاریخچه اینجا ساخته می‌شود.",
-                    Modifier.padding(18.dp))
+                Text(
+                    "هنوز جلسه‌ای ذخیره نشده است. بعد از پایان اولین تمرین، تاریخچه اینجا ساخته می‌شود.",
+                    Modifier.padding(18.dp)
+                )
             }
         } else {
             sessions.take(20).forEach { session ->
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(WorkoutRepository.formatDate(session.startedAt), fontWeight = FontWeight.Bold)
-                        Text(session.steps.toString() + " قدم • " + session.durationMinutes + " دقیقه • " +
-                            String.format("%.2f km", session.distanceMeters / 1000.0))
-                        Text("کالری: " + session.calories + " • میانگین سرعت: " +
-                            String.format("%.1f km/h", session.averageSpeedKmh))
+                        Text(
+                            WorkoutRepository.formatDate(session.startedAt),
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            session.steps.toString() + " قدم • " +
+                                session.durationMinutes + " دقیقه • " +
+                                String.format("%.2f km", session.distanceMeters / 1000.0)
+                        )
+                        Text(
+                            "کالری: " + session.calories +
+                                " • میانگین سرعت: " +
+                                String.format("%.1f km/h", session.averageSpeedKmh)
+                        )
                     }
                 }
             }
         }
 
-        Text("جلسه‌ها به‌صورت محلی روی گوشی ذخیره می‌شوند؛ حداکثر ۱۰۰ جلسه آخر نگهداری می‌شود.",
-            style = MaterialTheme.typography.bodySmall)
+        Text(
+            "جلسه‌ها به‌صورت محلی روی گوشی ذخیره می‌شوند؛ حداکثر ۱۰۰ جلسه آخر نگهداری می‌شود.",
+            style = MaterialTheme.typography.bodySmall
+        )
     }
 }
