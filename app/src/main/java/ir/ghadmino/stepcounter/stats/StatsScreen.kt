@@ -80,6 +80,25 @@ fun StatsScreen(stats: GhadminoStats, goal: Int) {
             }
         }
         item {
+            val weekGoalDays = week.count { it.second >= goal }
+            val monthGoalRate = if (stats.days.isEmpty()) 0
+            else ((stats.goalDays * 100f) / stats.days.size).toInt()
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp)) {
+                    Text("گزارش هدف", style = MaterialTheme.typography.titleLarge)
+                    Spacer(Modifier.height(6.dp))
+                    Text("هفته جاری: " + weekGoalDays + " از " + week.size + " روز موفق")
+                    Text("۳۰ روز اخیر: " + stats.goalDays + " از " + stats.days.size + " روز موفق")
+                    Text("نرخ موفقیت ماهانه: " + monthGoalRate + "٪")
+                    Spacer(Modifier.height(6.dp))
+                    LinearProgressIndicator(
+                        progress = (monthGoalRate / 100f).coerceIn(0f, 1f),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+        item {
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp)) {
                     Text("فعالیت‌های دستی", style = MaterialTheme.typography.titleLarge)
