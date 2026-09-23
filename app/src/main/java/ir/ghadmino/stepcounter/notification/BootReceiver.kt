@@ -12,6 +12,9 @@ class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         if (intent?.action != Intent.ACTION_BOOT_COMPLETED) return
 
+        // یادآوری‌ها باید بعد از روشن شدن گوشی دوباره زمان‌بندی شوند.
+        runCatching { ReminderScheduler.schedule(context) }
+
         val granted =
             Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ||
                 ContextCompat.checkSelfPermission(
