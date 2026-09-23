@@ -17,7 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import ir.ghadmino.stepcounter.speed.SpeedTracker
-import ir.ghadmino.stepcounter.speed.SpeedTracker
 import kotlin.math.max
 
 @Composable
