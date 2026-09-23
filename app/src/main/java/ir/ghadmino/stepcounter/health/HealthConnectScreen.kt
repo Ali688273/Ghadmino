@@ -12,6 +12,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.PermissionController
 import androidx.health.connect.client.records.StepsRecord
+import androidx.health.connect.client.records.DistanceRecord
+import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
 import kotlinx.coroutines.launch
 import ir.ghadmino.stepcounter.step.StepCounterService
 
@@ -22,12 +24,16 @@ fun HealthConnectScreen() {
     val availability = remember { HealthConnectRepository.availability(context) }
     var granted by remember { mutableStateOf(false) }
     var externalSteps by remember { mutableStateOf<Long?>(null) }
+    var externalDistance by remember { mutableStateOf<Double?>(null) }
+    var externalCalories by remember { mutableStateOf<Double?>(null) }
     var message by remember { mutableStateOf<String?>(null) }
 
     val permissions = remember {
         setOf(
             HealthPermission.getReadPermission(StepsRecord::class),
-            HealthPermission.getWritePermission(StepsRecord::class)
+            HealthPermission.getWritePermission(StepsRecord::class),
+            HealthPermission.getReadPermission(DistanceRecord::class),
+            HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class)
         )
     }
 
@@ -37,9 +43,9 @@ fun HealthConnectScreen() {
         granted = grantedPermissions.containsAll(permissions)
         if (granted) {
             scope.launch {
-                externalSteps = runCatching {
-                    HealthConnectRepository.todaySteps(context)
-                }.getOrNull()
+                externalSteps = runCatching { HealthConnectRepository.todaySteps(context) }.getOrNull()
+                externalDistance = runCatching { HealthConnectRepository.todayDistanceMeters(context) }.getOrNull()
+                externalCalories = runCatching { HealthConnectRepository.todayCalories(context) }.getOrNull()
             }
         }
     }
@@ -127,6 +133,12 @@ fun HealthConnectScreen() {
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(Modifier.height(8.dp))
+                            Text("مسافت Health Connect")
+                            Text(externalDistance?.let { String.format("%.2f km", it / 1000.0) } ?: "—")
+                            Spacer(Modifier.height(8.dp))
+                            Text("کالری Health Connect")
+                            Text(externalCalories?.let { String.format("%.0f kcal", it) } ?: "—")
+                            Spacer(Modifier.height(8.dp))
                             Text("قدم ثبت‌شده در Health Connect")
                             Text(
                                 externalSteps?.toString() ?: "در حال خواندن…",
@@ -139,9 +151,9 @@ fun HealthConnectScreen() {
                     Button(
                         onClick = {
                             scope.launch {
-                                externalSteps = runCatching {
-                                    HealthConnectRepository.todaySteps(context)
-                                }.getOrNull()
+                                externalSteps = runCatching { HealthConnectRepository.todaySteps(context) }.getOrNull()
+                                externalDistance = runCatching { HealthConnectRepository.todayDistanceMeters(context) }.getOrNull()
+                                externalCalories = runCatching { HealthConnectRepository.todayCalories(context) }.getOrNull()
                                 message = if (externalSteps == null) {
                                     "خواندن اطلاعات انجام نشد."
                                 } else {
