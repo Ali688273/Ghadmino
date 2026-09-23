@@ -2,6 +2,7 @@ package ir.ghadmino.stepcounter.challenge
 
 import android.content.Context
 import ir.ghadmino.stepcounter.reward.CoinWallet
+import ir.ghadmino.stepcounter.level.LevelRepository
 import ir.ghadmino.stepcounter.step.StepHistory
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -64,6 +65,8 @@ object ChallengeRepository {
             return false
         }
         CoinWallet.add(context, challenge.reward)
+        // هر چالش تکمیل‌شده علاوه بر سکه، در XP سطح نیز ثبت می‌شود.
+        LevelRepository.recordMission(context)
         context.getSharedPreferences("ghadmino_challenges", Context.MODE_PRIVATE)
             .edit()
             .putBoolean("claimed_" + challenge.id, true)
