@@ -2,6 +2,7 @@ package ir.ghadmino.stepcounter.profile
 
 import android.content.Context
 import ir.ghadmino.stepcounter.reward.CoinWallet
+import ir.ghadmino.stepcounter.widget.GhadminoWidgetProvider
 
 data class ProfileExtra(val id: String, val title: String, val cost: Int, val emoji: String)
 
@@ -22,6 +23,7 @@ object ProfileExtrasRepository {
         }
         context.getSharedPreferences("ghadmino_profile_extras", Context.MODE_PRIVATE)
             .edit().putString("selected_extra", id).apply()
+        GhadminoWidgetProvider.updateAll(context)
         return true
     }
 
