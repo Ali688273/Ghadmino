@@ -2,7 +2,7 @@ package ir.ghadmino.stepcounter.health
 
 import android.content.Context
 import androidx.health.connect.client.HealthConnectClient
-import androidx.health.connect.client.aggregate.AggregateRequest
+import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.records.DistanceRecord
 import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
@@ -12,7 +12,7 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 
 object HealthConnectRepository {
-    const val PROVIDER = HealthConnectClient.DEFAULT_PROVIDER_PACKAGE_NAME
+    const val PROVIDER = "com.google.android.apps.healthdata"
 
     fun availability(context: Context): Int =
         HealthConnectClient.getSdkStatus(context, PROVIDER)
