@@ -6,7 +6,7 @@ plugins {
 android {
     namespace = "ir.ghadmino.stepcounter"
 
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "ir.ghadmino.stepcounter"
