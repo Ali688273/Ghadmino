@@ -37,6 +37,7 @@ import ir.ghadmino.stepcounter.health.HealthConnectScreen
 import ir.ghadmino.stepcounter.workout.WorkoutScreen
 import ir.ghadmino.stepcounter.plan.StepPlanScreen
 import ir.ghadmino.stepcounter.activity.ManualActivityScreen
+import ir.ghadmino.stepcounter.history.ActivityCalendarScreen
 import ir.ghadmino.stepcounter.challenge.ChallengesScreen
 import ir.ghadmino.stepcounter.settings.SettingsScreen
 import ir.ghadmino.stepcounter.profile.ProfileRepository
@@ -268,6 +269,9 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
         "insights" -> FullPageDialog("تحلیل فعالیت", onClose = { morePage = null }) {
             ActivityInsightsScreen(insights, ActivityInsightsRepository.hourly(context))
         }
+        "calendar" -> FullPageDialog("تقویم فعالیت و گزارش روزانه", onClose = { morePage = null }) {
+            ActivityCalendarScreen(goal)
+        }
         "history" -> FullPageDialog("تاریخچه ۷ روزه", onClose = { morePage = null }) {
             Column(
                 Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
@@ -436,7 +440,8 @@ private fun MorePage(
         MoreItem("🏆", "دستاوردها", "مدال‌ها و پاداش‌های پیشرفت") { onOpen("achievements") }
         MoreItem("⭐", "سطح و XP", "سطح کاربر و میزان پیشرفت") { onOpen("level") }
         MoreItem("🎨", "شخصی‌سازی", "قاب، نشان و امکانات قابل خرید") { onOpen("extras") }
-        MoreItem("📅", "تاریخچه", "مشاهده قدم‌های روزهای اخیر") { onOpen("history") }
+        MoreItem("📅", "تقویم فعالیت", "انتخاب هر روز و مشاهده گزارش واقعی همان روز") { onOpen("calendar") }
+        MoreItem("📋", "تاریخچه", "مشاهده قدم‌های روزهای اخیر") { onOpen("history") }
         MoreItem("📈", "تحلیل فعالیت", "امتیاز، فعالیت ساعتی و پیش‌بینی هدف") { onOpen("insights") }
         MoreItem("🎯", "تنظیم هدف", "تغییر هدف روزانه قدم‌ها") { onOpen("goal") }
         MoreItem("❤️", "Health Connect", "اتصال قدمینو به داده‌های سلامت اندروید") { onOpen("health") }
