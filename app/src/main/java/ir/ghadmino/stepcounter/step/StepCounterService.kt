@@ -99,7 +99,8 @@ class StepCounterService : Service(), SensorEventListener {
             .coerceAtMost(Int.MAX_VALUE.toLong())
             .toInt()
 
-        val delta = (newTodaySteps - todaySteps).coerceAtLeast(0)
+        val previousTodaySteps = todaySteps
+        val delta = (newTodaySteps - previousTodaySteps).coerceAtLeast(0)
         todaySteps = newTodaySteps
         if (delta > 0) {
             ActivityAnalyticsRepository.markActivity(this)
@@ -109,6 +110,7 @@ class StepCounterService : Service(), SensorEventListener {
 
         prefs.edit().putLong(KEY_LAST_TOTAL, total).apply()
         CoinWallet.syncStepReward(this, todaySteps)
+        StepHistory.saveToday(this, todaySteps)
         updateNotification()
         if (delta == 0) {
             sendBroadcast(Intent(GhadminoWidgetProvider.ACTION_REFRESH).setPackage(packageName))
