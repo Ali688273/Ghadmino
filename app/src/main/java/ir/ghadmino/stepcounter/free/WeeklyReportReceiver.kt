@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
 import ir.ghadmino.stepcounter.R
+import ir.ghadmino.stepcounter.profile.ProfileRepository
 import ir.ghadmino.stepcounter.step.StepHistory
 
 class WeeklyReportReceiver : BroadcastReceiver() {
@@ -16,11 +17,15 @@ class WeeklyReportReceiver : BroadcastReceiver() {
         if (android.os.Build.VERSION.SDK_INT >= 26) {
             manager.createNotificationChannel(NotificationChannel(channelId, "گزارش هفتگی", NotificationManager.IMPORTANCE_DEFAULT))
         }
-        val total = StepHistory.recent(context, 7).sumOf { row -> row.second }
+        val m = TrendMetricsRepository.calculate(context, 7)
+        val goal = ProfileRepository.load(context).dailyGoal
+        val goalDays = StepHistory.recent(context, 7).count { it.second >= goal }
+        val text = "۷ روز: " + m.totalSteps + " قدم | میانگین " + m.averageSteps + " | بهترین " + m.bestDay + " | " + goalDays + " روز به هدف"
         val notification = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.ic_launcher)
             .setContentTitle("گزارش هفتگی قدمینو")
-            .setContentText("۷ روز اخیر: " + total + " قدم")
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text + " | تغییر " + m.changePercent + "%"))
             .setAutoCancel(true)
             .build()
         try { manager.notify(7721, notification) } catch (_: Exception) {}
