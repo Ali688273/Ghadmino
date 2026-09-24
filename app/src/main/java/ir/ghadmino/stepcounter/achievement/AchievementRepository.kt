@@ -3,6 +3,7 @@ package ir.ghadmino.stepcounter.achievement
 import android.content.Context
 import ir.ghadmino.stepcounter.reward.CoinWallet
 import ir.ghadmino.stepcounter.step.StepHistory
+import ir.ghadmino.stepcounter.step.StepCounterService
 
 data class Achievement(
     val id: String,
@@ -30,7 +31,7 @@ object AchievementRepository {
     fun evaluate(context: Context): List<Achievement> {
         val history = StepHistory.recent(context, 365)
         val lifetime = StepHistory.totalLifetime(context)
-        val bestDay = history.maxOfOrNull { it.second } ?: 0
+        val bestDay = maxOf(history.maxOfOrNull { it.second } ?: 0, StepCounterService.todaySteps, StepCounterService.persistedTodaySteps(context))
         val streak = StepHistory.currentStreak(context, 3000)
 
         return definitions.map { item ->
