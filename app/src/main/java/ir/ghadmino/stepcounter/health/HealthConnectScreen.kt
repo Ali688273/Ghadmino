@@ -37,7 +37,8 @@ fun HealthConnectScreen() {
         setOf(
             HealthPermission.getReadPermission(StepsRecord::class),
             HealthPermission.getReadPermission(DistanceRecord::class),
-            HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class)
+            HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class),
+            HealthPermission.getWritePermission(StepsRecord::class)
         )
     }
 
@@ -172,6 +173,23 @@ fun HealthConnectScreen() {
                         },
                         Modifier.fillMaxWidth()
                     ) { Text("به‌روزرسانی اطلاعات") }
+
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                val ok = runCatching {
+                                    HealthConnectRepository.writeTodaySteps(context, localSteps.toLong())
+                                }.getOrDefault(false)
+                                message = if (ok) {
+                                    "قدم‌های امروز به Health Connect ارسال شد."
+                                } else {
+                                    "ارسال قدم‌ها انجام نشد؛ مجوز نوشتن را بررسی کن."
+                                }
+                                if (ok) refreshData()
+                            }
+                        },
+                        Modifier.fillMaxWidth()
+                    ) { Text("ارسال قدم‌های امروز به Health Connect") }
                 }
             }
         }
@@ -188,7 +206,7 @@ fun HealthConnectScreen() {
         ) { Text("مدیریت دسترسی‌های Health Connect") }
 
         Text(
-            "برای جلوگیری از دوباره‌شماری، عدد داخلی قدمینو شمارنده اصلی است و Health Connect فقط برای مقایسه و آمار نمایش داده می‌شود.",
+            "ارسال به Health Connect اختیاری است؛ قدمینو همچنان شمارنده داخلی خود را منبع اصلی می‌داند. رکورد روزانه با شناسه ثابت به‌روزرسانی می‌شود تا هر بار رکورد جدید و تکراری ساخته نشود.",
             style = MaterialTheme.typography.bodySmall
         )
 
