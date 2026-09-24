@@ -25,7 +25,11 @@ object AchievementRepository {
         Achievement("lifetime_100k", "صد هزار قدم", "در مجموع ۱۰۰۰۰۰ قدم ثبت کن.", "🏆", 150, false),
         Achievement("lifetime_250k", "یک‌ربع میلیون", "در مجموع ۲۵۰۰۰۰ قدم ثبت کن.", "💎", 300, false),
         Achievement("lifetime_500k", "نیم میلیون", "در مجموع ۵۰۰۰۰۰ قدم ثبت کن.", "👑", 600, false),
-        Achievement("lifetime_1m", "یک میلیون قدم", "در مجموع ۱۰۰۰۰۰۰ قدم ثبت کن.", "🌟", 1200, false)
+        Achievement("lifetime_1m", "یک میلیون قدم", "در مجموع ۱۰۰۰۰۰۰ قدم ثبت کن.", "🌟", 1200, false),
+        Achievement("fifty_k_day", "ماراتن روزانه", "در یک روز به ۵۰۰۰۰ قدم برس.", "🏃", 2000, false),
+        Achievement("ninety_day_streak", "سه ماه مداوم", "۹۰ روز پشت‌سرهم حداقل ۳۰۰۰ قدم ثبت کن.", "🔥", 1500, false),
+        Achievement("lifetime_2m", "دو میلیون قدم", "در مجموع ۲۰۰۰۰۰۰ قدم ثبت کن.", "💠", 2500, false),
+        Achievement("lifetime_5m", "پنج میلیون قدم", "در مجموع ۵۰۰۰۰۰۰ قدم ثبت کن.", "🏆", 5000, false)
     )
 
     fun evaluate(context: Context): List<Achievement> {
@@ -44,12 +48,16 @@ object AchievementRepository {
                 "five_k_day" -> bestDay >= 5000
                 "ten_k_day" -> bestDay >= 10000
                 "twenty_five_k_day" -> bestDay >= 25000
+                "fifty_k_day" -> bestDay >= 50000
                 "seven_day_streak" -> streak >= 7
                 "thirty_day_streak" -> streak >= 30
+                "ninety_day_streak" -> streak >= 90
                 "lifetime_100k" -> lifetime >= 100000
                 "lifetime_250k" -> lifetime >= 250000
                 "lifetime_500k" -> lifetime >= 500000
                 "lifetime_1m" -> lifetime >= 1000000
+                "lifetime_2m" -> lifetime >= 2000000
+                "lifetime_5m" -> lifetime >= 5000000
                 else -> false
             }
 
