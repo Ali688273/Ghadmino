@@ -7,6 +7,15 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
+data class PeriodReport(
+    val days: Int,
+    val totalSteps: Int,
+    val averageSteps: Int,
+    val bestDay: Pair<String, Int>,
+    val goalDays: Int,
+    val goalRate: Int
+)
+
 data class GhadminoStats(
     val days: List<Pair<String, Int>>,
     val total: Int,
