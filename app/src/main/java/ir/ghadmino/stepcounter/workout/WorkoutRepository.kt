@@ -131,12 +131,16 @@ class WorkoutTracker(private val context: Context) {
     }
 
     fun stop(): WorkoutSummary? {
+        if (!running.compareAndSet(true, false)) return null
         try { listener?.let { locationManager?.removeUpdates(it) } } catch (_: SecurityException) {}
         listener = null
         locationManager = null
-        running.set(false)
 
-        val steps = (StepCounterService.todaySteps - startSteps).coerceAtLeast(0)
+        val endSteps = maxOf(
+            StepCounterService.todaySteps,
+            StepCounterService.persistedTodaySteps(context)
+        )
+        val steps = (endSteps - startSteps).coerceAtLeast(0)
         val minutes = ((System.currentTimeMillis() - startMillis) / 60000L).toInt().coerceAtLeast(1)
         val profile = ProfileRepository.load(context)
         val calories = (steps * (0.035 + (profile.weightKg / 70.0) * 0.005)).toInt()
