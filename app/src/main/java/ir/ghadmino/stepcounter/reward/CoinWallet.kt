@@ -90,6 +90,9 @@ object CoinWallet {
         }
     }
 
+    fun isRewardClaimed(c: Context, marker: String): Boolean =
+        p(c).getBoolean(marker, false)
+
     @Synchronized
     fun claimRewardOnce(c: Context, marker: String, amount: Int): Boolean {
         if (amount <= 0) return false
