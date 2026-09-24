@@ -105,11 +105,14 @@ fun FreeFeaturesScreen(onCoinsChanged: () -> Unit = {}) {
                 RecordRow("بهترین روز", records.bestDaySteps.toString() + " قدم — " + records.bestDayDate)
                 RecordRow("بهترین ۷ روز", records.best7DayTotal.toString() + " قدم")
                 RecordRow("بهترین ۳۰ روز", records.best30DayTotal.toString() + " قدم")
+                RecordRow("بهترین ماه", records.bestMonthTotal.toString() + " قدم")
+                RecordRow("بیشترین مسافت روزانه", String.format(Locale.US, "%.2f km", records.bestDistanceKm))
                 RecordRow("زنجیره فعلی", records.currentStreak.toString() + " روز")
                 RecordRow("طولانی‌ترین زنجیره", records.longestStreak.toString() + " روز")
                 RecordRow("روزهای فعال ۳۰ روز", records.activeDays30.toString())
                 RecordRow("بیشترین مسافت تمرین", String.format(Locale.US, "%.2f km", records.bestWorkoutDistanceMeters / 1000.0))
                 RecordRow("بیشترین زمان تمرین", records.bestWorkoutMinutes.toString() + " دقیقه")
+                RecordRow("دقایق فعالیت ثبت‌شده", records.activeMinutes30.toString() + " دقیقه")
             }
 
             Section("۶ و ۷ — هدف هفتگی و ماهانه") {
@@ -158,13 +161,14 @@ fun FreeFeaturesScreen(onCoinsChanged: () -> Unit = {}) {
                 Text("فعالیت در ۷ روز: " + endReport.activeDays7 + " روز")
                 Text("بهترین روز هفته: " + endReport.bestDay + " قدم")
                 Text("۷ روز: " + endReport.weeklyTotal + " قدم")
-                Text("گزارش‌ها محلی‌اند و اجرای مداوم پس‌زمینه برایشان انجام نمی‌شود.")
+                Text("گزارش هفتگی خودکار هر دوشنبه طبق زمان‌بندی سیستم ارسال می‌شود؛ محاسبات گزارش روی داده محلی انجام می‌شود.")
             }
 
             Section("۱۳ — شاخص تقریبی فعالیت") {
                 val active = StepHistory.recent(context, 7).count { row -> row.second >= 3000 }
                 Text("روزهای دارای فعالیت قابل‌توجه در ۷ روز: " + active)
-                Text("این شاخص آماری است و تشخیص پزشکی یا تشخیص قطعی نوع فعالیت نیست.")
+                Text("الگوی فعالیت: " + when { active >= 6 -> "فعال" ; active >= 3 -> "متوسط" ; else -> "کم‌فعال" })
+                Text("این شاخص فقط بر اساس داده قدم است و تشخیص قطعی نوع فعالیت یا وضعیت پزشکی نیست.")
             }
 
             Section("۱۴ و ۱۵ — خروجی و اعتبارسنجی") {
