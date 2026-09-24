@@ -145,8 +145,9 @@ fun FreeFeaturesScreen(onCoinsChanged: () -> Unit = {}) {
             }
 
             Section("۹ و ۱۰ — سطح، XP و مأموریت‌های محلی") {
-                Text("سطح، XP، دستاوردها و مأموریت‌های قبلی برنامه حفظ شده‌اند.")
-                Text("ماموریت‌های محلی: رسیدن به ۶۰٪ هدف، رسیدن به هدف، و ۲۰۰۰ قدم بیشتر از هدف.")
+                Text("سطح و XP از قدم‌های طولانی‌مدت، مأموریت‌ها و دستاوردها محاسبه می‌شود.")
+                Text("ماموریت‌های واقعی: ۶۰٪ هدف، ۱۰۰٪ هدف و ۲۰۰۰ قدم بیشتر از هدف.")
+                Text("پاداش‌ها با شناسه یکتا فقط یک‌بار قابل دریافت‌اند.")
             }
 
             Section("۱۱ و ۱۲ — گزارش روزانه و هفتگی") {
@@ -205,9 +206,10 @@ fun FreeFeaturesScreen(onCoinsChanged: () -> Unit = {}) {
             }
 
             Section("۲۰ — کنترل پایداری") {
-                Text("پاداش‌ها یک‌بار مصرف‌اند و خطاهای Health Connect در رابط کنترل می‌شوند.")
+                Text("پاداش‌ها اتمیک و یک‌بار مصرف‌اند؛ Health Connect خطا را به UI برمی‌گرداند.")
                 Button(onClick = { scenarios = InternalScenarioTests.run(); message = "بررسی‌های داخلی اجرا شد." }) { Text("اجرای تست‌های داخلی") }
                 scenarios.forEach { result -> Text(if(result.passed) "✓ " + result.name else "⚠ " + result.name) }
+                StabilityChecks.pure().forEach { result -> Text(if(result.passed) "✓ " + result.name else "⚠ " + result.name) }
                 Button(onClick = {
                     records = PersonalRecordsRepository.calculate(context)
                     goals = PeriodicGoalRepository.load(context)
