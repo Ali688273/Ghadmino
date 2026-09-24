@@ -2,6 +2,7 @@ package ir.ghadmino.stepcounter.free
 
 import android.content.Context
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -36,6 +37,7 @@ fun FreeFeaturesScreen(onCoinsChanged: () -> Unit = {}) {
     var login by remember { mutableStateOf(DailyLoginRepository.state(context)) }
     var syncState by remember { mutableStateOf(HealthSyncRepository.load(context)) }
     var endReport by remember { mutableStateOf(EndOfDayReportRepository.today(context)) }
+    var selectedHeatmapDay by remember { mutableStateOf<Pair<String,Int>?>(null) }
     val snackbar = remember { SnackbarHostState() }
 
     LaunchedEffect(message) {
@@ -89,7 +91,7 @@ fun FreeFeaturesScreen(onCoinsChanged: () -> Unit = {}) {
                 Text("دو منبع با هم جمع نمی‌شوند تا دوباره‌شماری رخ ندهد.")
             }
 
-            Section("۳ — نمای سالانه فعالیت") { AnnualHeatmap(context) }
+            Section("۳ — نمای سالانه فعالیت") { AnnualHeatmap(context) { selectedHeatmapDay = it } ; selectedHeatmapDay?.let { Text("روز ${it.first}: ${it.second} قدم") } }
 
             Section("۴ — روند ۷، ۳۰ و ۹۰ روزه") {
                 MiniTrend(context, 7)
@@ -241,13 +243,17 @@ fun FreeFeaturesScreen(onCoinsChanged: () -> Unit = {}) {
         }
     }
 }
-@Composable private fun AnnualHeatmap(context: Context) {
+@Composable private fun AnnualHeatmap(context: Context, onDayClick: (Pair<String,Int>) -> Unit) {
     val rows = StepHistory.recent(context, 365)
     val maxValue = max(1, rows.maxOfOrNull { row -> row.second } ?: 1)
     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
         rows.take(365).reversed().forEach { row ->
             val level = (row.second.toFloat() / maxValue * 4f).toInt().coerceIn(0, 4)
-            Box(Modifier.size(11.dp).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f + level * 0.2f), RoundedCornerShape(2.dp)))
+            Box(
+                Modifier.size(11.dp)
+                    .clickable { onDayClick(row) }
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f + level * 0.2f), RoundedCornerShape(2.dp))
+            )
         }
     }
 }
