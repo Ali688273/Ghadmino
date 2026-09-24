@@ -17,12 +17,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import ir.ghadmino.stepcounter.speed.SpeedTracker
+import ir.ghadmino.stepcounter.workout.WorkoutRepository
 import kotlin.math.max
 
 @Composable
 fun StatsScreen(stats: GhadminoStats, goal: Int) {
     val context = LocalContext.current
     val speed = SpeedTracker(context)
+    val weekly = remember(stats.days, goal) { StatsRepository.weekly(context, goal) }
+    val monthly = remember(stats.days, goal) { StatsRepository.monthly(context, goal) }
+    val trendPercent = remember(stats.days, goal) { StatsRepository.trend(context, goal) }
+    val workouts = remember { WorkoutRepository.load(context) }
+    val bestDistanceWorkout = workouts.maxByOrNull { it.distanceMeters }
+    val bestCaloriesWorkout = workouts.maxByOrNull { it.calories }
+    val bestWorkoutSpeed = workouts.maxByOrNull { it.averageSpeedKmh }
+    val bestWorkoutSteps = workouts.maxByOrNull { it.steps }
+    val bestSpeed = SpeedHistoryRepository.bestMaximum(context)
     val week = stats.days.take(7)
     val weekTotal = week.sumOf { it.second }
     val weekAverage = if (week.isEmpty()) 0 else weekTotal / week.size
@@ -56,8 +66,11 @@ fun StatsScreen(stats: GhadminoStats, goal: Int) {
                     Icon(Icons.Default.CalendarMonth, null)
                     Spacer(Modifier.width(8.dp))
                     Column {
-                        Text("گزارش هفتگی", style = MaterialTheme.typography.titleLarge)
-                        Text(weekTotal.toString() + " قدم • میانگین " + weekAverage + " قدم در روز")
+                        Text("گزارش هفتگی و ماهانه", style = MaterialTheme.typography.titleLarge)
+                        Text("۷ روز: " + weekly.totalSteps + " قدم • میانگین " + weekly.averageSteps + " • موفقیت " + weekly.goalRate + "٪")
+                        Text("۳۰ روز: " + monthly.totalSteps + " قدم • میانگین " + monthly.averageSteps + " • موفقیت " + monthly.goalRate + "٪")
+                        Text("تغییر نسبت به ۷ روز قبل: " + (if (trendPercent > 0) "+" else "") + trendPercent + "٪")
+                        Text(weekTotal.toString() + " قدم این هفته • " + previousWeek + " قدم هفته قبل")
                         Text(trend, style = MaterialTheme.typography.labelLarge)
                     }
                 }
@@ -155,6 +168,35 @@ fun StatsScreen(stats: GhadminoStats, goal: Int) {
                         )
                     }
                     Spacer(Modifier.height(8.dp))
+                    if (bestDistanceWorkout != null) {
+                        Text("📏 بیشترین مسافت تمرین: %.2f km".format(bestDistanceWorkout.distanceMeters / 1000.0))
+                        Text("تاریخ: " + WorkoutRepository.formatDate(bestDistanceWorkout.startedAt))
+                    } else {
+                        Text("📏 رکورد مسافت تمرین: هنوز ثبت نشده است.")
+                    }
+
+                    if (bestCaloriesWorkout != null) {
+                        Text("🔥 بیشترین کالری یک تمرین: " + bestCaloriesWorkout.calories + " kcal")
+                        Text("تاریخ: " + WorkoutRepository.formatDate(bestCaloriesWorkout.startedAt))
+                    } else {
+                        Text("🔥 رکورد کالری تمرین: هنوز ثبت نشده است.")
+                    }
+
+                    if (bestWorkoutSpeed != null) {
+                        Text("⚡ بیشترین میانگین سرعت تمرین: %.1f km/h".format(bestWorkoutSpeed.averageSpeedKmh))
+                        Text("تاریخ: " + WorkoutRepository.formatDate(bestWorkoutSpeed.startedAt))
+                    } else if (bestSpeed != null) {
+                        Text("⚡ بیشترین سرعت ثبت‌شده: %.1f km/h".format(bestSpeed.second))
+                        Text("تاریخ: " + StatsRepository.label(bestSpeed.first))
+                    } else {
+                        Text("⚡ رکورد سرعت: هنوز ثبت نشده است.")
+                    }
+
+                    if (bestWorkoutSteps != null) {
+                        Text("🏃 بیشترین قدم در یک تمرین: " + bestWorkoutSteps.steps + " قدم")
+                        Text("تاریخ: " + WorkoutRepository.formatDate(bestWorkoutSteps.startedAt))
+                    }
+
                     Text(
                         "رکورد فعلی هدف روزانه: " + stats.streak + " روز پشت‌سرهم",
                         style = MaterialTheme.typography.labelLarge
