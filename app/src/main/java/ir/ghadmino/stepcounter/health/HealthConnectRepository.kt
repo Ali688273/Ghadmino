@@ -6,6 +6,7 @@ import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.records.DistanceRecord
 import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
+import androidx.health.connect.client.records.metadata.DataOrigin
 import androidx.health.connect.client.time.TimeRangeFilter
 import java.time.Instant
 import java.time.ZoneId
@@ -33,13 +34,21 @@ object HealthConnectRepository {
             .toInstant()
         val end = Instant.now()
 
-        val result = healthClient.aggregate(
+        val range = TimeRangeFilter.between(start, end)
+        val all = healthClient.aggregate(
             AggregateRequest(
                 metrics = setOf(StepsRecord.COUNT_TOTAL),
-                timeRangeFilter = TimeRangeFilter.between(start, end)
+                timeRangeFilter = range
             )
-        )
-        return result[StepsRecord.COUNT_TOTAL]
+        )[StepsRecord.COUNT_TOTAL] ?: 0L
+        val own = healthClient.aggregate(
+            AggregateRequest(
+                metrics = setOf(StepsRecord.COUNT_TOTAL),
+                timeRangeFilter = range,
+                dataOriginFilter = setOf(DataOrigin(context.packageName))
+            )
+        )[StepsRecord.COUNT_TOTAL] ?: 0L
+        return (all - own).coerceAtLeast(0L)
     }
 
     suspend fun todayDistanceMeters(context: Context): Double? {
