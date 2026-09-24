@@ -22,31 +22,30 @@ object StepHistory {
         val oldLifetime = prefs.getLong(LIFETIME, -1L)
         val baseLifetime = if (oldLifetime >= 0L) oldLifetime else calculateLifetime(prefs)
         val newLifetime = (baseLifetime + safeSteps - oldSteps).coerceAtLeast(0L)
-        prefs.edit()
-            .putInt(key(date), safeSteps)
-            .putLong(LIFETIME, newLifetime)
-            .apply()
+        prefs.edit().putInt(key(date), safeSteps).putLong(LIFETIME, newLifetime).apply()
     }
 
-    fun get(context: Context, date: String): Int =
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getInt(key(date), 0)
+    fun get(context: Context, date: String): Int {
+        val stored = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getInt(key(date), 0)
+        return if (date == today()) {
+            maxOf(stored, StepCounterService.todaySteps, StepCounterService.persistedTodaySteps(context))
+        } else stored
+    }
 
-    fun recent(context: Context, days: Int = 7): List<Pair<String, Int>> {
-        val result = mutableListOf<Pair<String, Int>>()
-        for (i in 0 until days) {
+    fun recent(context: Context, days: Int = 7): List<Pair<String, Int>> =
+        (0 until days).map { i ->
             val d = dateOffset(i)
-            result.add(d to get(context, d))
+            d to get(context, d)
         }
-        return result
-    }
 
     fun totalLifetime(context: Context): Int {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val stored = prefs.getLong(LIFETIME, -1L)
-        val todayStored = get(context, today())
-        val liveToday = maxOf(todayStored, StepCounterService.todaySteps, StepCounterService.persistedTodaySteps(context))
-        if (stored >= 0L) {
-            val liveTotal = stored + (liveToday - todayStored).coerceAtLeast(0)
+        val storedLifetime = prefs.getLong(LIFETIME, -1L)
+        val todayStored = prefs.getInt(key(today()), 0)
+        val liveToday = get(context, today())
+        if (storedLifetime >= 0L) {
+            val liveTotal = storedLifetime + (liveToday - todayStored).coerceAtLeast(0)
             return liveTotal.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
         }
         val total = calculateLifetime(prefs)
@@ -57,9 +56,7 @@ object StepHistory {
     fun currentStreak(context: Context, minimumSteps: Int): Int {
         var streak = 0
         for (i in 0 until 3650) {
-            val date = dateOffset(i)
-            val value = if (i == 0) maxOf(get(context, date), StepCounterService.todaySteps, StepCounterService.persistedTodaySteps(context)) else get(context, date)
-            if (value >= minimumSteps) streak++ else break
+            if (get(context, dateOffset(i)) >= minimumSteps) streak++ else break
         }
         return streak
     }
