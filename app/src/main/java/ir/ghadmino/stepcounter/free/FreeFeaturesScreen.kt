@@ -30,7 +30,9 @@ fun FreeFeaturesScreen(onCoinsChanged: () -> Unit = {}) {
     var healthSteps by remember { mutableStateOf<Long?>(null) }
     var message by remember { mutableStateOf<String?>(null) }
     var diag by remember { mutableStateOf<Diagnostics?>(null) }
-    var loginClaimed by remember { mutableStateOf(CoinWallet.isRewardClaimed(context, "daily_login_" + dayKey())) }
+    var login by remember { mutableStateOf(DailyLoginRepository.state(context)) }
+    var syncState by remember { mutableStateOf(HealthSyncRepository.load(context)) }
+    var endReport by remember { mutableStateOf(EndOfDayReportRepository.today(context)) }
     val snackbar = remember { SnackbarHostState() }
 
     LaunchedEffect(message) {
@@ -107,7 +109,7 @@ fun FreeFeaturesScreen(onCoinsChanged: () -> Unit = {}) {
             }
 
             Section("۸ — پاداش ورود روزانه") {
-                Text(if (loginClaimed) "پاداش امروز دریافت شده." else "هر روز یک‌بار ۵ سکه رایگان.")
+                Text("زنجیره ورود: " + login.streak + " روز — پاداش امروز: " + login.reward + " سکه")
                 Button(enabled = !loginClaimed, onClick = {
                     loginClaimed = CoinWallet.claimRewardOnce(context, "daily_login_" + dayKey(), 5)
                     if (loginClaimed) { message = "۵ سکه دریافت شد."; onCoinsChanged() }
