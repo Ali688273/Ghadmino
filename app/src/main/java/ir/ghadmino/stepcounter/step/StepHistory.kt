@@ -43,7 +43,12 @@ object StepHistory {
     fun totalLifetime(context: Context): Int {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val stored = prefs.getLong(LIFETIME, -1L)
-        if (stored >= 0L) return stored.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        val todayStored = get(context, today())
+        val liveToday = maxOf(todayStored, StepCounterService.todaySteps, StepCounterService.persistedTodaySteps(context))
+        if (stored >= 0L) {
+            val liveTotal = stored + (liveToday - todayStored).coerceAtLeast(0)
+            return liveTotal.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        }
         val total = calculateLifetime(prefs)
         prefs.edit().putLong(LIFETIME, total).apply()
         return total.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
@@ -52,7 +57,9 @@ object StepHistory {
     fun currentStreak(context: Context, minimumSteps: Int): Int {
         var streak = 0
         for (i in 0 until 3650) {
-            if (get(context, dateOffset(i)) >= minimumSteps) streak++ else break
+            val date = dateOffset(i)
+            val value = if (i == 0) maxOf(get(context, date), StepCounterService.todaySteps, StepCounterService.persistedTodaySteps(context)) else get(context, date)
+            if (value >= minimumSteps) streak++ else break
         }
         return streak
     }
