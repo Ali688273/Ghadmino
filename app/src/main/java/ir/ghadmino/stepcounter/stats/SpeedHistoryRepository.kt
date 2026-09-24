@@ -32,6 +32,26 @@ object SpeedHistoryRepository {
         return result.asReversed()
     }
 
+    fun bestAverage(context: Context, days: Int = 3650): Pair<String, Float>? =
+        recent(context, days).maxByOrNull { it.second }
+
+    fun bestMaximum(context: Context, days: Int = 3650): Pair<String, Float>? {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        var bestDate: String? = null
+        var bestValue = 0f
+        val calendar = Calendar.getInstance()
+        repeat(days.coerceIn(1, 3650)) {
+            val date = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(calendar.time)
+            val value = prefs.getFloat(MAX_PREFIX + date, 0f)
+            if (value > bestValue) {
+                bestValue = value
+                bestDate = date
+            }
+            calendar.add(Calendar.DAY_OF_YEAR, -1)
+        }
+        return bestDate?.let { it to bestValue }
+    }
+
     fun recent(days: Int): List<Pair<String, Float>> {
         return emptyList()
     }
