@@ -98,7 +98,7 @@ class WorkoutTracker(private val context: Context) {
 
     fun start() {
         if (!running.compareAndSet(false, true)) return
-        startSteps = StepCounterService.todaySteps
+        startSteps = maxOf(StepCounterService.todaySteps, StepCounterService.persistedTodaySteps(context))
         startMillis = System.currentTimeMillis()
         distanceMeters = 0.0
         lastLocation = null
@@ -130,7 +130,7 @@ class WorkoutTracker(private val context: Context) {
         }
     }
 
-    fun stop(): WorkoutSummary {
+    fun stop(): WorkoutSummary? {
         try { listener?.let { locationManager?.removeUpdates(it) } } catch (_: SecurityException) {}
         listener = null
         locationManager = null
