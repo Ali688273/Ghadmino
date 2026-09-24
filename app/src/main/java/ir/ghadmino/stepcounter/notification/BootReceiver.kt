@@ -10,9 +10,11 @@ import ir.ghadmino.stepcounter.step.StepCounterService
 
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
-        if (intent?.action != Intent.ACTION_BOOT_COMPLETED) return
+        val action = intent?.action ?: return
+        if (action != Intent.ACTION_BOOT_COMPLETED &&
+            action != Intent.ACTION_MY_PACKAGE_REPLACED
+        ) return
 
-        // یادآوری‌ها باید بعد از روشن شدن گوشی دوباره زمان‌بندی شوند.
         runCatching { ReminderScheduler.schedule(context) }
         runCatching { InactivityScheduler.schedule(context) }
 
