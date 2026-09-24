@@ -30,6 +30,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import ir.ghadmino.stepcounter.reward.CoinWallet
+import ir.ghadmino.stepcounter.analytics.ActivityAnalyticsRepository
+import ir.ghadmino.stepcounter.analytics.ActivityIntelligenceScreen
+import ir.ghadmino.stepcounter.notification.InactivityScheduler
 import ir.ghadmino.stepcounter.backup.BackupScreen
 import ir.ghadmino.stepcounter.insights.ActivityInsightsRepository
 import ir.ghadmino.stepcounter.insights.ActivityInsightsScreen
@@ -99,7 +102,7 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("ghadmino_ui", Context.MODE_PRIVATE) }
     var goal by remember { mutableIntStateOf(ProfileRepository.load(context).dailyGoal) }
-    var steps by remember { mutableIntStateOf(StepCounterService.todaySteps) }
+    var steps by remember { mutableIntStateOf(ActivityAnalyticsRepository.today(context)) }
     var currentSpeed by remember { mutableFloatStateOf(speedTracker.currentSpeedKmh) }
     var averageSpeed by remember { mutableFloatStateOf(speedTracker.averageSpeedKmh) }
     var minimumSpeed by remember { mutableFloatStateOf(speedTracker.minimumSpeedKmh) }
@@ -115,7 +118,7 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
 
     LaunchedEffect(Unit) {
         while (true) {
-            steps = StepCounterService.todaySteps
+            steps = ActivityAnalyticsRepository.today(context)
             StepHistory.saveToday(context, steps)
             CoinWallet.syncStepReward(context, steps)
             if (steps >= goal) CoinWallet.claimGoalReward(context)
@@ -130,8 +133,9 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
     }
 
     val progress = if (goal > 0) (steps.toFloat() / goal).coerceIn(0f, 1f) else 0f
-    val distanceKm = steps * 0.00075
-    val calories = steps * 0.04
+    val profile = ProfileRepository.load(context)
+    val distanceKm = steps * profile.strideCm / 100000.0
+    val calories = steps * profile.strideCm * profile.weightKg * 0.5 / 100000.0
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -262,6 +266,9 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
         "extras" -> FullPageDialog("شخصی‌سازی", onClose = { morePage = null }) {
             ProfileExtrasScreen { coins = CoinWallet.balance(context) }
         }
+        "smart" -> FullPageDialog("گزارش هوشمند", onClose = { morePage = null }) {
+            ActivityIntelligenceScreen { coins = CoinWallet.balance(context) }
+        }
         "insights" -> FullPageDialog("تحلیل فعالیت", onClose = { morePage = null }) {
             ActivityInsightsScreen(insights, ActivityInsightsRepository.hourly(context))
         }
@@ -308,6 +315,8 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
                     value = goal.toFloat(),
                     onValueChange = {
                         goal = it.toInt()
+                        val profile = ProfileRepository.load(context)
+                        ProfileRepository.save(context, profile.copy(dailyGoal = goal))
                         prefs.edit().putInt("daily_goal", goal).apply()
                     },
                     valueRange = 1000f..30000f,
@@ -438,6 +447,7 @@ private fun MorePage(
         MoreItem("🎨", "شخصی‌سازی", "قاب، نشان و امکانات قابل خرید") { onOpen("extras") }
         MoreItem("📅", "تقویم فعالیت", "انتخاب هر روز و مشاهده گزارش واقعی همان روز") { onOpen("calendar") }
         MoreItem("📋", "تاریخچه", "مشاهده قدم‌های روزهای اخیر") { onOpen("history") }
+        MoreItem("📊", "گزارش هوشمند", "روند، رکورد، پیش‌بینی و ماموریت‌های روزانه") { onOpen("smart") }
         MoreItem("📈", "تحلیل فعالیت", "امتیاز، فعالیت ساعتی و پیش‌بینی هدف") { onOpen("insights") }
         MoreItem("🎯", "تنظیم هدف", "تغییر هدف روزانه قدم‌ها") { onOpen("goal") }
         MoreItem("❤️", "Health Connect", "اتصال قدمینو به داده‌های سلامت اندروید") { onOpen("health") }
