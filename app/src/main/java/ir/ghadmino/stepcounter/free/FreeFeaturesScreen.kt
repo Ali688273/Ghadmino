@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import ir.ghadmino.stepcounter.health.HealthConnectRepository
+import ir.ghadmino.stepcounter.analytics.ActivityAnalyticsRepository
 import ir.ghadmino.stepcounter.reward.CoinWallet
 import ir.ghadmino.stepcounter.step.StepHistory
 import kotlinx.coroutines.launch
@@ -28,6 +29,7 @@ fun FreeFeaturesScreen(onCoinsChanged: () -> Unit = {}) {
     var records by remember { mutableStateOf(PersonalRecordsRepository.calculate(context)) }
     var goals by remember { mutableStateOf(PeriodicGoalRepository.load(context)) }
     var healthSteps by remember { mutableStateOf<Long?>(null) }
+    var phoneSteps by remember { mutableIntStateOf(ActivityAnalyticsRepository.today(context)) }
     var message by remember { mutableStateOf<String?>(null) }
     var diag by remember { mutableStateOf<Diagnostics?>(null) }
     var login by remember { mutableStateOf(DailyLoginRepository.state(context)) }
@@ -55,8 +57,10 @@ fun FreeFeaturesScreen(onCoinsChanged: () -> Unit = {}) {
                     SourceButton("خودکار", StepSource.AUTO, source) { source = it; StepSourceRepository.set(context, it) }
                 }
                 Button(onClick = {
+                    phoneSteps = ActivityAnalyticsRepository.today(context)
                     scope.launch { healthSteps = try { HealthConnectRepository.todaySteps(context) } catch (_: Exception) { null } }
-                }) { Text("خواندن قدم‌های Health Connect") }
+                }) { Text("نمایش هر دو منبع") }
+                Text("گوشی: " + phoneSteps + " قدم")
                 if (healthSteps != null) Text("Health Connect: " + healthSteps + " قدم")
                 Button(onClick = {
                     scope.launch {
