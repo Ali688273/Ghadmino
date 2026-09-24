@@ -42,14 +42,9 @@ object DynamicMissionRepository{
         val p=c.getSharedPreferences(PREFS,0)
         val key="claimed_"+m.id
         if(p.getBoolean(key,false)||!ready(c,m)) return false
-
-        // The mission marker is written first. A crash can therefore never
-        // result in repeated payment; the normal user path remains one claim.
-        val marked=p.edit().putBoolean(key,true).commit()
-        if(!marked) return false
-
-        CoinWallet.add(c,m.reward)
+        val claimed=CoinWallet.claimRewardOnce(c,"dynamic_mission_"+today()+"_"+m.id,m.reward)
+        if(!claimed) return false
+        p.edit().putBoolean(key,true).apply()
         LevelRepository.recordMission(c)
         return true
-    }
-}
+    }}
