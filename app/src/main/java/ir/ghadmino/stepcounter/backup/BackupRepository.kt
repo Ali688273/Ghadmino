@@ -88,6 +88,36 @@ object BackupRepository {
         return root.toString(2)
     }
 
+
+    data class ImportPreview(
+        val valid:Boolean,
+        val version:Int,
+        val preferenceGroups:Int,
+        val entries:Int,
+        val createdAt:String
+    )
+
+    fun previewJson(json:String): ImportPreview {
+        return try {
+            val root=JSONObject(json)
+            val validFormat=root.optString("format")=="ghadmino_backup"
+            val version=root.optInt("version",1)
+            val all=root.optJSONObject("preferences")
+            if(!validFormat || version !in 1..4 || all==null) {
+                ImportPreview(false,version,0,0,root.optString("created_at","-"))
+            } else {
+                var entries=0
+                all.keys().forEach { name ->
+                    val obj=all.optJSONObject(name)
+                    if(obj!=null && prefsNames.contains(name)) entries += obj.length()
+                }
+                ImportPreview(true,version,all.length(),entries,root.optString("created_at","-"))
+            }
+        } catch (_:Exception) {
+            ImportPreview(false,0,0,0,"-")
+        }
+    }
+
     fun importJson(context: Context, json: String): Int {
         val root = JSONObject(json)
 
