@@ -32,6 +32,7 @@ fun FreeFeaturesScreen(onCoinsChanged: () -> Unit = {}) {
     var phoneSteps by remember { mutableIntStateOf(ActivityAnalyticsRepository.today(context)) }
     var message by remember { mutableStateOf<String?>(null) }
     var diag by remember { mutableStateOf<Diagnostics?>(null) }
+    var scenarios by remember { mutableStateOf<List<ScenarioResult>>(emptyList()) }
     var login by remember { mutableStateOf(DailyLoginRepository.state(context)) }
     var syncState by remember { mutableStateOf(HealthSyncRepository.load(context)) }
     var endReport by remember { mutableStateOf(EndOfDayReportRepository.today(context)) }
@@ -177,6 +178,8 @@ fun FreeFeaturesScreen(onCoinsChanged: () -> Unit = {}) {
 
             Section("۲۰ — کنترل پایداری") {
                 Text("پاداش‌ها یک‌بار مصرف‌اند و خطاهای Health Connect در رابط کنترل می‌شوند.")
+                Button(onClick = { scenarios = InternalScenarioTests.run(); message = "بررسی‌های داخلی اجرا شد." }) { Text("اجرای تست‌های داخلی") }
+                scenarios.forEach { result -> Text(if(result.passed) "✓ " + result.name else "⚠ " + result.name) }
                 Button(onClick = {
                     records = PersonalRecordsRepository.calculate(context)
                     goals = PeriodicGoalRepository.load(context)
