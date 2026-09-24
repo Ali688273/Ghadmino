@@ -17,6 +17,7 @@ import androidx.core.app.NotificationCompat
 import ir.ghadmino.stepcounter.MainActivity
 import ir.ghadmino.stepcounter.R
 import ir.ghadmino.stepcounter.reward.CoinWallet
+import ir.ghadmino.stepcounter.analytics.ActivityAnalyticsRepository
 import ir.ghadmino.stepcounter.insights.ActivityInsightsRepository
 import ir.ghadmino.stepcounter.widget.GhadminoWidgetProvider
 import java.text.SimpleDateFormat
@@ -101,6 +102,7 @@ class StepCounterService : Service(), SensorEventListener {
         val delta = (newTodaySteps - todaySteps).coerceAtLeast(0)
         todaySteps = newTodaySteps
         if (delta > 0) {
+            ActivityAnalyticsRepository.markActivity(this)
             ActivityInsightsRepository.recordStepChange(this, delta)
             sendBroadcast(Intent(GhadminoWidgetProvider.ACTION_REFRESH).setPackage(packageName))
         }
