@@ -30,7 +30,8 @@ object BackupRepository {
     fun exportJson(context: Context): String {
         val root = JSONObject()
         root.put("format", "ghadmino_backup")
-        root.put("version", 2)
+        root.put("version", 3)
+        root.put("scope", "profile,settings,coins,steps,history,achievements,level,speed,speed_history,workouts,manual_activity,step_plan,hourly,ui")
         root.put(
             "created_at",
             SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
@@ -92,7 +93,7 @@ object BackupRepository {
         }
 
         val version = root.optInt("version", 1)
-        if (version !in 1..2) {
+        if (version !in 1..3) {
             throw IllegalArgumentException("نسخه فایل پشتیبان با این نسخه قدمینو سازگار نیست.")
         }
 
