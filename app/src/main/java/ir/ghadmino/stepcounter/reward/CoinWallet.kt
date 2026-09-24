@@ -44,9 +44,20 @@ object CoinWallet {
         val old = prefs.getInt(key, 0)
 
         if (blocks > old) {
-            val reward = ((blocks - old).toLong() * 5L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
-            add(c, reward)
-            prefs.edit().putInt(key, blocks).apply()
+            val reward = ((blocks - old).toLong() * 5L)
+                .coerceAtMost(Int.MAX_VALUE.toLong())
+                .toInt()
+
+            // Balance and the rewarded-block marker are written together.
+            // This prevents the common crash window where coins are added
+            // but the marker is not saved yet, which could pay the same block twice.
+            val nextBalance = (balance(c).toLong() + reward.toLong())
+                .coerceAtMost(Int.MAX_VALUE.toLong())
+                .toInt()
+            prefs.edit()
+                .putInt("balance", nextBalance)
+                .putInt(key, blocks)
+                .apply()
         } else if (!prefs.contains(key)) {
             prefs.edit().putInt(key, blocks).apply()
         }
@@ -79,8 +90,14 @@ object CoinWallet {
         milestones.forEach { (target, reward) ->
             val key = "milestone_" + target
             if (steps >= target && !p(c).getBoolean(key, false)) {
-                add(c, reward)
-                p(c).edit().putBoolean(key, true).apply()
+                val prefs = p(c)
+                val nextBalance = (balance(c).toLong() + reward.toLong())
+                    .coerceAtMost(Int.MAX_VALUE.toLong())
+                    .toInt()
+                prefs.edit()
+                    .putInt("balance", nextBalance)
+                    .putBoolean(key, true)
+                    .apply()
             }
         }
     }
