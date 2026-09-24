@@ -29,6 +29,8 @@ fun FreeFeaturesScreen(onCoinsChanged: () -> Unit = {}) {
     var source by remember { mutableStateOf(StepSourceRepository.get(context)) }
     var records by remember { mutableStateOf(PersonalRecordsRepository.calculate(context)) }
     var goals by remember { mutableStateOf(PeriodicGoalRepository.load(context)) }
+    var weeklyTarget by remember { mutableIntStateOf(goals.weeklyTarget) }
+    var monthlyTarget by remember { mutableIntStateOf(goals.monthlyTarget) }
     var healthSteps by remember { mutableStateOf<Long?>(null) }
     var phoneSteps by remember { mutableIntStateOf(ActivityAnalyticsRepository.today(context)) }
     var message by remember { mutableStateOf<String?>(null) }
@@ -111,8 +113,15 @@ fun FreeFeaturesScreen(onCoinsChanged: () -> Unit = {}) {
             }
 
             Section("۶ و ۷ — هدف هفتگی و ماهانه") {
-                GoalRow("هفتگی", goals.weeklyProgress, goals.weeklyTarget)
-                GoalRow("ماهانه", goals.monthlyProgress, goals.monthlyTarget)
+                GoalRow("هفتگی", goals.weeklyProgress, weeklyTarget)
+                Slider(value = weeklyTarget.toFloat(), onValueChange = { weeklyTarget = it.toInt() }, valueRange = 10000f..150000f, steps = 27)
+                GoalRow("ماهانه", goals.monthlyProgress, monthlyTarget)
+                Slider(value = monthlyTarget.toFloat(), onValueChange = { monthlyTarget = it.toInt() }, valueRange = 50000f..500000f, steps = 17)
+                Button(onClick = {
+                    PeriodicGoalRepository.save(context, weeklyTarget, monthlyTarget)
+                    goals = PeriodicGoalRepository.load(context)
+                    message = "اهداف هفتگی و ماهانه ذخیره شد."
+                }) { Text("ذخیره اهداف") }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = {
                         message = if (goals.weeklyProgress >= goals.weeklyTarget && PeriodicGoalRepository.claimWeekly(context)) {
