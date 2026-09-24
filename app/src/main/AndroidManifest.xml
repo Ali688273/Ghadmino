@@ -39,6 +39,11 @@
         </activity>
 
         <receiver
+            android:name=".free.WeeklyReportReceiver"
+            android:enabled="true"
+            android:exported="false" />
+
+        <receiver
             android:name=".notification.ReminderReceiver"
             android:enabled="true"
             android:exported="false" />
