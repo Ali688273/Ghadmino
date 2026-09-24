@@ -14,6 +14,7 @@ class BootReceiver : BroadcastReceiver() {
 
         // یادآوری‌ها باید بعد از روشن شدن گوشی دوباره زمان‌بندی شوند.
         runCatching { ReminderScheduler.schedule(context) }
+        runCatching { InactivityScheduler.schedule(context) }
 
         val granted =
             Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ||
