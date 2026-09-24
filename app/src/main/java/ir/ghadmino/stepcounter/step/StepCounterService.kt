@@ -63,9 +63,16 @@ class StepCounterService : Service(), SensorEventListener {
         }
 
         loadToday()
+        // Re-publish the recovered value immediately so widgets/other screens
+        // do not temporarily see zero after the process/service is recreated.
+        todaySteps = maxOf(todaySteps, persistedTodaySteps(this))
+        StepHistory.saveToday(this, todaySteps)
+        sendBroadcast(Intent(GhadminoWidgetProvider.ACTION_REFRESH).setPackage(packageName))
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // START_STICKY lets Android recreate the service after a process kill.
+        // The persisted sensor baseline/accumulator is restored in onCreate().
         return START_STICKY
     }
 
@@ -79,11 +86,18 @@ class StepCounterService : Service(), SensorEventListener {
         var accumulated = prefs.getInt(KEY_ACCUMULATED, 0).coerceAtLeast(0)
 
         if (last >= 0 && total < last) {
-            accumulated = todaySteps.coerceAtLeast(prefs.getInt(KEY_ACCUMULATED, 0))
+            // Some devices reset the cumulative sensor value. Keep the steps
+            // already counted today and start a new sensor baseline instead of
+            // subtracting the reset value from the old total.
+            accumulated = maxOf(
+                todaySteps,
+                prefs.getInt(KEY_ACCUMULATED, 0)
+            ).coerceAtLeast(0)
             baseline = total
             prefs.edit()
                 .putLong(KEY_BASELINE, baseline)
                 .putInt(KEY_ACCUMULATED, accumulated)
+                .putLong(KEY_LAST_TOTAL, total)
                 .apply()
         }
 
@@ -96,11 +110,15 @@ class StepCounterService : Service(), SensorEventListener {
         }
 
         if (savedDate != today || baseline < 0) {
+            // A date change starts a fresh sensor baseline. The previous day
+            // has already been archived above when its sensor values existed.
             baseline = total
             accumulated = 0
+            todaySteps = 0
             prefs.edit()
                 .putString(KEY_DATE, today)
                 .putLong(KEY_BASELINE, baseline)
+                .putLong(KEY_LAST_TOTAL, total)
                 .putInt(KEY_ACCUMULATED, 0)
                 .apply()
         }
