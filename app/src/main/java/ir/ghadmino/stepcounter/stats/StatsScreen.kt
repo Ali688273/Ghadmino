@@ -122,6 +122,50 @@ fun StatsScreen(stats: GhadminoStats, goal: Int) {
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.EmojiEvents, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("رکوردهای شخصی", style = MaterialTheme.typography.titleLarge)
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        "🏆 بیشترین قدم در یک روز: " +
+                            stats.bestDay.second + " قدم",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text(
+                        "تاریخ ثبت رکورد: " + StatsRepository.label(stats.bestDay.first),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "🔥 طولانی‌ترین زنجیره رسیدن به هدف: " +
+                            stats.longestStreak.value + " روز",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    if (stats.longestStreak.value > 0) {
+                        Text(
+                            "از " + StatsRepository.label(stats.longestStreak.startDate) +
+                                " تا " + StatsRepository.label(stats.longestStreak.endDate),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    } else {
+                        Text(
+                            "هنوز رکورد زنجیره‌ای ثبت نشده است.",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "رکورد فعلی هدف روزانه: " + stats.streak + " روز پشت‌سرهم",
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+            }
+        }
+        item {
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.BarChart, null)
                         Spacer(Modifier.width(8.dp))
                         Text("نمودار ۱۴ روز اخیر", style = MaterialTheme.typography.titleLarge)
