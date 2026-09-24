@@ -34,7 +34,7 @@ object BackupRepository {
         val root = JSONObject()
         root.put("format", "ghadmino_backup")
         root.put("version", 4)
-        root.put("scope", "profile,settings,coins,steps,history,achievements,level,speed,speed_history,workouts,manual_activity,step_plan,hourly,ui")
+        root.put("scope", "profile,settings,coins,steps,history,achievements,level,speed,speed_history,workouts,manual_activity,step_plan,hourly,ui,activity_intelligence,dynamic_missions,inactivity_notice")
         root.put(
             "created_at",
             SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
