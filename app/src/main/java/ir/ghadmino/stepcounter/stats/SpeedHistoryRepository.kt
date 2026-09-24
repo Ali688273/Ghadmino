@@ -35,6 +35,9 @@ object SpeedHistoryRepository {
     fun bestAverage(context: Context, days: Int = 3650): Pair<String, Float>? =
         recent(context, days).maxByOrNull { it.second }
 
+    fun maximumForDate(context: Context, date: String): Float =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getFloat(MAX_PREFIX + date, 0f)
+
     fun bestMaximum(context: Context, days: Int = 3650): Pair<String, Float>? {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         var bestDate: String? = null
