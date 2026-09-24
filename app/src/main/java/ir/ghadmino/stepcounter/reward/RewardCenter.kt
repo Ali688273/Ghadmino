@@ -7,7 +7,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Paid
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
@@ -34,9 +33,7 @@ private val themeOffers = listOf(
 @Composable
 fun RewardCenter(
     coins: Int,
-    adAvailable: Boolean,
     selectedTheme: String,
-    onWatchAd: () -> Unit,
     onBuyFreeze: () -> Unit,
     onBuyTheme: (id: String, cost: Int) -> Unit,
     onCoinsChanged: () -> Unit = {}
@@ -186,30 +183,6 @@ fun RewardCenter(
                 Text("۲۵۰ هزار قدم مجموعی → +۵۰۰ سکه")
                 Text("۵۰۰ هزار قدم مجموعی → +۷۵۰ سکه")
                 Text("۱ میلیون قدم مجموعی → +۱۵۰۰ سکه")
-            }
-        }
-
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp)) {
-                Row {
-                    Icon(Icons.Default.PlayArrow, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        "تبلیغ جایزه‌ای",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                Spacer(Modifier.height(6.dp))
-                Text("پس از اتصال واقعی تبلیغات، با تماشای کامل تبلیغ +۱۰۰ سکه دریافت می‌کنی.")
-                Spacer(Modifier.height(8.dp))
-                Button(
-                    onClick = onWatchAd,
-                    enabled = adAvailable,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(if (adAvailable) "تماشای تبلیغ +۱۰۰ سکه" else "در مرحله نهایی فعال می‌شود")
-                }
             }
         }
 
