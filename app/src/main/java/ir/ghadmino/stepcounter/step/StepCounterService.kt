@@ -31,16 +31,25 @@ class StepCounterService : Service(), SensorEventListener {
 
     companion object {
         @Volatile var todaySteps = 0
+
         fun persistedTodaySteps(context: Context): Int {
             val prefs = context.getSharedPreferences("ghadmino_steps", Context.MODE_PRIVATE)
             val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
             if (prefs.getString(KEY_DATE, null) != today) return 0
+
             val baseline = prefs.getLong(KEY_BASELINE, -1L)
             val last = prefs.getLong(KEY_LAST_TOTAL, -1L)
-            if (baseline < 0L || last < baseline) return 0
-            return (last - baseline).coerceAtLeast(0L)
-                .coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+            val accumulated = prefs.getInt(KEY_ACCUMULATED, 0).coerceAtLeast(0)
+
+            if (baseline < 0L || last < baseline) {
+                return accumulated.coerceAtMost(Int.MAX_VALUE)
+            }
+
+            return (accumulated.toLong() + (last - baseline).coerceAtLeast(0L))
+                .coerceAtMost(Int.MAX_VALUE.toLong())
+                .toInt()
         }
+
         @Volatile var sensorAvailable = false
         private const val CHANNEL_ID = "ghadmino_steps"
         private const val NOTIFICATION_ID = 1001
@@ -63,18 +72,12 @@ class StepCounterService : Service(), SensorEventListener {
         }
 
         loadToday()
-        // Re-publish the recovered value immediately so widgets/other screens
-        // do not temporarily see zero after the process/service is recreated.
         todaySteps = maxOf(todaySteps, persistedTodaySteps(this))
         StepHistory.saveToday(this, todaySteps)
         sendBroadcast(Intent(GhadminoWidgetProvider.ACTION_REFRESH).setPackage(packageName))
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // START_STICKY lets Android recreate the service after a process kill.
-        // The persisted sensor baseline/accumulator is restored in onCreate().
-        return START_STICKY
-    }
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
 
     override fun onSensorChanged(event: SensorEvent?) {
         if (event == null) return
@@ -86,13 +89,7 @@ class StepCounterService : Service(), SensorEventListener {
         var accumulated = prefs.getInt(KEY_ACCUMULATED, 0).coerceAtLeast(0)
 
         if (last >= 0 && total < last) {
-            // Some devices reset the cumulative sensor value. Keep the steps
-            // already counted today and start a new sensor baseline instead of
-            // subtracting the reset value from the old total.
-            accumulated = maxOf(
-                todaySteps,
-                prefs.getInt(KEY_ACCUMULATED, 0)
-            ).coerceAtLeast(0)
+            accumulated = maxOf(todaySteps, accumulated).coerceAtLeast(0)
             baseline = total
             prefs.edit()
                 .putLong(KEY_BASELINE, baseline)
@@ -102,16 +99,10 @@ class StepCounterService : Service(), SensorEventListener {
         }
 
         if (savedDate != null && savedDate != today && baseline >= 0 && last >= baseline) {
-            StepHistory.saveDate(
-                this,
-                savedDate,
-                daySteps(accumulated, baseline, last)
-            )
+            StepHistory.saveDate(this, savedDate, daySteps(accumulated, baseline, last))
         }
 
         if (savedDate != today || baseline < 0) {
-            // A date change starts a fresh sensor baseline. The previous day
-            // has already been archived above when its sensor values existed.
             baseline = total
             accumulated = 0
             todaySteps = 0
@@ -134,19 +125,21 @@ class StepCounterService : Service(), SensorEventListener {
         val previousTodaySteps = todaySteps
         val delta = (newTodaySteps - previousTodaySteps).coerceAtLeast(0)
         todaySteps = newTodaySteps
+
         if (delta > 0) {
             ActivityAnalyticsRepository.markActivity(this)
             ActivityInsightsRepository.recordStepChange(this, delta)
-            sendBroadcast(Intent(GhadminoWidgetProvider.ACTION_REFRESH).setPackage(packageName))
         }
 
-        prefs.edit().putLong(KEY_LAST_TOTAL, total).apply()
+        prefs.edit()
+            .putLong(KEY_LAST_TOTAL, total)
+            .putInt(KEY_ACCUMULATED, accumulated)
+            .apply()
+
         CoinWallet.syncStepReward(this, todaySteps)
         StepHistory.saveToday(this, todaySteps)
+        sendBroadcast(Intent(GhadminoWidgetProvider.ACTION_REFRESH).setPackage(packageName))
         updateNotification()
-        if (delta == 0) {
-            sendBroadcast(Intent(GhadminoWidgetProvider.ACTION_REFRESH).setPackage(packageName))
-        }
     }
 
     private fun loadToday() {
@@ -183,16 +176,19 @@ class StepCounterService : Service(), SensorEventListener {
         val baseline = prefs.getLong(KEY_BASELINE, -1L)
         val last = prefs.getLong(KEY_LAST_TOTAL, -1L)
         val accumulated = prefs.getInt(KEY_ACCUMULATED, 0).coerceAtLeast(0)
+
         todaySteps =
-            if (baseline >= 0 && last >= baseline)
+            if (baseline >= 0 && last >= baseline) {
                 (accumulated.toLong() + (last - baseline))
-                    .coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
-            else accumulated
+                    .coerceAtMost(Int.MAX_VALUE.toLong())
+                    .toInt()
+            } else {
+                accumulated
+            }
     }
 
     private fun daySteps(accumulated: Int, baseline: Long, last: Long): Int {
-        val sensorDelta = (last - baseline).coerceAtLeast(0L)
-        return (accumulated.toLong() + sensorDelta)
+        return (accumulated.toLong() + (last - baseline).coerceAtLeast(0L))
             .coerceAtMost(Int.MAX_VALUE.toLong())
             .toInt()
     }
