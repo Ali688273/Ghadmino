@@ -83,6 +83,28 @@ object StatsRepository {
         )
     }
 
+    fun period(c: Context, goal: Int, days: Int): PeriodReport {
+        val safeDays = days.coerceIn(1, 3650)
+        val data = load(c, goal, safeDays).days
+        val total = data.sumOf { it.second }
+        val average = if (data.isEmpty()) 0 else total / data.size
+        val best = data.maxByOrNull { it.second } ?: (today() to 0)
+        val goalDays = data.count { it.second >= goal }
+        val rate = if (data.isEmpty()) 0 else goalDays * 100 / data.size
+        return PeriodReport(safeDays, total, average, best, goalDays, rate)
+    }
+
+    fun weekly(c: Context, goal: Int): PeriodReport = period(c, goal, 7)
+
+    fun monthly(c: Context, goal: Int): PeriodReport = period(c, goal, 30)
+
+    fun trend(c: Context, goal: Int): Int {
+        val current = weekly(c, goal).totalSteps
+        val previous = load(c, goal, 14).days.drop(7).sumOf { it.second }
+        if (previous == 0) return if (current > 0) 100 else 0
+        return (((current - previous) * 100f) / previous).toInt()
+    }
+
     fun label(date: String): String {
         return try {
             val d = SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(date)
