@@ -1,7 +1,6 @@
 package ir.ghadmino.stepcounter.challenge
 
 import android.content.Context
-import ir.ghadmino.stepcounter.reward.CoinWallet
 import ir.ghadmino.stepcounter.level.LevelRepository
 import ir.ghadmino.stepcounter.step.StepHistory
 import java.text.SimpleDateFormat
@@ -35,11 +34,7 @@ object ChallengeRepository {
     fun progress(context: Context, challenge: Challenge): Int {
         var count = 0
         for (i in 0 until challenge.days) {
-            if (StepHistory.get(context, dateOffset(i)) >= challenge.dailyTarget) {
-                count++
-            } else {
-                break
-            }
+            if (StepHistory.get(context, dateOffset(i)) >= challenge.dailyTarget) count++ else break
         }
         return count
     }
@@ -48,11 +43,11 @@ object ChallengeRepository {
         val completedDays = progress(context, challenge)
         val total = challenge.days.coerceAtLeast(1)
         return ChallengeProgress(
-            completedDays = completedDays,
-            totalDays = total,
-            percent = ((completedDays * 100f) / total).toInt().coerceIn(0, 100),
-            completed = completedDays >= total,
-            claimed = isClaimed(context, challenge.id)
+            completedDays,
+            total,
+            ((completedDays * 100f) / total).toInt().coerceIn(0, 100),
+            completedDays >= total,
+            isClaimed(context, challenge.id)
         )
     }
 
@@ -60,17 +55,23 @@ object ChallengeRepository {
         context.getSharedPreferences("ghadmino_challenges", Context.MODE_PRIVATE)
             .getBoolean("claimed_" + id, false)
 
+    @Synchronized
     fun claim(context: Context, challenge: Challenge): Boolean {
-        if (progress(context, challenge) < challenge.days || isClaimed(context, challenge.id)) {
+        val prefs = context.getSharedPreferences("ghadmino_challenges", Context.MODE_PRIVATE)
+        val claimedKey = "claimed_" + challenge.id
+        if (progress(context, challenge) < challenge.days || prefs.getBoolean(claimedKey, false)) {
             return false
         }
-        CoinWallet.add(context, challenge.reward)
-        // هر چالش تکمیل‌شده علاوه بر سکه، در XP سطح نیز ثبت می‌شود.
+
+        val coins = context.getSharedPreferences("ghadmino_coins", Context.MODE_PRIVATE)
+        val current = coins.getInt("balance", 0).toLong()
+        val next = (current + challenge.reward).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+
+        val marked = prefs.edit().putBoolean(claimedKey, true).commit()
+        if (!marked) return false
+
+        coins.edit().putInt("balance", next).apply()
         LevelRepository.recordMission(context)
-        context.getSharedPreferences("ghadmino_challenges", Context.MODE_PRIVATE)
-            .edit()
-            .putBoolean("claimed_" + challenge.id, true)
-            .apply()
         return true
     }
 
