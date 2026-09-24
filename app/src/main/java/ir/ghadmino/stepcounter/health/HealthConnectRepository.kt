@@ -91,7 +91,7 @@ object HealthConnectRepository {
             endZoneOffset = zone.rules.getOffset(end),
             metadata = androidx.health.connect.client.records.metadata.Metadata.autoRecorded(
                 clientRecordId = "ghadmino_steps_" + start.toString().substringBefore("T"),
-                clientRecordVersion = System.currentTimeMillis(),
+                clientRecordVersion = versionFor(context, start.toString().substringBefore("T"), steps),
                 device = androidx.health.connect.client.records.metadata.Device(
                     type = androidx.health.connect.client.records.metadata.Device.TYPE_PHONE
                 )
@@ -116,7 +116,7 @@ object HealthConnectRepository {
                 endZoneOffset = zone.rules.getOffset(end),
                 metadata = androidx.health.connect.client.records.metadata.Metadata.autoRecorded(
                     clientRecordId = "ghadmino_steps_" + row.first,
-                    clientRecordVersion = System.currentTimeMillis(),
+                    clientRecordVersion = versionFor(context, row.first, row.second.toLong()),
                     device = androidx.health.connect.client.records.metadata.Device(
                         type = androidx.health.connect.client.records.metadata.Device.TYPE_PHONE
                     )
@@ -126,6 +126,15 @@ object HealthConnectRepository {
         if (records.isEmpty()) return 0
         healthClient.insertRecords(records)
         return records.size
+    }
+
+    private fun versionFor(context: Context, date: String, steps: Long): Long {
+        val p = context.getSharedPreferences("ghadmino_health_sync", Context.MODE_PRIVATE)
+        val key = "version_" + date
+        val old = p.getLong(key, 0L)
+        val next = maxOf(System.currentTimeMillis(), old + 1L, steps.coerceAtLeast(0L))
+        p.edit().putLong(key, next).apply()
+        return next
     }
 
     fun manageDataIntent(context: Context) =
