@@ -4,6 +4,7 @@ import android.content.Context
 import ir.ghadmino.stepcounter.step.StepHistory
 import ir.ghadmino.stepcounter.achievement.AchievementRepository
 import ir.ghadmino.stepcounter.level.LevelRepository
+import ir.ghadmino.stepcounter.profile.ProfileRepository
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
