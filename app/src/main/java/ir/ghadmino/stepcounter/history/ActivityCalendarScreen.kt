@@ -12,13 +12,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalContext
 import ir.ghadmino.stepcounter.activity.ManualActivityRepository
+import ir.ghadmino.stepcounter.profile.ProfileRepository
 import ir.ghadmino.stepcounter.stats.SpeedHistoryRepository
-import ir.ghadmino.stepcounter.stats.StatsRepository
+import ir.ghadmino.stepcounter.step.StepCounterService
 import ir.ghadmino.stepcounter.step.StepHistory
 import ir.ghadmino.stepcounter.workout.WorkoutRepository
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
 import java.util.Locale
+import kotlin.math.max
 
 @Composable
 fun ActivityCalendarScreen(goal: Int) {
@@ -28,7 +31,14 @@ fun ActivityCalendarScreen(goal: Int) {
 
     val month = remember(monthOffset) { monthCalendar(monthOffset) }
     val days = remember(monthOffset) { monthDays(month) }
-    val selectedSteps = StepHistory.get(context, selectedDate)
+    val profile = remember { ProfileRepository.load(context) }
+    val liveTodaySteps = remember { mutableIntStateOf(currentTodaySteps(context)) }
+
+    LaunchedEffect(Unit) {
+        liveTodaySteps.intValue = currentTodaySteps(context)
+    }
+
+    val selectedSteps = stepsForDate(context, selectedDate, liveTodaySteps.intValue)
     val manualSteps = ManualActivityRepository.stepsForDate(context, selectedDate)
     val manualMinutes = ManualActivityRepository.minutesForDate(context, selectedDate)
     val manualCalories = ManualActivityRepository.caloriesForDate(context, selectedDate)
@@ -36,6 +46,9 @@ fun ActivityCalendarScreen(goal: Int) {
     val totalWorkoutDistance = workouts.sumOf { it.distanceMeters }
     val totalWorkoutCalories = workouts.sumOf { it.calories }
     val dailySpeed = SpeedHistoryRepository.maximumForDate(context, selectedDate)
+
+    val estimatedDistanceKm = selectedSteps * profile.strideCm.coerceIn(30, 150) / 100000.0
+    val estimatedCalories = estimateWalkingCalories(selectedSteps, profile.weightKg)
 
     Column(
         Modifier.fillMaxSize().padding(12.dp),
@@ -64,7 +77,7 @@ fun ActivityCalendarScreen(goal: Int) {
         days.chunked(7).forEach { week ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 week.forEach { date ->
-                    val value = if (date == null) 0 else StepHistory.get(context, date)
+                    val value = if (date == null) 0 else stepsForDate(context, date, liveTodaySteps.intValue)
                     Box(
                         Modifier.weight(1f).aspectRatio(1f)
                             .background(
@@ -100,34 +113,64 @@ fun ActivityCalendarScreen(goal: Int) {
             contentPadding = PaddingValues(bottom = 16.dp)
         ) {
             item {
-                Text("گزارش روز " + formatDate(selectedDate), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text(
+                    "گزارش روز " + formatDate(selectedDate),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
             }
             item {
                 ReportCard("قدم‌های ثبت‌شده", selectedSteps.toString() + " قدم")
             }
             item {
-                ReportCard("فعالیت دستی", manualSteps.toString() + " قدم • " + manualMinutes + " دقیقه • " + manualCalories + " kcal")
+                ReportCard(
+                    "فعالیت دستی",
+                    manualSteps.toString() + " قدم • " + manualMinutes + " دقیقه • " + manualCalories + " kcal"
+                )
             }
             item {
-                val estimatedDistance = selectedSteps * 0.00075
-                val estimatedCalories = (selectedSteps * 0.04).toInt()
-                ReportCard("برآورد روزانه", String.format("%.2f km • %d kcal", estimatedDistance, estimatedCalories))
+                ReportCard(
+                    "برآورد بر اساس پروفایل",
+                    String.format(
+                        Locale.US,
+                        "%.2f km • %d kcal",
+                        estimatedDistanceKm,
+                        estimatedCalories
+                    )
+                )
+            }
+            item {
+                Text(
+                    "فاصله بر اساس طول گام ثبت‌شده در پروفایل محاسبه شده و کالری یک برآورد است.",
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
             item {
                 ReportCard(
                     "تمرین‌های ثبت‌شده",
                     workouts.size.toString() + " جلسه • " +
-                        String.format("%.2f km • %d kcal", totalWorkoutDistance / 1000.0, totalWorkoutCalories)
+                        String.format(
+                            Locale.US,
+                            "%.2f km • %d kcal",
+                            totalWorkoutDistance / 1000.0,
+                            totalWorkoutCalories
+                        )
                 )
             }
             item {
                 ReportCard(
                     "سرعت ثبت‌شده",
-                    if (dailySpeed > 0f) String.format("%.1f km/h", dailySpeed) else "برای این روز رکورد سرعت ذخیره‌شده‌ای نیست"
+                    if (dailySpeed > 0f) {
+                        String.format(Locale.US, "%.1f km/h", dailySpeed)
+                    } else {
+                        "برای این روز رکورد سرعت ذخیره‌شده‌ای نیست"
+                    }
                 )
             }
             item {
-                val goalState = if (selectedSteps + manualSteps >= goal) "هدف روزانه تکمیل شده" else "هدف روزانه تکمیل نشده"
+                val goalState =
+                    if (selectedSteps + manualSteps >= goal) "هدف روزانه تکمیل شده"
+                    else "هدف روزانه تکمیل نشده"
                 ReportCard("هدف " + goal, goalState)
             }
         }
@@ -140,9 +183,30 @@ private fun ReportCard(title: String, value: String) {
         Column(Modifier.padding(14.dp)) {
             Text(title, style = MaterialTheme.typography.labelMedium)
             Spacer(Modifier.height(4.dp))
-            Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(
+                value,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
+}
+
+private fun stepsForDate(context: android.content.Context, date: String, liveTodaySteps: Int): Int {
+    return if (date == today()) liveTodaySteps else StepHistory.get(context, date)
+}
+
+private fun currentTodaySteps(context: android.content.Context): Int {
+    return max(
+        StepCounterService.todaySteps,
+        StepCounterService.persistedTodaySteps(context)
+    )
+}
+
+private fun estimateWalkingCalories(steps: Int, weightKg: Float): Int {
+    val safeWeight = weightKg.coerceIn(20f, 250f)
+    val perStep = 0.035 + (safeWeight / 70.0) * 0.005
+    return (steps.coerceAtLeast(0) * perStep).toInt().coerceAtLeast(0)
 }
 
 private fun monthCalendar(offset: Int): Calendar {
@@ -167,17 +231,20 @@ private fun monthDays(month: Calendar): List<String?> {
 private fun monthLabel(calendar: Calendar): String =
     SimpleDateFormat("yyyy/MM", Locale.US).format(calendar.time)
 
-private fun dayNumber(date: String): String = date.substringAfterLast("-").trimStart('0').ifBlank { "0" }
+private fun dayNumber(date: String): String =
+    date.substringAfterLast("-").trimStart('0').ifBlank { "0" }
 
 private fun formatDate(date: String): String {
     return try {
         val d = SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(date) ?: return date
         SimpleDateFormat("yyyy/MM/dd", Locale.US).format(d)
-    } catch (_: Exception) { date }
+    } catch (_: Exception) {
+        date
+    }
 }
 
 private fun dateOf(timestamp: Long): String =
-    SimpleDateFormat("yyyy-MM-dd", Locale.US).format(java.util.Date(timestamp))
+    SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(timestamp))
 
 private fun today(): String =
-    SimpleDateFormat("yyyy-MM-dd", Locale.US).format(java.util.Date())
+    SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
