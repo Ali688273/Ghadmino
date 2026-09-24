@@ -2,6 +2,7 @@ package ir.ghadmino.stepcounter.reward
 
 import android.content.Context
 import ir.ghadmino.stepcounter.step.StepHistory
+import ir.ghadmino.stepcounter.step.StepCounterService
 import ir.ghadmino.stepcounter.achievement.AchievementRepository
 import ir.ghadmino.stepcounter.level.LevelRepository
 import ir.ghadmino.stepcounter.profile.ProfileRepository
@@ -36,12 +37,15 @@ object CoinWallet {
     fun syncStepReward(c: Context, steps: Int) {
         val prefs = p(c)
         val date = today()
-        val blocks = steps.coerceAtLeast(0) / 1000
+        val persisted = StepCounterService.persistedTodaySteps(c)
+        val safeSteps = maxOf(steps.coerceAtLeast(0), persisted)
+        val blocks = safeSteps / 1000
         val key = "rewarded_blocks_" + date
         val old = prefs.getInt(key, 0)
 
         if (blocks > old) {
-            add(c, (blocks - old) * 5)
+            val reward = ((blocks - old).toLong() * 5L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+            add(c, reward)
             prefs.edit().putInt(key, blocks).apply()
         } else if (!prefs.contains(key)) {
             prefs.edit().putInt(key, blocks).apply()
