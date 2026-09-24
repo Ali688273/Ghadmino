@@ -16,6 +16,12 @@ data class PeriodReport(
     val goalRate: Int
 )
 
+data class RecordInfo(
+    val value: Int,
+    val startDate: String,
+    val endDate: String
+)
+
 data class GhadminoStats(
     val days: List<Pair<String, Int>>,
     val total: Int,
@@ -25,7 +31,8 @@ data class GhadminoStats(
     val goalDays: Int,
     val manualSteps: Int,
     val manualMinutes: Int,
-    val manualCalories: Int
+    val manualCalories: Int,
+    val longestStreak: RecordInfo
 )
 
 object StatsRepository {
@@ -41,6 +48,24 @@ object StatsRepository {
         for (item in data) {
             if (item.second >= goal) streak++ else break
         }
+        var bestStreak = 0
+        var bestStreakStart = today()
+        var bestStreakEnd = today()
+        var currentStreak = 0
+        var currentStart = today()
+        data.forEach { item ->
+            if (item.second >= goal) {
+                if (currentStreak == 0) currentStart = item.first
+                currentStreak++
+                if (currentStreak > bestStreak) {
+                    bestStreak = currentStreak
+                    bestStreakStart = currentStart
+                    bestStreakEnd = item.first
+                }
+            } else {
+                currentStreak = 0
+            }
+        }
         val manualSteps = data.sumOf { ManualActivityRepository.stepsForDate(c, it.first) }
         val manualMinutes = data.sumOf { ManualActivityRepository.minutesForDate(c, it.first) }
         val manualCalories = data.sumOf { ManualActivityRepository.caloriesForDate(c, it.first) }
@@ -53,7 +78,8 @@ object StatsRepository {
             data.count { it.second >= goal },
             manualSteps,
             manualMinutes,
-            manualCalories
+            manualCalories,
+            RecordInfo(bestStreak, bestStreakStart, bestStreakEnd)
         )
     }
 
