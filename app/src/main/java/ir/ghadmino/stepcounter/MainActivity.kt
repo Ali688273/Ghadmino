@@ -141,6 +141,8 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
 
     LaunchedEffect(Unit) {
         var lastHealthRefresh = 0L
+        var lastSavedSteps = steps
+        var lastInsightRefresh = 0L
         while (true) {
             stepSource = StepSourceRepository.get(context)
             val phoneSteps = ActivityAnalyticsRepository.today(context)
@@ -152,15 +154,21 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
                 steps = if (hc != null) hc.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt() else phoneSteps
                 lastHealthRefresh = now
             }
-            StepHistory.saveToday(context, steps)
-            CoinWallet.syncStepReward(context, steps)
-            if (steps >= goal) CoinWallet.claimGoalReward(context)
+            if (steps != lastSavedSteps) {
+                StepHistory.saveToday(context, steps)
+                CoinWallet.syncStepReward(context, steps)
+                if (steps >= goal) CoinWallet.claimGoalReward(context)
+                lastSavedSteps = steps
+            }
             coins = CoinWallet.balance(context)
             currentSpeed = speedTracker.currentSpeedKmh
             averageSpeed = speedTracker.averageSpeedKmh
             minimumSpeed = speedTracker.minimumSpeedKmh
             maximumSpeed = speedTracker.maximumSpeedKmh
-            insights = ActivityInsightsRepository.calculate(context, goal)
+            if (now - lastInsightRefresh >= 10000L) {
+                insights = ActivityInsightsRepository.calculate(context, goal)
+                lastInsightRefresh = now
+            }
             delay(1000)
         }
     }
