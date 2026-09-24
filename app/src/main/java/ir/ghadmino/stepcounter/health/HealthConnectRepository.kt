@@ -82,7 +82,7 @@ object HealthConnectRepository {
             endZoneOffset = zone.rules.getOffset(end),
             metadata = androidx.health.connect.client.records.metadata.Metadata.autoRecorded(
                 clientRecordId = "ghadmino_steps_" + start.toString().substringBefore("T"),
-                clientRecordVersion = steps,
+                clientRecordVersion = System.currentTimeMillis(),
                 device = androidx.health.connect.client.records.metadata.Device(
                     type = androidx.health.connect.client.records.metadata.Device.TYPE_PHONE
                 )
