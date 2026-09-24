@@ -214,12 +214,8 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
             )
             2 -> RewardCenter(
                 coins = coins,
-                adAvailable = false,
                 onCoinsChanged = { coins = CoinWallet.balance(context) },
                 selectedTheme = selectedTheme,
-                onWatchAd = {
-                    info = "تبلیغ جایزه‌ای در مرحله نهایی تبلیغات متصل می‌شود."
-                },
                 onBuyFreeze = {
                     info = if (CoinWallet.unlock(context, "streak_freeze", 250))
                         "محافظ زنجیره خریداری شد."
