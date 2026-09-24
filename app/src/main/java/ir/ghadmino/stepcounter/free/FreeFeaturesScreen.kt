@@ -63,6 +63,12 @@ fun FreeFeaturesScreen(onCoinsChanged: () -> Unit = {}) {
                         message = if (ok) "همگام‌سازی امروز انجام شد." else "همگام‌سازی انجام نشد؛ مجوز Health Connect را بررسی کن."
                     }
                 }) { Text("همگام‌سازی قدم امروز") }
+                Button(onClick = {
+                    scope.launch {
+                        val count = try { HealthConnectRepository.syncRecentDays(context, StepHistory.recent(context, 30)) } catch (_: Exception) { 0 }
+                        message = if (count > 0) count.toString() + " روز به Health Connect همگام شد." else "همگام‌سازی ۳۰ روزه انجام نشد."
+                    }
+                }) { Text("بازهمگام‌سازی ۳۰ روز اخیر") }
                 Text("دو منبع با هم جمع نمی‌شوند تا دوباره‌شماری رخ ندهد.")
             }
 
