@@ -1,7 +1,6 @@
 package ir.ghadmino.stepcounter.achievement
 
 import android.content.Context
-import ir.ghadmino.stepcounter.reward.CoinWallet
 import ir.ghadmino.stepcounter.step.StepHistory
 import ir.ghadmino.stepcounter.step.StepCounterService
 
@@ -31,7 +30,11 @@ object AchievementRepository {
     fun evaluate(context: Context): List<Achievement> {
         val history = StepHistory.recent(context, 365)
         val lifetime = StepHistory.totalLifetime(context)
-        val bestDay = maxOf(history.maxOfOrNull { it.second } ?: 0, StepCounterService.todaySteps, StepCounterService.persistedTodaySteps(context))
+        val bestDay = maxOf(
+            history.maxOfOrNull { it.second } ?: 0,
+            StepCounterService.todaySteps,
+            StepCounterService.persistedTodaySteps(context)
+        )
         val streak = StepHistory.currentStreak(context, 3000)
 
         return definitions.map { item ->
@@ -53,8 +56,13 @@ object AchievementRepository {
                 val prefs = context.getSharedPreferences("ghadmino_achievements", Context.MODE_PRIVATE)
                 val key = "achievement_claimed_" + item.id
                 if (!prefs.getBoolean(key, false)) {
-                    CoinWallet.add(context, item.reward)
-                    prefs.edit().putBoolean(key, true).apply()
+                    val marked = prefs.edit().putBoolean(key, true).commit()
+                    if (marked) {
+                        val coins = context.getSharedPreferences("ghadmino_coins", Context.MODE_PRIVATE)
+                        val current = coins.getInt("balance", 0).toLong()
+                        val next = (current + item.reward).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+                        coins.edit().putInt("balance", next).apply()
+                    }
                 }
             }
 
