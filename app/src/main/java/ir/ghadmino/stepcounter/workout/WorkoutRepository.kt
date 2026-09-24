@@ -58,11 +58,11 @@ object WorkoutRepository {
                     add(WorkoutSummary(
                         o.optLong("id"),
                         o.optLong("startedAt"),
-                        o.optInt("steps"),
-                        o.optDouble("distanceMeters"),
-                        o.optInt("durationMinutes"),
-                        o.optInt("calories"),
-                        o.optDouble("averageSpeedKmh")
+                        o.optInt("steps").coerceAtLeast(0),
+                        o.optDouble("distanceMeters").coerceAtLeast(0.0),
+                        o.optInt("durationMinutes").coerceAtLeast(0),
+                        o.optInt("calories").coerceAtLeast(0),
+                        o.optDouble("averageSpeedKmh").coerceAtLeast(0.0)
                     ))
                 }
             }.sortedByDescending { it.startedAt }
@@ -95,13 +95,20 @@ class WorkoutTracker(private val context: Context) {
     private var startSteps = 0
     private var startMillis = 0L
     private var distanceMeters = 0.0
+    private var gpsActive = false
 
     fun start() {
         if (!running.compareAndSet(false, true)) return
-        startSteps = maxOf(StepCounterService.todaySteps, StepCounterService.persistedTodaySteps(context))
+
+        startSteps = maxOf(
+            StepCounterService.todaySteps,
+            StepCounterService.persistedTodaySteps(context)
+        )
         startMillis = System.currentTimeMillis()
         distanceMeters = 0.0
         lastLocation = null
+        gpsActive = false
+
         val manager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
         val l = object : LocationListener {
             override fun onLocationChanged(location: Location) {
@@ -114,25 +121,34 @@ class WorkoutTracker(private val context: Context) {
                 lastLocation = Location(location)
             }
         }
+
         try {
-            if (manager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-                manager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 1f, l)
-            } else if (manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
-                manager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1500L, 2f, l)
-            } else {
-                running.set(false)
-                return
+            when {
+                manager.isProviderEnabled(LocationManager.GPS_PROVIDER) -> {
+                    manager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 1f, l)
+                    gpsActive = true
+                }
+                manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER) -> {
+                    manager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1500L, 2f, l)
+                    gpsActive = true
+                }
             }
-            locationManager = manager
-            listener = l
+            locationManager = if (gpsActive) manager else null
+            listener = if (gpsActive) l else null
         } catch (_: SecurityException) {
-            running.set(false)
+            locationManager = null
+            listener = null
+            gpsActive = false
         }
     }
 
     fun stop(): WorkoutSummary? {
         if (!running.compareAndSet(true, false)) return null
-        try { listener?.let { locationManager?.removeUpdates(it) } } catch (_: SecurityException) {}
+
+        try {
+            listener?.let { locationManager?.removeUpdates(it) }
+        } catch (_: SecurityException) {
+        }
         listener = null
         locationManager = null
 
@@ -141,13 +157,36 @@ class WorkoutTracker(private val context: Context) {
             StepCounterService.persistedTodaySteps(context)
         )
         val steps = (endSteps - startSteps).coerceAtLeast(0)
-        val minutes = ((System.currentTimeMillis() - startMillis) / 60000L).toInt().coerceAtLeast(1)
-        val profile = ProfileRepository.load(context)
-        val calories = (steps * (0.035 + (profile.weightKg / 70.0) * 0.005)).toInt()
-        val hours = minutes / 60.0
-        val speed = if (hours > 0.0) (distanceMeters / 1000.0) / hours else 0.0
+        val elapsedMillis = (System.currentTimeMillis() - startMillis).coerceAtLeast(0L)
+        val minutes = (elapsedMillis / 60000L).toInt().coerceAtLeast(1)
 
-        return WorkoutSummary(System.currentTimeMillis(), startMillis, steps, distanceMeters, minutes, max(0, calories), speed)
+        val profile = ProfileRepository.load(context)
+        val strideMeters = profile.strideCm.coerceIn(30, 150) / 100.0
+        val estimatedDistance = steps * strideMeters
+        val finalDistance = if (gpsActive && distanceMeters >= 20.0) {
+            distanceMeters
+        } else {
+            estimatedDistance
+        }
+
+        val calories = (
+            steps * (0.035 + (profile.weightKg / 70.0) * 0.005)
+        ).toInt().coerceAtLeast(0)
+
+        val hours = elapsedMillis / 3600000.0
+        val speed = if (hours > 0.0) {
+            (finalDistance / 1000.0) / hours
+        } else 0.0
+
+        return WorkoutSummary(
+            System.currentTimeMillis(),
+            startMillis,
+            steps,
+            finalDistance.coerceAtLeast(0.0),
+            minutes,
+            calories,
+            speed.coerceAtLeast(0.0)
+        )
     }
 
     fun isRunning(): Boolean = running.get()
