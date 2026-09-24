@@ -165,6 +165,9 @@ fun FreeFeaturesScreen(onCoinsChanged: () -> Unit = {}) {
                     CheckRow("مکان برای سرعت/تمرین", it.locationPermission)
                     Text("Health Connect: " + it.healthConnect)
                     Text("سرویس قدم‌شمار: " + it.serviceState)
+                    Text("آخرین دریافت سنسور: " + DiagnosticsHistoryRepository.text(context,"sensor"))
+                    Text("آخرین ذخیره قدم: " + DiagnosticsHistoryRepository.text(context,"save"))
+                    Text("محدودیت باتری: بررسی تنظیمات بهینه‌سازی باتری گوشی توصیه می‌شود.")
                 }
             }
 
