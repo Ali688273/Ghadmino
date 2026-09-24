@@ -24,13 +24,16 @@ object BackupRepository {
         "ghadmino_level",
         "ghadmino_speed",
         "ghadmino_speed_history",
-        "ghadmino_manual_activity"
+        "ghadmino_manual_activity",
+        "ghadmino_activity_intelligence",
+        "ghadmino_dynamic_missions",
+        "ghadmino_inactivity_notice"
     )
 
     fun exportJson(context: Context): String {
         val root = JSONObject()
         root.put("format", "ghadmino_backup")
-        root.put("version", 3)
+        root.put("version", 4)
         root.put("scope", "profile,settings,coins,steps,history,achievements,level,speed,speed_history,workouts,manual_activity,step_plan,hourly,ui")
         root.put(
             "created_at",
@@ -93,7 +96,7 @@ object BackupRepository {
         }
 
         val version = root.optInt("version", 1)
-        if (version !in 1..3) {
+        if (version !in 1..4) {
             throw IllegalArgumentException("نسخه فایل پشتیبان با این نسخه قدمینو سازگار نیست.")
         }
 
