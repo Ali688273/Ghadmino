@@ -91,7 +91,7 @@ class StepCounterService : Service(), SensorEventListener {
             StepHistory.saveDate(
                 this,
                 savedDate,
-                (last - baseline).coerceAtLeast(0).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+                daySteps(accumulated, baseline, last)
             )
         }
 
@@ -143,8 +143,11 @@ class StepCounterService : Service(), SensorEventListener {
                     StepHistory.saveDate(
                         this,
                         savedDate,
-                        (last - baseline).coerceAtLeast(0)
-                            .coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+                        daySteps(
+                            prefs.getInt(KEY_ACCUMULATED, 0).coerceAtLeast(0),
+                            baseline,
+                            last
+                        )
                     )
                 }
             }
@@ -167,6 +170,13 @@ class StepCounterService : Service(), SensorEventListener {
                 (accumulated.toLong() + (last - baseline))
                     .coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
             else accumulated
+    }
+
+    private fun daySteps(accumulated: Int, baseline: Long, last: Long): Int {
+        val sensorDelta = (last - baseline).coerceAtLeast(0L)
+        return (accumulated.toLong() + sensorDelta)
+            .coerceAtMost(Int.MAX_VALUE.toLong())
+            .toInt()
     }
 
     private fun currentDate(): String =
