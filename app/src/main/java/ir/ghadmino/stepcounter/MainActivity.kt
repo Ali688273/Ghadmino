@@ -58,6 +58,7 @@ import ir.ghadmino.stepcounter.stats.StatsScreen
 import ir.ghadmino.stepcounter.step.StepCounterService
 import ir.ghadmino.stepcounter.step.StepHistory
 import ir.ghadmino.stepcounter.free.FreeFeaturesScreen
+import ir.ghadmino.stepcounter.free.WeeklyReportScheduler
 import ir.ghadmino.stepcounter.ui.theme.GhadminoTheme
 import kotlinx.coroutines.delay
 
@@ -83,6 +84,7 @@ class MainActivity : ComponentActivity() {
         }
         if (hasActivityRecognitionPermission()) startStepService()
         InactivityScheduler.schedule(this)
+        WeeklyReportScheduler.schedule(this)
     }
 
     override fun onResume() { super.onResume(); if (::speedTracker.isInitialized) speedTracker.start() }
