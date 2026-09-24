@@ -6,6 +6,7 @@ import ir.ghadmino.stepcounter.step.StepCounterService
 import ir.ghadmino.stepcounter.step.StepHistory
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 
 data class PeriodReport(
@@ -38,66 +39,31 @@ data class GhadminoStats(
 
 object StatsRepository {
     fun load(c: Context, goal: Int, days: Int = 30): GhadminoStats {
-        val raw = StepHistory.recent(c, days).toMutableList()
-
-        if (raw.isNotEmpty() && raw.first().first == today()) {
-            val liveToday = maxOf(
-                raw.first().second,
-                StepCounterService.todaySteps,
-                StepCounterService.persistedTodaySteps(c)
-            )
-            raw[0] = today() to liveToday
-        }
-
-        val data = raw.map { item ->
-            item.first to (item.second + ManualActivityRepository.stepsForDate(c, item.first))
-        }
+        val data = readData(c, days)
+        val allTime = readData(c, 3650)
 
         val total = data.sumOf { it.second }
         val average = if (data.isEmpty()) 0 else total / data.size
         val best = data.maxByOrNull { it.second } ?: (today() to 0)
 
-        var streak = 0
-        for (item in data) {
-            if (item.second >= goal) streak++ else break
-        }
-
-        val chronological = data.asReversed()
-        var bestStreak = 0
-        var bestStreakStart = today()
-        var bestStreakEnd = today()
-        var currentStreak = 0
-        var currentStart = today()
-
-        chronological.forEach { item ->
-            if (item.second >= goal) {
-                if (currentStreak == 0) currentStart = item.first
-                currentStreak++
-                if (currentStreak > bestStreak) {
-                    bestStreak = currentStreak
-                    bestStreakStart = currentStart
-                    bestStreakEnd = item.first
-                }
-            } else {
-                currentStreak = 0
-            }
-        }
+        val currentStreak = calculateCurrentStreak(data, goal)
+        val bestStreak = calculateLongestStreak(allTime, goal)
 
         val manualSteps = data.sumOf { ManualActivityRepository.stepsForDate(c, it.first) }
         val manualMinutes = data.sumOf { ManualActivityRepository.minutesForDate(c, it.first) }
         val manualCalories = data.sumOf { ManualActivityRepository.caloriesForDate(c, it.first) }
 
         return GhadminoStats(
-            data,
-            total,
-            average,
-            best,
-            streak,
-            data.count { it.second >= goal },
-            manualSteps,
-            manualMinutes,
-            manualCalories,
-            RecordInfo(bestStreak, bestStreakStart, bestStreakEnd)
+            days = data,
+            total = total,
+            average = average,
+            bestDay = best,
+            streak = currentStreak,
+            goalDays = data.count { it.second >= goal },
+            manualSteps = manualSteps,
+            manualMinutes = manualMinutes,
+            manualCalories = manualCalories,
+            longestStreak = bestStreak
         )
     }
 
@@ -133,6 +99,99 @@ object StatsRepository {
         }
     }
 
-    private fun today() =
-        SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Calendar.getInstance().time)
+    private fun readData(c: Context, days: Int): List<Pair<String, Int>> {
+        val safeDays = days.coerceIn(1, 3650)
+        val raw = StepHistory.recent(c, safeDays).toMutableList()
+        val todayDate = today()
+        val liveToday = maxOf(
+            StepCounterService.todaySteps,
+            StepCounterService.persistedTodaySteps(c)
+        )
+
+        // همیشه امروز را در گزارش قرار می‌دهیم، حتی اگر هنوز در StepHistory ذخیره نشده باشد.
+        val todayIndex = raw.indexOfFirst { it.first == todayDate }
+        if (todayIndex >= 0) {
+            raw[todayIndex] = todayDate to maxOf(raw[todayIndex].second, liveToday)
+        } else {
+            raw.add(0, todayDate to liveToday)
+        }
+
+        return raw
+            .distinctBy { it.first }
+            .sortedByDescending { it.first }
+            .map { item ->
+                item.first to (
+                    item.second +
+                        ManualActivityRepository.stepsForDate(c, item.first)
+                    )
+            }
+    }
+
+    private fun calculateCurrentStreak(data: List<Pair<String, Int>>, goal: Int): Int {
+        var streak = 0
+        var previousDate: String? = null
+
+        for ((date, steps) in data) {
+            if (steps < goal) break
+            if (previousDate != null && !isPreviousCalendarDay(previousDate!!, date)) break
+            streak++
+            previousDate = date
+        }
+        return streak
+    }
+
+    private fun calculateLongestStreak(data: List<Pair<String, Int>>, goal: Int): RecordInfo {
+        val chronological = data.sortedBy { it.first }
+
+        var bestLength = 0
+        var bestStart = today()
+        var bestEnd = today()
+        var currentLength = 0
+        var currentStart = today()
+        var previousDate: String? = null
+
+        for ((date, steps) in chronological) {
+            val consecutive = previousDate != null && isPreviousCalendarDay(date, previousDate!!)
+            if (steps >= goal && (currentLength == 0 || consecutive)) {
+                if (currentLength == 0) currentStart = date
+                currentLength++
+                if (currentLength > bestLength) {
+                    bestLength = currentLength
+                    bestStart = currentStart
+                    bestEnd = date
+                }
+            } else if (steps >= goal) {
+                currentLength = 1
+                currentStart = date
+                if (bestLength == 0) {
+                    bestLength = 1
+                    bestStart = date
+                    bestEnd = date
+                }
+            } else {
+                currentLength = 0
+            }
+            previousDate = date
+        }
+
+        return RecordInfo(bestLength, bestStart, bestEnd)
+    }
+
+    private fun isPreviousCalendarDay(newerDate: String, olderDate: String): Boolean {
+        return try {
+            val format = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+            val newer = format.parse(newerDate) ?: return false
+            val older = format.parse(olderDate) ?: return false
+            val expected = Calendar.getInstance().apply {
+                time = newer
+                add(Calendar.DAY_OF_YEAR, -1)
+            }.time
+            format.format(expected) == format.format(older)
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private fun today(): String =
+        SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
 }
