@@ -96,16 +96,6 @@ object CoinWallet {
         return true
     }
 
-    fun canClaimAdReward(c: Context) =
-        p(c).getString("ad_date", null) != today()
-
-    fun claimAdReward(c: Context, amount: Int = 100): Boolean {
-        if (!canClaimAdReward(c)) return false
-        add(c, amount)
-        p(c).edit().putString("ad_date", today()).apply()
-        return true
-    }
-
     fun unlock(c: Context, id: String, cost: Int): Boolean {
         if (p(c).getBoolean("unlock_" + id, false)) return true
         if (!spend(c, cost)) return false
