@@ -43,6 +43,11 @@
             android:exported="false" />
 
         <receiver
+            android:name=".notification.InactivityReceiver"
+            android:enabled="true"
+            android:exported="false" />
+
+        <receiver
             android:name=".notification.BootReceiver"
             android:enabled="true"
             android:exported="true">
