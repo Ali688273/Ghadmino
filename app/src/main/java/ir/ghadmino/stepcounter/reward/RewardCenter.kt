@@ -18,6 +18,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import ir.ghadmino.stepcounter.step.StepCounterService
+import ir.ghadmino.stepcounter.level.LevelRepository
+import ir.ghadmino.stepcounter.profile.ProfileRepository
 
 data class ThemeOffer(val id: String, val title: String, val cost: Int, val emoji: String)
 
@@ -41,6 +43,8 @@ fun RewardCenter(
 ) {
     val context = LocalContext.current
     var steps by remember { mutableIntStateOf(StepCounterService.todaySteps) }
+    val levelInfo = remember(steps, coins) { LevelRepository.get(context) }
+    val dailyGoal = remember { ProfileRepository.load(context).dailyGoal }
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -91,6 +95,21 @@ fun RewardCenter(
                 Row {
                     Icon(Icons.Default.EmojiEvents, null)
                     Spacer(Modifier.width(8.dp))
+                    Text("سطح و تجربه", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.height(8.dp))
+                Text("سطح فعلی: ${levelInfo.level} • XP: ${levelInfo.xp}")
+                Text("تا سطح بعد: ${levelInfo.nextLevelXp - levelInfo.xp} XP")
+                Spacer(Modifier.height(6.dp))
+                LinearProgressIndicator(progress = levelInfo.progress, modifier = Modifier.fillMaxWidth())
+            }
+        }
+
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp)) {
+                Row {
+                    Icon(Icons.Default.EmojiEvents, null)
+                    Spacer(Modifier.width(8.dp))
                     Text(
                         "مأموریت‌های امروز",
                         style = MaterialTheme.typography.titleLarge,
@@ -126,6 +145,25 @@ fun RewardCenter(
                         claimMission(context, "10000", 10000, 40, steps, onCoinsChanged)
                     }
                 )
+            }
+        }
+
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp)) {
+                Row {
+                    Icon(Icons.Default.CheckCircle, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("پاداش هدف روزانه", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.height(6.dp))
+                Text("هدف امروز: $dailyGoal قدم")
+                Text(if (steps >= dailyGoal) "هدف تکمیل شده؛ +۲۰ سکه" else "برای دریافت پاداش ${dailyGoal - steps} قدم دیگر لازم است.")
+                Spacer(Modifier.height(8.dp))
+                Button(
+                    onClick = { if (CoinWallet.claimGoalReward(context)) onCoinsChanged() },
+                    enabled = steps >= dailyGoal,
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("دریافت +۲۰ سکه") }
             }
         }
 
