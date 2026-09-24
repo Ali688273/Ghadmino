@@ -2,6 +2,8 @@ package ir.ghadmino.stepcounter.health
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,7 +33,6 @@ fun HealthConnectScreen() {
     var externalCalories by remember { mutableStateOf<Double?>(null) }
     var message by remember { mutableStateOf<String?>(null) }
 
-    // فقط دسترسی خواندن لازم است؛ قدمینو برای شمارش اصلی داده‌ای در Health Connect نمی‌نویسد.
     val permissions = remember {
         setOf(
             HealthPermission.getReadPermission(StepsRecord::class),
@@ -50,9 +51,7 @@ fun HealthConnectScreen() {
         PermissionController.createRequestPermissionResultContract()
     ) { grantedPermissions ->
         granted = grantedPermissions.containsAll(permissions)
-        if (granted) {
-            scope.launch { refreshData() }
-        }
+        if (granted) scope.launch { refreshData() }
     }
 
     LaunchedEffect(availability) {
@@ -65,11 +64,14 @@ fun HealthConnectScreen() {
         }
     }
 
-    val localSteps = StepCounterService.todaySteps
+    val localSteps = maxOf(
+        StepCounterService.todaySteps,
+        StepCounterService.persistedTodaySteps(context)
+    )
     val difference = externalSteps?.let { abs(it - localSteps.toLong()) }
 
     Column(
-        Modifier.fillMaxSize().verticalScroll(androidx.compose.foundation.rememberScrollState()),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Card(
@@ -164,11 +166,8 @@ fun HealthConnectScreen() {
                         onClick = {
                             scope.launch {
                                 refreshData()
-                                message = if (externalSteps == null) {
-                                    "خواندن اطلاعات انجام نشد."
-                                } else {
-                                    "اطلاعات امروز به‌روزرسانی شد."
-                                }
+                                message = if (externalSteps == null) "خواندن اطلاعات انجام نشد."
+                                else "اطلاعات امروز به‌روزرسانی شد."
                             }
                         },
                         Modifier.fillMaxWidth()
@@ -189,7 +188,7 @@ fun HealthConnectScreen() {
         ) { Text("مدیریت دسترسی‌های Health Connect") }
 
         Text(
-            "برای جلوگیری از دوباره‌شماری، عدد داخلی قدمینو همچنان شمارنده اصلی است و عدد Health Connect فقط به‌عنوان منبع مقایسه و آمار نمایش داده می‌شود.",
+            "برای جلوگیری از دوباره‌شماری، عدد داخلی قدمینو شمارنده اصلی است و Health Connect فقط برای مقایسه و آمار نمایش داده می‌شود.",
             style = MaterialTheme.typography.bodySmall
         )
 
