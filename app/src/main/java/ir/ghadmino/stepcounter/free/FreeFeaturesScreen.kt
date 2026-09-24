@@ -96,9 +96,9 @@ fun FreeFeaturesScreen(onCoinsChanged: () -> Unit = {}) {
             Section("۳ — نمای سالانه فعالیت") { AnnualHeatmap(context) { selectedHeatmapDay = it } ; selectedHeatmapDay?.let { Text("روز ${it.first}: ${it.second} قدم") } }
 
             Section("۴ — روند ۷، ۳۰ و ۹۰ روزه") {
-                MiniTrend(context, 7)
-                MiniTrend(context, 30)
-                MiniTrend(context, 90)
+                TrendCard(context, 7)
+                TrendCard(context, 30)
+                TrendCard(context, 90)
             }
 
             Section("۵ — رکوردهای شخصی") {
@@ -240,33 +240,36 @@ fun FreeFeaturesScreen(onCoinsChanged: () -> Unit = {}) {
     LinearProgressIndicator(progress = p, modifier = Modifier.fillMaxWidth())
 }
 @Composable private fun CheckRow(label: String, ok: Boolean) { Text(if (ok) "✓ " + label else "⚠ " + label) }
-@Composable private fun MiniTrend(context: Context, days: Int) {
-    val rows = StepHistory.recent(context, days).reversed()
-    val maxValue = max(1, rows.maxOfOrNull { row -> row.second } ?: 1)
-    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        Text(days.toString() + " روز")
-        rows.takeLast(minOf(rows.size, 30)).forEach { row ->
-            val width = (row.second.toFloat() / maxValue * 260f).coerceIn(2f, 260f)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(row.first.takeLast(2), Modifier.width(26.dp))
-                Box(Modifier.width(width.dp).height(8.dp).background(MaterialTheme.colorScheme.primary, RoundedCornerShape(4.dp)))
-                Spacer(Modifier.width(5.dp))
-                Text(row.second.toString())
+@Composable private fun TrendCard(context: Context, days: Int) {
+    val m = TrendMetricsRepository.calculate(context, days)
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(days.toString() + " روز", style = MaterialTheme.typography.titleSmall)
+            Text("مجموع: " + m.totalSteps + " قدم  |  میانگین: " + m.averageSteps)
+            Text("بهترین روز: " + m.bestDay + " قدم  |  تغییر نسبت به دوره قبل: " + m.changePercent + "%")
+            Text(String.format(Locale.US, "مسافت تقریبی: %.2f km  |  کالری: %d kcal", m.distanceKm, m.calories))
+            val rows = StepHistory.recent(context, days).reversed().takeLast(minOf(days, 30))
+            val maxValue = max(1, rows.maxOfOrNull { it.second } ?: 1)
+            rows.forEach { row ->
+                val width = (row.second.toFloat() / maxValue * 260f).coerceIn(2f, 260f)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(row.first.takeLast(2), Modifier.width(26.dp))
+                    Box(Modifier.width(width.dp).height(7.dp).background(MaterialTheme.colorScheme.primary, RoundedCornerShape(4.dp)))
+                    Spacer(Modifier.width(5.dp))
+                    Text(row.second.toString())
+                }
             }
         }
     }
 }
+
 @Composable private fun AnnualHeatmap(context: Context, onDayClick: (Pair<String,Int>) -> Unit) {
     val rows = StepHistory.recent(context, 365)
-    val maxValue = max(1, rows.maxOfOrNull { row -> row.second } ?: 1)
+    val maxValue = max(1, rows.maxOfOrNull { it.second } ?: 1)
     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
         rows.take(365).reversed().forEach { row ->
             val level = (row.second.toFloat() / maxValue * 4f).toInt().coerceIn(0, 4)
-            Box(
-                Modifier.size(11.dp)
-                    .clickable { onDayClick(row) }
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f + level * 0.2f), RoundedCornerShape(2.dp))
-            )
+            Box(Modifier.size(11.dp).clickable { onDayClick(row) }.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f + level * 0.2f), RoundedCornerShape(2.dp)))
         }
     }
 }
