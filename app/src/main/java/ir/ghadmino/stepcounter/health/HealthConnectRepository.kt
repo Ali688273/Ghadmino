@@ -101,7 +101,8 @@ object HealthConnectRepository {
         try {
             healthClient.deleteRecords(
                 StepsRecord::class,
-                clientRecordIds = setOf(id)
+                recordIdsList = emptyList(),
+                    clientRecordIdsList = listOf(id)
             )
         } catch (_: Exception) {
         }
@@ -137,7 +138,8 @@ object HealthConnectRepository {
             try {
                 healthClient.deleteRecords(
                     StepsRecord::class,
-                    clientRecordIds = ids
+                    recordIdsList = emptyList(),
+                    clientRecordIdsList = ids
                 )
             } catch (_: Exception) {
             }
