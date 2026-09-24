@@ -92,6 +92,33 @@ object HealthConnectRepository {
         return true
     }
 
+    suspend fun syncRecentDays(context: Context, rows: List<Pair<String, Int>>): Int {
+        val healthClient = client(context) ?: return 0
+        val zone = ZoneId.systemDefault()
+        val records = rows.filter { it.second > 0 }.map { row ->
+            val date = java.time.LocalDate.parse(row.first)
+            val start = date.atStartOfDay(zone).toInstant()
+            val end = if (date == java.time.LocalDate.now(zone)) Instant.now() else date.plusDays(1).atStartOfDay(zone).toInstant()
+            StepsRecord(
+                count = row.second.toLong(),
+                startTime = start,
+                endTime = end,
+                startZoneOffset = zone.rules.getOffset(start),
+                endZoneOffset = zone.rules.getOffset(end),
+                metadata = androidx.health.connect.client.records.metadata.Metadata.autoRecorded(
+                    clientRecordId = "ghadmino_steps_" + row.first,
+                    clientRecordVersion = System.currentTimeMillis(),
+                    device = androidx.health.connect.client.records.metadata.Device(
+                        type = androidx.health.connect.client.records.metadata.Device.TYPE_PHONE
+                    )
+                )
+            )
+        }
+        if (records.isEmpty()) return 0
+        healthClient.insertRecords(records)
+        return records.size
+    }
+
     fun manageDataIntent(context: Context) =
         HealthConnectClient.getHealthConnectManageDataIntent(context, PROVIDER)
 }
