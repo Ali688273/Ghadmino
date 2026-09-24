@@ -63,10 +63,20 @@ fun FreeFeaturesScreen(onCoinsChanged: () -> Unit = {}) {
                 }) { Text("نمایش هر دو منبع") }
                 Text("گوشی: " + phoneSteps + " قدم")
                 if (healthSteps != null) Text("Health Connect: " + healthSteps + " قدم")
-                Button(onClick = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Sync فعال")
+                    Switch(checked = syncState.enabled, onCheckedChange = {
+                        HealthSyncRepository.setEnabled(context, it)
+                        syncState = HealthSyncRepository.load(context)
+                    })
+                }
+                Text("آخرین Sync: " + HealthSyncRepository.lastSyncText(context))
+                Button(enabled = syncState.enabled, onClick = {
                     scope.launch {
                         val local = StepHistory.get(context, todayKey())
                         val ok = try { HealthConnectRepository.writeTodaySteps(context, local.toLong()) } catch (_: Exception) { false }
+                        if (ok) HealthSyncRepository.markSynced(context)
+                        syncState = HealthSyncRepository.load(context)
                         message = if (ok) "همگام‌سازی امروز انجام شد." else "همگام‌سازی انجام نشد؛ مجوز Health Connect را بررسی کن."
                     }
                 }) { Text("همگام‌سازی قدم امروز") }
@@ -115,9 +125,9 @@ fun FreeFeaturesScreen(onCoinsChanged: () -> Unit = {}) {
 
             Section("۸ — پاداش ورود روزانه") {
                 Text("زنجیره ورود: " + login.streak + " روز — پاداش امروز: " + login.reward + " سکه")
-                Button(enabled = !loginClaimed, onClick = {
-                    loginClaimed = CoinWallet.claimRewardOnce(context, "daily_login_" + dayKey(), 5)
-                    if (loginClaimed) { message = "۵ سکه دریافت شد."; onCoinsChanged() }
+                Button(enabled = !login.claimed, onClick = {
+                    login = DailyLoginRepository.claim(context)
+                    if (login.claimed) { message = login.reward.toString() + " سکه دریافت شد."; onCoinsChanged() }
                 }) { Text("دریافت پاداش") }
             }
 
@@ -127,8 +137,13 @@ fun FreeFeaturesScreen(onCoinsChanged: () -> Unit = {}) {
             }
 
             Section("۱۱ و ۱۲ — گزارش روزانه و هفتگی") {
-                Text("امروز: " + StepHistory.get(context, todayKey()) + " قدم")
-                Text("۷ روز: " + StepHistory.recent(context, 7).sumOf { row -> row.second } + " قدم")
+                endReport = EndOfDayReportRepository.today(context)
+                Text("امروز: " + endReport.steps + " قدم — " + endReport.progress + "% هدف")
+                Text("مسافت تقریبی: " + String.format(Locale.US, "%.2f", endReport.distanceKm) + " km")
+                Text("کالری تقریبی: " + endReport.calories.toInt() + " kcal")
+                Text("فعالیت در ۷ روز: " + endReport.activeDays7 + " روز")
+                Text("بهترین روز هفته: " + endReport.bestDay + " قدم")
+                Text("۷ روز: " + endReport.weeklyTotal + " قدم")
                 Text("گزارش‌ها محلی‌اند و اجرای مداوم پس‌زمینه برایشان انجام نمی‌شود.")
             }
 
