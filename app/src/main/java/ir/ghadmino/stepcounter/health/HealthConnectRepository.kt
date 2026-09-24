@@ -97,6 +97,14 @@ object HealthConnectRepository {
                 )
             )
         )
+        val id = "ghadmino_steps_" + start.toString().substringBefore("T")
+        try {
+            healthClient.deleteRecords(
+                StepsRecord::class,
+                clientRecordIds = setOf(id)
+            )
+        } catch (_: Exception) {
+        }
         healthClient.insertRecords(listOf(record))
         return true
     }
@@ -124,6 +132,16 @@ object HealthConnectRepository {
             )
         }
         if (records.isEmpty()) return 0
+        val ids = records.mapNotNull { it.metadata.clientRecordId }.toSet()
+        if (ids.isNotEmpty()) {
+            try {
+                healthClient.deleteRecords(
+                    StepsRecord::class,
+                    clientRecordIds = ids
+                )
+            } catch (_: Exception) {
+            }
+        }
         healthClient.insertRecords(records)
         return records.size
     }
