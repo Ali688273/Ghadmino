@@ -52,9 +52,12 @@ object ChallengeRepository {
         )
     }
 
-    fun isClaimed(context: Context, id: String): Boolean =
-        context.getSharedPreferences("ghadmino_challenges", Context.MODE_PRIVATE)
-            .getBoolean("claimed_" + id, false)
+    fun isClaimed(context: Context, id: String): Boolean {
+        val prefs = context.getSharedPreferences("ghadmino_challenges", Context.MODE_PRIVATE)
+        return prefs.getBoolean("claimed_" + id, false) ||
+            CoinWallet.isRewardClaimed(context, "challenge_claimed_" + id)
+    }
+
 
     @Synchronized
     fun claim(context: Context, challenge: Challenge): Boolean {
@@ -71,7 +74,7 @@ object ChallengeRepository {
         )
         if (!claimed) return false
 
-
+        LevelRepository.recordMission(context)
         return true
     }
 
