@@ -54,6 +54,7 @@ import ir.ghadmino.stepcounter.stats.StatsRepository
 import ir.ghadmino.stepcounter.stats.StatsScreen
 import ir.ghadmino.stepcounter.step.StepCounterService
 import ir.ghadmino.stepcounter.step.StepHistory
+import ir.ghadmino.stepcounter.free.FreeFeaturesScreen
 import ir.ghadmino.stepcounter.ui.theme.GhadminoTheme
 import kotlinx.coroutines.delay
 
@@ -321,6 +322,9 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
         "backup" -> FullPageDialog("پشتیبان‌گیری و بازیابی", onClose = { morePage = null }) {
             BackupScreen()
         }
+        "free" -> FullPageDialog("۲۰ قابلیت رایگان", onClose = { morePage = null }) {
+            FreeFeaturesScreen { coins = CoinWallet.balance(context) }
+        }
         "goal" -> FullPageDialog("تنظیم هدف", onClose = { morePage = null }) {
             Column(
                 Modifier.fillMaxWidth(),
@@ -470,6 +474,7 @@ private fun MorePage(
         MoreItem("🏃", "تمرین پیاده‌روی", "شروع، توقف و ثبت یک جلسه واقعی") { onOpen("workout") }
         MoreItem("📆", "برنامه افزایش قدم", "هدف‌گذاری تدریجی و قابل پیگیری") { onOpen("plan") }
         MoreItem("💾", "پشتیبان‌گیری", "ذخیره و بازیابی رایگان اطلاعات روی فایل") { onOpen("backup") }
+        MoreItem("🧰", "۲۰ قابلیت رایگان", "منبع قدم، Health Connect، رکورد، هدف، خروجی و عیب‌یابی") { onOpen("free") }
         MoreItem("➕", "ثبت فعالیت دستی", "ثبت قدم یا فعالیتی که حسگر ثبت نکرده") { onOpen("manual_activity") }
     }
 }
