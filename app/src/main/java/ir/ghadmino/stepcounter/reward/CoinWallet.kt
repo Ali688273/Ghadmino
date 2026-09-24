@@ -5,7 +5,6 @@ import ir.ghadmino.stepcounter.step.StepHistory
 import ir.ghadmino.stepcounter.step.StepCounterService
 import ir.ghadmino.stepcounter.achievement.AchievementRepository
 import ir.ghadmino.stepcounter.level.LevelRepository
-import ir.ghadmino.stepcounter.profile.ProfileRepository
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -21,9 +20,7 @@ object CoinWallet {
     fun add(c: Context, amount: Int) {
         if (amount <= 0) return
         val next = balance(c).toLong() + amount.toLong()
-        p(c).edit()
-            .putInt("balance", next.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
-            .apply()
+        p(c).edit().putInt("balance", next.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()).apply()
     }
 
     @Synchronized
@@ -45,15 +42,9 @@ object CoinWallet {
 
         if (blocks > old) {
             val reward = ((blocks - old).toLong() * 5L)
-                .coerceAtMost(Int.MAX_VALUE.toLong())
-                .toInt()
-
-            // Balance and the rewarded-block marker are written together.
-            // This prevents the common crash window where coins are added
-            // but the marker is not saved yet, which could pay the same block twice.
+                .coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
             val nextBalance = (balance(c).toLong() + reward.toLong())
-                .coerceAtMost(Int.MAX_VALUE.toLong())
-                .toInt()
+                .coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
             prefs.edit()
                 .putInt("balance", nextBalance)
                 .putInt(key, blocks)
@@ -66,8 +57,6 @@ object CoinWallet {
         prefs.edit().putInt("lifetime_steps", lifetime).apply()
         checkMilestones(c, lifetime)
 
-        // Achievement evaluation is throttled to meaningful step/date changes
-        // so the main refresh loop does not repeatedly scan the full history.
         val achievementCheckKey = "achievement_check_" + date
         val currentCheckKey = date + ":" + blocks
         if (prefs.getString(achievementCheckKey, null) != currentCheckKey) {
@@ -89,11 +78,10 @@ object CoinWallet {
 
         milestones.forEach { (target, reward) ->
             val key = "milestone_" + target
-            if (steps >= target && !p(c).getBoolean(key, false)) {
-                val prefs = p(c)
+            val prefs = p(c)
+            if (steps >= target && !prefs.getBoolean(key, false)) {
                 val nextBalance = (balance(c).toLong() + reward.toLong())
-                    .coerceAtMost(Int.MAX_VALUE.toLong())
-                    .toInt()
+                    .coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
                 prefs.edit()
                     .putInt("balance", nextBalance)
                     .putBoolean(key, true)
@@ -103,27 +91,26 @@ object CoinWallet {
     }
 
     @Synchronized
-    fun claimDailyMission(
-        c: Context,
-        missionId: String,
-        target: Int,
-        reward: Int,
-        steps: Int
-    ): Boolean {
+    fun claimDailyMission(c: Context, missionId: String, target: Int, reward: Int, steps: Int): Boolean {
         if (steps < target) return false
         val key = "mission_" + missionId + "_date"
         if (p(c).getString(key, null) == today()) return false
+
+        // Claim marker is committed first so a process crash cannot pay twice.
+        val marked = p(c).edit().putString(key, today()).commit()
+        if (!marked) return false
+
         add(c, reward)
         LevelRepository.recordMission(c)
-        p(c).edit().putString(key, today()).apply()
         return true
     }
 
     @Synchronized
     fun claimGoalReward(c: Context): Boolean {
         if (p(c).getString("goal_date", null) == today()) return false
+        val marked = p(c).edit().putString("goal_date", today()).commit()
+        if (!marked) return false
         add(c, 20)
-        p(c).edit().putString("goal_date", today()).apply()
         return true
     }
 
