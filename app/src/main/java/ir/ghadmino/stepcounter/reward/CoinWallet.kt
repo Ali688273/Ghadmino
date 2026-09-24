@@ -91,27 +91,44 @@ object CoinWallet {
     }
 
     @Synchronized
+    fun claimRewardOnce(c: Context, marker: String, amount: Int): Boolean {
+        if (amount <= 0) return false
+        val prefs = p(c)
+        if (prefs.getBoolean(marker, false)) return false
+        val nextBalance = (balance(c).toLong() + amount.toLong())
+            .coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        return prefs.edit()
+            .putInt("balance", nextBalance)
+            .putBoolean(marker, true)
+            .commit()
+    }
+
+    @Synchronized
     fun claimDailyMission(c: Context, missionId: String, target: Int, reward: Int, steps: Int): Boolean {
         if (steps < target) return false
         val key = "mission_" + missionId + "_date"
         if (p(c).getString(key, null) == today()) return false
-
-        // Claim marker is committed first so a process crash cannot pay twice.
-        val marked = p(c).edit().putString(key, today()).commit()
-        if (!marked) return false
-
-        add(c, reward)
+        val nextBalance = (balance(c).toLong() + reward.toLong())
+            .coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        val committed = p(c).edit()
+            .putInt("balance", nextBalance)
+            .putString(key, today())
+            .commit()
+        if (!committed) return false
         LevelRepository.recordMission(c)
         return true
     }
 
     @Synchronized
     fun claimGoalReward(c: Context): Boolean {
-        if (p(c).getString("goal_date", null) == today()) return false
-        val marked = p(c).edit().putString("goal_date", today()).commit()
-        if (!marked) return false
-        add(c, 20)
-        return true
+        val key = "goal_claimed_" + today()
+        if (p(c).getBoolean(key, false)) return false
+        val nextBalance = (balance(c).toLong() + 20L)
+            .coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        return p(c).edit()
+            .putInt("balance", nextBalance)
+            .putBoolean(key, true)
+            .commit()
     }
 
     @Synchronized
