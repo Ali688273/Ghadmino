@@ -35,7 +35,7 @@ fun ActivityCalendarScreen(goal: Int) {
     val workouts = WorkoutRepository.load(context).filter { dateOf(it.startedAt) == selectedDate }
     val totalWorkoutDistance = workouts.sumOf { it.distanceMeters }
     val totalWorkoutCalories = workouts.sumOf { it.calories }
-    val speedRecord = SpeedHistoryRepository.bestMaximum(context, 3650)?.takeIf { it.first == selectedDate }
+    val dailySpeed = SpeedHistoryRepository.maximumForDate(context, selectedDate)
 
     Column(
         Modifier.fillMaxSize().padding(12.dp),
@@ -123,7 +123,7 @@ fun ActivityCalendarScreen(goal: Int) {
             item {
                 ReportCard(
                     "سرعت ثبت‌شده",
-                    speedRecord?.let { String.format("%.1f km/h", it.second) } ?: "برای این روز رکورد سرعت ذخیره‌شده‌ای نیست"
+                    if (dailySpeed > 0f) String.format("%.1f km/h", dailySpeed) else "برای این روز رکورد سرعت ذخیره‌شده‌ای نیست"
                 )
             }
             item {
