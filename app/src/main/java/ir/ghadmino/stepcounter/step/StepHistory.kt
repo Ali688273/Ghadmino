@@ -5,6 +5,8 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import ir.ghadmino.stepcounter.free.StepSource
+import ir.ghadmino.stepcounter.free.StepSourceRepository
 
 object StepHistory {
     private const val PREFS = "ghadmino_history"
@@ -28,7 +30,7 @@ object StepHistory {
     fun get(context: Context, date: String): Int {
         val stored = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getInt(key(date), 0)
-        return if (date == today()) {
+        return if (date == today() && StepSourceRepository.get(context) != StepSource.HEALTH_CONNECT) {
             maxOf(stored, StepCounterService.todaySteps, StepCounterService.persistedTodaySteps(context))
         } else stored
     }
