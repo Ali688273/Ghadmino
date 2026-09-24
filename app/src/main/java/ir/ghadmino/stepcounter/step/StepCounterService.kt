@@ -47,6 +47,7 @@ class StepCounterService : Service(), SensorEventListener {
         private const val KEY_DATE = "date"
         private const val KEY_BASELINE = "baseline"
         private const val KEY_LAST_TOTAL = "last_total"
+        private const val KEY_ACCUMULATED = "accumulated_steps"
     }
 
     override fun onCreate() {
@@ -75,8 +76,16 @@ class StepCounterService : Service(), SensorEventListener {
         val savedDate = prefs.getString(KEY_DATE, null)
         var baseline = prefs.getLong(KEY_BASELINE, -1L)
         val last = prefs.getLong(KEY_LAST_TOTAL, -1L)
+        var accumulated = prefs.getInt(KEY_ACCUMULATED, 0).coerceAtLeast(0)
 
-        if (last >= 0 && total < last) baseline = total
+        if (last >= 0 && total < last) {
+            accumulated = todaySteps.coerceAtLeast(prefs.getInt(KEY_ACCUMULATED, 0))
+            baseline = total
+            prefs.edit()
+                .putLong(KEY_BASELINE, baseline)
+                .putInt(KEY_ACCUMULATED, accumulated)
+                .apply()
+        }
 
         if (savedDate != null && savedDate != today && baseline >= 0 && last >= baseline) {
             StepHistory.saveDate(
@@ -88,14 +97,19 @@ class StepCounterService : Service(), SensorEventListener {
 
         if (savedDate != today || baseline < 0) {
             baseline = total
+            accumulated = 0
             prefs.edit()
                 .putString(KEY_DATE, today)
                 .putLong(KEY_BASELINE, baseline)
+                .putInt(KEY_ACCUMULATED, 0)
                 .apply()
         }
 
-        val newTodaySteps = (total - baseline)
+        val sensorSteps = (total - baseline)
             .coerceAtLeast(0)
+            .coerceAtMost(Int.MAX_VALUE.toLong())
+            .toInt()
+        val newTodaySteps = (accumulated.toLong() + sensorSteps)
             .coerceAtMost(Int.MAX_VALUE.toLong())
             .toInt()
 
@@ -140,16 +154,19 @@ class StepCounterService : Service(), SensorEventListener {
                 .putString(KEY_DATE, today)
                 .remove(KEY_BASELINE)
                 .remove(KEY_LAST_TOTAL)
+                .putInt(KEY_ACCUMULATED, 0)
                 .apply()
             return
         }
 
         val baseline = prefs.getLong(KEY_BASELINE, -1L)
         val last = prefs.getLong(KEY_LAST_TOTAL, -1L)
+        val accumulated = prefs.getInt(KEY_ACCUMULATED, 0).coerceAtLeast(0)
         todaySteps =
             if (baseline >= 0 && last >= baseline)
-                (last - baseline).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
-            else 0
+                (accumulated.toLong() + (last - baseline))
+                    .coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+            else accumulated
     }
 
     private fun currentDate(): String =
