@@ -1,6 +1,7 @@
 package ir.ghadmino.stepcounter.achievement
 
 import android.content.Context
+import ir.ghadmino.stepcounter.reward.CoinWallet
 import ir.ghadmino.stepcounter.step.StepHistory
 import ir.ghadmino.stepcounter.step.StepCounterService
 
@@ -53,17 +54,11 @@ object AchievementRepository {
             }
 
             if (reached) {
-                val prefs = context.getSharedPreferences("ghadmino_achievements", Context.MODE_PRIVATE)
-                val key = "achievement_claimed_" + item.id
-                if (!prefs.getBoolean(key, false)) {
-                    val marked = prefs.edit().putBoolean(key, true).commit()
-                    if (marked) {
-                        val coins = context.getSharedPreferences("ghadmino_coins", Context.MODE_PRIVATE)
-                        val current = coins.getInt("balance", 0).toLong()
-                        val next = (current + item.reward).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
-                        coins.edit().putInt("balance", next).apply()
-                    }
-                }
+                CoinWallet.claimRewardOnce(
+                    context,
+                    "achievement_claimed_" + item.id,
+                    item.reward
+                )
             }
 
             item.copy(unlocked = reached)
