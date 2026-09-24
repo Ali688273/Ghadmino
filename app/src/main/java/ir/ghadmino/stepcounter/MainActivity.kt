@@ -37,6 +37,9 @@ import ir.ghadmino.stepcounter.backup.BackupScreen
 import ir.ghadmino.stepcounter.insights.ActivityInsightsRepository
 import ir.ghadmino.stepcounter.insights.ActivityInsightsScreen
 import ir.ghadmino.stepcounter.health.HealthConnectScreen
+import ir.ghadmino.stepcounter.health.HealthConnectRepository
+import ir.ghadmino.stepcounter.free.StepSource
+import ir.ghadmino.stepcounter.free.StepSourceRepository
 import ir.ghadmino.stepcounter.workout.WorkoutScreen
 import ir.ghadmino.stepcounter.plan.StepPlanScreen
 import ir.ghadmino.stepcounter.activity.ManualActivityScreen
@@ -120,6 +123,7 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
     val prefs = remember { context.getSharedPreferences("ghadmino_ui", Context.MODE_PRIVATE) }
     var goal by remember { mutableIntStateOf(ProfileRepository.load(context).dailyGoal) }
     var steps by remember { mutableIntStateOf(ActivityAnalyticsRepository.today(context)) }
+    var stepSource by remember { mutableStateOf(StepSourceRepository.get(context)) }
     var currentSpeed by remember { mutableFloatStateOf(speedTracker.currentSpeedKmh) }
     var averageSpeed by remember { mutableFloatStateOf(speedTracker.averageSpeedKmh) }
     var minimumSpeed by remember { mutableFloatStateOf(speedTracker.minimumSpeedKmh) }
@@ -134,8 +138,18 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
+        var lastHealthRefresh = 0L
         while (true) {
-            steps = ActivityAnalyticsRepository.today(context)
+            stepSource = StepSourceRepository.get(context)
+            val phoneSteps = ActivityAnalyticsRepository.today(context)
+            val now = System.currentTimeMillis()
+            if (stepSource == StepSource.PHONE || (stepSource == StepSource.AUTO && StepCounterService.sensorAvailable)) {
+                steps = phoneSteps
+            } else if (now - lastHealthRefresh >= 60000L) {
+                val hc = try { HealthConnectRepository.todaySteps(context) } catch (_: Exception) { null }
+                steps = if (hc != null) hc.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt() else phoneSteps
+                lastHealthRefresh = now
+            }
             StepHistory.saveToday(context, steps)
             CoinWallet.syncStepReward(context, steps)
             if (steps >= goal) CoinWallet.claimGoalReward(context)
