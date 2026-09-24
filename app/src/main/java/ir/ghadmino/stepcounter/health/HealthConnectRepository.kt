@@ -68,6 +68,30 @@ object HealthConnectRepository {
         return result[TotalCaloriesBurnedRecord.ENERGY_TOTAL]?.inKilocalories
     }
 
+    suspend fun writeTodaySteps(context: Context, steps: Long): Boolean {
+        if (steps <= 0L) return false
+        val healthClient = client(context) ?: return false
+        val zone = ZoneId.systemDefault()
+        val start = ZonedDateTime.now(zone).toLocalDate().atStartOfDay(zone).toInstant()
+        val end = Instant.now()
+        val record = StepsRecord(
+            count = steps,
+            startTime = start,
+            endTime = end,
+            startZoneOffset = zone.rules.getOffset(start),
+            endZoneOffset = zone.rules.getOffset(end),
+            metadata = androidx.health.connect.client.records.metadata.Metadata.autoRecorded(
+                clientRecordId = "ghadmino_steps_" + start.toString().substringBefore("T"),
+                clientRecordVersion = steps,
+                device = androidx.health.connect.client.records.metadata.Device(
+                    type = androidx.health.connect.client.records.metadata.Device.TYPE_PHONE
+                )
+            )
+        )
+        healthClient.insertRecords(listOf(record))
+        return true
+    }
+
     fun manageDataIntent(context: Context) =
         HealthConnectClient.getHealthConnectManageDataIntent(context, PROVIDER)
 }
