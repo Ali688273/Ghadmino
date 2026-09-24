@@ -3,6 +3,7 @@ package ir.ghadmino.stepcounter.level
 import android.content.Context
 import ir.ghadmino.stepcounter.achievement.AchievementRepository
 import ir.ghadmino.stepcounter.step.StepHistory
+import ir.ghadmino.stepcounter.reward.CoinWallet
 
 data class LevelInfo(
     val level: Int,
@@ -24,6 +25,12 @@ object LevelRepository {
         val next = level * 500
         val progress = ((xp - current).toFloat() / 500f).coerceIn(0f, 1f)
         return LevelInfo(level, xp, current, next, progress)
+    }
+
+    fun claimLevelReward(context: Context, level: Int): Boolean {
+        if (level <= 0) return false
+        val reward = (level * 10).coerceAtMost(500)
+        return CoinWallet.claimRewardOnce(context, "level_reward_" + level, reward)
     }
 
     fun recordMission(context: Context) {
