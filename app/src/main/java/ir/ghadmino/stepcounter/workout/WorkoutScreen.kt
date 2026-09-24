@@ -20,14 +20,14 @@ fun WorkoutScreen() {
     val tracker = remember { WorkoutTracker(context) }
     var running by remember { mutableStateOf(false) }
     var seconds by remember { mutableIntStateOf(0) }
-    var steps by remember { mutableIntStateOf(StepCounterService.todaySteps) }
+    var steps by remember { mutableIntStateOf(maxOf(StepCounterService.todaySteps, StepCounterService.persistedTodaySteps(context))) }
     var summary by remember { mutableStateOf<WorkoutSummary?>(null) }
     var sessions by remember { mutableStateOf(WorkoutRepository.load(context)) }
 
     LaunchedEffect(running) {
         while (running) {
             seconds++
-            steps = StepCounterService.todaySteps
+            steps = maxOf(StepCounterService.todaySteps, StepCounterService.persistedTodaySteps(context))
             delay(1000)
         }
     }
@@ -73,9 +73,11 @@ fun WorkoutScreen() {
                     Button(
                         onClick = {
                             val result = tracker.stop()
-                            summary = result
-                            WorkoutRepository.save(context, result)
-                            sessions = WorkoutRepository.load(context)
+                            if (result != null) {
+                                summary = result
+                                WorkoutRepository.save(context, result)
+                                sessions = WorkoutRepository.load(context)
+                            }
                             running = false
                         },
                         Modifier.fillMaxWidth()
