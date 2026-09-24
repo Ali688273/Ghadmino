@@ -15,16 +15,23 @@ object CoinWallet {
 
     fun balance(c: Context) = p(c).getInt("balance", 0)
 
+    @Synchronized
     fun add(c: Context, amount: Int) {
-        if (amount > 0) p(c).edit().putInt("balance", balance(c) + amount).apply()
+        if (amount <= 0) return
+        val next = balance(c).toLong() + amount.toLong()
+        p(c).edit()
+            .putInt("balance", next.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
+            .apply()
     }
 
+    @Synchronized
     fun spend(c: Context, amount: Int): Boolean {
         if (amount <= 0 || balance(c) < amount) return false
         p(c).edit().putInt("balance", balance(c) - amount).apply()
         return true
     }
 
+    @Synchronized
     fun syncStepReward(c: Context, steps: Int) {
         val prefs = p(c)
         val date = today()
@@ -73,6 +80,7 @@ object CoinWallet {
         }
     }
 
+    @Synchronized
     fun claimDailyMission(
         c: Context,
         missionId: String,
@@ -89,6 +97,7 @@ object CoinWallet {
         return true
     }
 
+    @Synchronized
     fun claimGoalReward(c: Context): Boolean {
         if (p(c).getString("goal_date", null) == today()) return false
         add(c, 20)
@@ -96,6 +105,7 @@ object CoinWallet {
         return true
     }
 
+    @Synchronized
     fun unlock(c: Context, id: String, cost: Int): Boolean {
         if (p(c).getBoolean("unlock_" + id, false)) return true
         if (!spend(c, cost)) return false
