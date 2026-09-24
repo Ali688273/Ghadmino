@@ -106,6 +106,8 @@ fun FreeFeaturesScreen(onCoinsChanged: () -> Unit = {}) {
                 RecordRow("زنجیره فعلی", records.currentStreak.toString() + " روز")
                 RecordRow("طولانی‌ترین زنجیره", records.longestStreak.toString() + " روز")
                 RecordRow("روزهای فعال ۳۰ روز", records.activeDays30.toString())
+                RecordRow("بیشترین مسافت تمرین", String.format(Locale.US, "%.2f km", records.bestWorkoutDistanceMeters / 1000.0))
+                RecordRow("بیشترین زمان تمرین", records.bestWorkoutMinutes.toString() + " دقیقه")
             }
 
             Section("۶ و ۷ — هدف هفتگی و ماهانه") {
