@@ -1,6 +1,7 @@
 package ir.ghadmino.stepcounter.challenge
 
 import android.content.Context
+import ir.ghadmino.stepcounter.reward.CoinWallet
 import ir.ghadmino.stepcounter.level.LevelRepository
 import ir.ghadmino.stepcounter.step.StepHistory
 import java.text.SimpleDateFormat
@@ -63,15 +64,14 @@ object ChallengeRepository {
             return false
         }
 
-        val coins = context.getSharedPreferences("ghadmino_coins", Context.MODE_PRIVATE)
-        val current = coins.getInt("balance", 0).toLong()
-        val next = (current + challenge.reward).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        val claimed = CoinWallet.claimRewardOnce(
+            context,
+            "challenge_claimed_" + challenge.id,
+            challenge.reward
+        )
+        if (!claimed) return false
 
-        val marked = prefs.edit().putBoolean(claimedKey, true).commit()
-        if (!marked) return false
 
-        coins.edit().putInt("balance", next).apply()
-        LevelRepository.recordMission(context)
         return true
     }
 
