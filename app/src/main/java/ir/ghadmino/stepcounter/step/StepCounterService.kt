@@ -20,6 +20,7 @@ import ir.ghadmino.stepcounter.reward.CoinWallet
 import ir.ghadmino.stepcounter.analytics.ActivityAnalyticsRepository
 import ir.ghadmino.stepcounter.insights.ActivityInsightsRepository
 import ir.ghadmino.stepcounter.widget.GhadminoWidgetProvider
+import ir.ghadmino.stepcounter.free.DiagnosticsHistoryRepository
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -67,6 +68,7 @@ class StepCounterService : Service(), SensorEventListener {
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
         stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
         sensorAvailable = stepSensor != null
+        if (sensorAvailable) DiagnosticsHistoryRepository.markSensor(this)
         stepSensor?.let {
             sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
         }
@@ -74,6 +76,7 @@ class StepCounterService : Service(), SensorEventListener {
         loadToday()
         todaySteps = maxOf(todaySteps, persistedTodaySteps(this))
         StepHistory.saveToday(this, todaySteps)
+        DiagnosticsHistoryRepository.markSave(this)
         sendBroadcast(Intent(GhadminoWidgetProvider.ACTION_REFRESH).setPackage(packageName))
     }
 
@@ -138,6 +141,7 @@ class StepCounterService : Service(), SensorEventListener {
 
         CoinWallet.syncStepReward(this, todaySteps)
         StepHistory.saveToday(this, todaySteps)
+        DiagnosticsHistoryRepository.markSave(this)
         sendBroadcast(Intent(GhadminoWidgetProvider.ACTION_REFRESH).setPackage(packageName))
         updateNotification()
     }
