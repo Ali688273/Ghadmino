@@ -11,7 +11,7 @@ import ir.ghadmino.stepcounter.MainActivity
 import ir.ghadmino.stepcounter.R
 import ir.ghadmino.stepcounter.profile.ProfileExtrasRepository
 import ir.ghadmino.stepcounter.profile.ProfileRepository
-import ir.ghadmino.stepcounter.step.StepCounterService
+import ir.ghadmino.stepcounter.analytics.ActivityAnalyticsRepository
 
 class GhadminoWidgetProvider : AppWidgetProvider() {
 
