@@ -75,6 +75,7 @@ class MainActivity : ComponentActivity() {
             }
         }
         startStepService()
+        InactivityScheduler.schedule(this)
     }
 
     override fun onResume() { super.onResume(); if (::speedTracker.isInitialized) speedTracker.start() }
