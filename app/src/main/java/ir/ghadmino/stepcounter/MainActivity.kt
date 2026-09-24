@@ -59,7 +59,10 @@ import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
     private lateinit var speedTracker: SpeedTracker
-    private val permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { speedTracker.start() }
+    private val permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        speedTracker.start()
+        if (hasActivityRecognitionPermission()) startStepService()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,7 +77,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-        startStepService()
+        if (hasActivityRecognitionPermission()) startStepService()
         InactivityScheduler.schedule(this)
     }
 
@@ -91,9 +94,21 @@ class MainActivity : ComponentActivity() {
         if (permissions.isNotEmpty()) permissionLauncher.launch(permissions.toTypedArray())
     }
 
+    private fun hasActivityRecognitionPermission(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ||
+            checkSelfPermission(Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_GRANTED
+
     private fun startStepService() {
+        if (!hasActivityRecognitionPermission()) return
         val intent = Intent(this, StepCounterService::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent) else startService(intent)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+        } catch (_: SecurityException) {
+        }
     }
 }
 
