@@ -6,7 +6,6 @@ import ir.ghadmino.stepcounter.profile.ProfileRepository
 import ir.ghadmino.stepcounter.step.StepHistory
 import ir.ghadmino.stepcounter.workout.WorkoutRepository
 import java.text.SimpleDateFormat
-import java.util.Calendar
 import java.util.Locale
 
 data class PersonalRecords(
@@ -82,4 +81,6 @@ object PersonalRecordsRepository {
         }
         return best
     }
+    private fun dateOf(timestamp: Long): String =
+        SimpleDateFormat("yyyy-MM-dd", Locale.US).format(java.util.Date(timestamp))
 }
