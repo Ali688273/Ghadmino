@@ -23,7 +23,7 @@ object SpeedHistoryRepository {
         val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val result = mutableListOf<Pair<String, Float>>()
         val calendar = Calendar.getInstance()
-        repeat(days.coerceIn(1, 30)) {
+        repeat(days.coerceIn(1, 3650)) {
             val date = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(calendar.time)
             val value = p.getFloat(AVG_PREFIX + date, 0f)
             if (value > 0f) result.add(date to value)
@@ -36,7 +36,8 @@ object SpeedHistoryRepository {
         recent(context, days).maxByOrNull { it.second }
 
     fun maximumForDate(context: Context, date: String): Float =
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getFloat(MAX_PREFIX + date, 0f)
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getFloat(MAX_PREFIX + date, 0f)
 
     fun bestMaximum(context: Context, days: Int = 3650): Pair<String, Float>? {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -53,10 +54,6 @@ object SpeedHistoryRepository {
             calendar.add(Calendar.DAY_OF_YEAR, -1)
         }
         return bestDate?.let { it to bestValue }
-    }
-
-    fun recent(days: Int): List<Pair<String, Float>> {
-        return emptyList()
     }
 
     fun today(): String =
