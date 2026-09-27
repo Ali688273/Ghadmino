@@ -1,7 +1,5 @@
 package ir.ghadmino.stepcounter.ads
 
-import ir.ghadmino.stepcounter.BuildConfig
-
 import android.app.Activity
 import android.content.Context
 import android.os.SystemClock
@@ -12,6 +10,7 @@ import com.adivery.sdk.AdiveryAdListener
 import com.adivery.sdk.AdiveryBannerAdView
 import com.adivery.sdk.AdiveryListener
 import com.adivery.sdk.BannerSize
+import ir.ghadmino.stepcounter.BuildConfig
 import ir.tapsell.plus.AdRequestCallback
 import ir.tapsell.plus.AdShowListener
 import ir.tapsell.plus.TapsellPlus
@@ -22,45 +21,35 @@ import ir.tapsell.plus.model.AdNetworks
 import ir.tapsell.plus.model.TapsellPlusAdModel
 import ir.tapsell.plus.model.TapsellPlusErrorModel
 
-/**
- * Centralized, low-intrusion ad controller.
- *
- * Rules:
- * - Rewarded ads are user initiated.
- * - Tapsell rewarded is tried first, then Adivery rewarded.
- * - A non-rewarded interstitial is never treated as a rewarded ad.
- * - Full-screen ads have a cooldown.
- * - Ads are never requested from the background step counter service.
- * - Banner is optional and only attached where the UI explicitly asks for it.
- */
 object GhadminoAdsManager {
 
     private const val TAG = "GhadminoAds"
-
     private const val FULLSCREEN_COOLDOWN_MS = 5 * 60 * 1000L
-    private const val LAST_FULLSCREEN_KEY = "ghadmino_ads"
-    private const val LAST_FULLSCREEN_TIME = "last_fullscreen"
+    private const val REWARD_COOLDOWN_MS = 60 * 1000L
+    private const val MAX_REWARD_ADS_PER_DAY = 5
 
-    @Volatile
-    private var initialized = false
+    private const val PREFS = "ghadmino_ads"
+    private const val LAST_FULLSCREEN = "last_fullscreen"
+    private const val LAST_REWARD = "last_reward"
+    private const val REWARD_DAY = "reward_day"
+    private const val REWARD_COUNT = "reward_count"
 
-    @Volatile
-    private var tapsellInitializationStarted = false
-
-    @Volatile
-    private var tapsellInitialized = false
+    @Volatile private var initialized = false
+    @Volatile private var tapsellInitializationStarted = false
+    @Volatile private var tapsellInitialized = false
 
     private fun prefs(context: Context) =
-        context.applicationContext.getSharedPreferences(LAST_FULLSCREEN_KEY, Context.MODE_PRIVATE)
+        context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
     fun initialize(context: Context) {
-        if (initialized) return
-        synchronized(this) {
-            if (initialized) return
-
-            Adivery.setLoggingEnabled(BuildConfig.DEBUG)
-            Adivery.configure(context.applicationContext, AdsConfig.ADIVERY_APP_KEY)
-            initialized = true
+        if (!initialized) {
+            synchronized(this) {
+                if (!initialized) {
+                    Adivery.setLoggingEnabled(BuildConfig.DEBUG)
+                    Adivery.configure(context.applicationContext, AdsConfig.ADIVERY_APP_KEY)
+                    initialized = true
+                }
+            }
         }
 
         if (context is Activity && !tapsellInitializationStarted) {
@@ -73,7 +62,7 @@ object GhadminoAdsManager {
                         object : TapsellPlusInitListener {
                             override fun onInitializeSuccess(adNetworks: AdNetworks) {
                                 tapsellInitialized = true
-                                Log.d(TAG, "TapsellPlus initialized: ${adNetworks.name}")
+                                Log.d(TAG, "Tapsell initialized: ${adNetworks.name}")
                             }
 
                             override fun onInitializeFailed(
@@ -81,10 +70,7 @@ object GhadminoAdsManager {
                                 adNetworkError: AdNetworkError
                             ) {
                                 tapsellInitialized = false
-                                Log.w(
-                                    TAG,
-                                    "TapsellPlus init failed: ${adNetworks.name} - ${adNetworkError.errorMessage}"
-                                )
+                                Log.w(TAG, "Tapsell init failed: ${adNetworks.name} - ${adNetworkError.errorMessage}")
                             }
                         }
                     )
@@ -94,20 +80,25 @@ object GhadminoAdsManager {
     }
 
     /**
-     * Shows a rewarded ad and calls [onReward] exactly once if the network
-     * confirms that the user earned the reward.
+     * User-initiated coin reward.
      *
-     * Fallback order:
+     * Primary:
      * 1) Tapsell rewarded
      * 2) Adivery rewarded
      *
-     * If neither rewarded placement is available, no coin is granted.
+     * Backup reward:
+     * 3) Tapsell interstitial
+     * 4) Adivery interstitial
+     *
+     * The backup path is explicitly a smaller fallback reward and is never
+     * described as a rewarded-ad event.
      */
-    fun showRewarded(
+    fun showCoinReward(
         activity: Activity,
-        onReward: () -> Unit,
-        onFinished: (message: String) -> Unit = {},
-        initializationRetry: Int = 0
+        rewardCoins: Int = 25,
+        fallbackCoins: Int = 10,
+        onReward: (coins: Int) -> Unit,
+        onFinished: (message: String) -> Unit = {}
     ) {
         initialize(activity)
 
@@ -116,41 +107,56 @@ object GhadminoAdsManager {
             return
         }
 
-        var rewardedDelivered = false
-
-        fun rewardOnce() {
-            if (rewardedDelivered) return
-            rewardedDelivered = true
-            onReward()
+        if (!canGrantReward(activity)) {
+            onFinished("سهمیه تبلیغ جایزه‌ای فعلاً تمام شده یا کمی بعد دوباره امتحان کن.")
+            return
         }
 
-        fun showAdiveryRewarded() {
-            val placement = AdsConfig.ADIVERY_REWARDED
+        var completed = false
 
+        fun rewardOnce(coins: Int, message: String) {
+            if (completed) return
+            completed = true
+            markRewardGranted(activity)
+            onReward(coins)
+            onFinished(message)
+        }
+
+        fun fallbackInterstitial() {
+            showInterstitialInternal(
+                activity = activity,
+                grantCoins = fallbackCoins,
+                onReward = { coins ->
+                    rewardOnce(coins, "تبلیغ جایزه‌ای موجود نبود؛ از تبلیغ جایگزین استفاده شد و +$coins سکه اضافه شد.")
+                },
+                onFinished = { message ->
+                    if (!completed) onFinished(message)
+                }
+            )
+        }
+
+        fun adiveryRewarded() {
+            val placement = AdsConfig.ADIVERY_REWARDED
             val listener = object : AdiveryListener() {
                 override fun onRewardedAdLoaded(placementId: String) {
-                    if (placementId == placement && Adivery.isLoaded(placementId)) {
-                        Adivery.showAd(placementId)
+                    if (placementId == placement && Adivery.isLoaded(placement)) {
+                        Adivery.showAd(placement)
                     }
                 }
 
                 override fun onRewardedAdShown(placementId: String) {
-                    markFullscreenShown(activity)
+                    if (placementId == placement) markFullscreenShown(activity)
                 }
 
                 override fun onRewardedAdClicked(placementId: String) = Unit
 
-                override fun onRewardedAdClosed(
-                    placementId: String,
-                    isRewarded: Boolean
-                ) {
+                override fun onRewardedAdClosed(placementId: String, isRewarded: Boolean) {
                     if (placementId != placement) return
                     Adivery.removePlacementListener(placement)
                     if (isRewarded) {
-                        rewardOnce()
-                        onFinished("پاداش سکه‌ای شما اضافه شد.")
-                    } else {
-                        onFinished("تبلیغ کامل تماشا نشد؛ سکه‌ای اضافه نشد.")
+                        rewardOnce(rewardCoins, "پاداش شما اضافه شد.")
+                    } else if (!completed) {
+                        fallbackInterstitial()
                     }
                 }
 
@@ -162,25 +168,16 @@ object GhadminoAdsManager {
             Adivery.addPlacementListener(placement, listener)
             Adivery.prepareRewardedAd(activity, placement)
 
-            // Adivery reports the result through the listener. If it is not
-            // ready shortly after preparation, the SDK simply remains silent
-            // and the caller is not blocked.
-        }
-
-        if (!tapsellInitialized && tapsellInitializationStarted && initializationRetry < 2) {
             android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                showRewarded(
-                    activity = activity,
-                    onReward = onReward,
-                    onFinished = onFinished,
-                    initializationRetry = initializationRetry + 1
-                )
-            }, 700L)
-            return
+                if (!completed && !Adivery.isLoaded(placement)) {
+                    Adivery.removePlacementListener(placement)
+                    fallbackInterstitial()
+                }
+            }, 2500L)
         }
 
         if (!tapsellInitialized) {
-            showAdiveryRewarded()
+            adiveryRewarded()
             return
         }
 
@@ -191,7 +188,7 @@ object GhadminoAdsManager {
                 override fun response(ad: TapsellPlusAdModel) {
                     val responseId = ad.responseId
                     if (responseId.isNullOrBlank()) {
-                        showAdiveryRewarded()
+                        adiveryRewarded()
                         return
                     }
 
@@ -203,21 +200,16 @@ object GhadminoAdsManager {
                                 markFullscreenShown(activity)
                             }
 
-                            override fun onClosed(ad: TapsellPlusAdModel) {
-                                if (!rewardedDelivered) {
-                                    onFinished("تبلیغ تمام شد.")
-                                }
+                            override fun onRewarded(ad: TapsellPlusAdModel) {
+                                rewardOnce(rewardCoins, "پاداش شما اضافه شد.")
                             }
 
-                            override fun onRewarded(ad: TapsellPlusAdModel) {
-                                rewardOnce()
-                                onFinished("پاداش سکه‌ای شما اضافه شد.")
+                            override fun onClosed(ad: TapsellPlusAdModel) {
+                                if (!completed) adiveryRewarded()
                             }
 
                             override fun onError(error: TapsellPlusErrorModel) {
-                                if (!rewardedDelivered) {
-                                    showAdiveryRewarded()
-                                }
+                                if (!completed) adiveryRewarded()
                             }
                         }
                     )
@@ -225,47 +217,76 @@ object GhadminoAdsManager {
 
                 override fun error(message: String) {
                     Log.w(TAG, "Tapsell rewarded unavailable: $message")
-                    showAdiveryRewarded()
+                    adiveryRewarded()
                 }
             }
         )
     }
 
-    /**
-     * Shows a normal interstitial only when the app explicitly requests one
-     * and the cooldown has elapsed. It never grants a rewarded coin.
-     */
+    /** Backward-compatible wrapper used by existing UI. */
+    fun showRewarded(
+        activity: Activity,
+        onReward: () -> Unit,
+        onFinished: (message: String) -> Unit = {}
+    ) {
+        showCoinReward(
+            activity = activity,
+            rewardCoins = 25,
+            fallbackCoins = 10,
+            onReward = { onReward() },
+            onFinished = onFinished
+        )
+    }
+
     fun showInterstitial(
         activity: Activity,
         onFinished: () -> Unit = {}
     ) {
+        showInterstitialInternal(
+            activity = activity,
+            grantCoins = null,
+            onReward = {},
+            onFinished = { onFinished() }
+        )
+    }
+
+    private fun showInterstitialInternal(
+        activity: Activity,
+        grantCoins: Int?,
+        onReward: (Int) -> Unit,
+        onFinished: (String) -> Unit
+    ) {
         initialize(activity)
 
         if (!canShowFullscreen(activity)) {
-            onFinished()
+            onFinished("برای جلوگیری از مزاحمت، تبلیغ تمام‌صفحه فعلاً نمایش داده نشد.")
             return
         }
 
         fun showAdivery() {
             val placement = AdsConfig.ADIVERY_INTERSTITIAL
+            var shown = false
             val listener = object : AdiveryListener() {
                 override fun onInterstitialAdLoaded(placementId: String) {
-                    if (placementId == placement && Adivery.isLoaded(placementId)) {
-                        Adivery.showAd(placementId)
+                    if (placementId == placement && Adivery.isLoaded(placement)) {
+                        Adivery.showAd(placement)
                     }
                 }
 
                 override fun onInterstitialAdShown(placementId: String) {
-                    markFullscreenShown(activity)
+                    if (placementId == placement) {
+                        shown = true
+                        markFullscreenShown(activity)
+                    }
                 }
 
                 override fun onInterstitialAdClicked(placementId: String) = Unit
 
                 override fun onInterstitialAdClosed(placementId: String) {
-                    if (placementId == placement) {
-                        Adivery.removePlacementListener(placement)
-                        onFinished()
-                    }
+                    if (placementId != placement) return
+                    Adivery.removePlacementListener(placement)
+                    if (grantCoins != null && shown) onReward(grantCoins)
+                    onFinished(if (grantCoins != null && shown) "تبلیغ جایگزین کامل شد." else "تبلیغ تمام شد.")
                 }
 
                 override fun log(placementId: String, message: String) {
@@ -275,6 +296,13 @@ object GhadminoAdsManager {
 
             Adivery.addPlacementListener(placement, listener)
             Adivery.prepareInterstitialAd(activity, placement)
+
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                if (!shown && !Adivery.isLoaded(placement)) {
+                    Adivery.removePlacementListener(placement)
+                    onFinished("فعلاً تبلیغی در دسترس نیست.")
+                }
+            }, 2500L)
         }
 
         if (!tapsellInitialized) {
@@ -282,6 +310,7 @@ object GhadminoAdsManager {
             return
         }
 
+        var shown = false
         TapsellPlus.requestInterstitialAd(
             activity,
             AdsConfig.TAPSELL_INTERSTITIAL,
@@ -298,11 +327,13 @@ object GhadminoAdsManager {
                         responseId,
                         object : AdShowListener() {
                             override fun onOpened(ad: TapsellPlusAdModel) {
+                                shown = true
                                 markFullscreenShown(activity)
                             }
 
                             override fun onClosed(ad: TapsellPlusAdModel) {
-                                onFinished()
+                                if (grantCoins != null && shown) onReward(grantCoins)
+                                onFinished(if (grantCoins != null && shown) "تبلیغ جایگزین کامل شد." else "تبلیغ تمام شد.")
                             }
 
                             override fun onError(error: TapsellPlusErrorModel) {
@@ -313,23 +344,14 @@ object GhadminoAdsManager {
                 }
 
                 override fun error(message: String) {
-                    Log.w(TAG, "Tapsell interstitial unavailable: $message")
                     showAdivery()
                 }
             }
         )
     }
 
-    /**
-     * Adds one small banner to [container]. Tapsell is tried first and
-     * Adivery is the fallback. Existing child views are not overwritten.
-     */
-    fun loadBanner(
-        activity: Activity,
-        container: ViewGroup
-    ) {
+    fun loadBanner(activity: Activity, container: ViewGroup) {
         initialize(activity)
-
         if (container.childCount > 0) return
 
         if (!tapsellInitialized) {
@@ -355,7 +377,6 @@ object GhadminoAdsManager {
                         container,
                         object : AdShowListener() {
                             override fun onOpened(ad: TapsellPlusAdModel) = Unit
-
                             override fun onError(error: TapsellPlusErrorModel) {
                                 container.removeAllViews()
                                 loadAdiveryBanner(activity, container)
@@ -365,17 +386,13 @@ object GhadminoAdsManager {
                 }
 
                 override fun error(message: String) {
-                    Log.w(TAG, "Tapsell banner unavailable: $message")
                     loadAdiveryBanner(activity, container)
                 }
             }
         )
     }
 
-    private fun loadAdiveryBanner(
-        activity: Activity,
-        container: ViewGroup
-    ) {
+    private fun loadAdiveryBanner(activity: Activity, container: ViewGroup) {
         if (container.childCount > 0) return
 
         val banner = AdiveryBannerAdView(activity).apply {
@@ -400,16 +417,41 @@ object GhadminoAdsManager {
     }
 
     private fun canShowFullscreen(context: Context): Boolean {
-        val last = prefs(context).getLong(LAST_FULLSCREEN_TIME, 0L)
+        val last = prefs(context).getLong(LAST_FULLSCREEN, 0L)
         return SystemClock.elapsedRealtime() - last >= FULLSCREEN_COOLDOWN_MS
     }
 
     private fun markFullscreenShown(context: Context) {
         prefs(context).edit()
-            .putLong(LAST_FULLSCREEN_TIME, SystemClock.elapsedRealtime())
+            .putLong(LAST_FULLSCREEN, SystemClock.elapsedRealtime())
+            .apply()
+    }
+
+    private fun canGrantReward(context: Context): Boolean {
+        val p = prefs(context)
+        val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+            .format(java.util.Date())
+
+        if (p.getString(REWARD_DAY, null) != today) {
+            p.edit().putString(REWARD_DAY, today).putInt(REWARD_COUNT, 0).apply()
+        }
+
+        val count = p.getInt(REWARD_COUNT, 0)
+        val last = p.getLong(LAST_REWARD, 0L)
+
+        return count < MAX_REWARD_ADS_PER_DAY &&
+            SystemClock.elapsedRealtime() - last >= REWARD_COOLDOWN_MS
+    }
+
+    private fun markRewardGranted(context: Context) {
+        val p = prefs(context)
+        p.edit()
+            .putLong(LAST_REWARD, SystemClock.elapsedRealtime())
+            .putInt(REWARD_COUNT, p.getInt(REWARD_COUNT, 0) + 1)
             .apply()
     }
 
     private fun isFinishingOrDestroyed(activity: Activity): Boolean =
-        activity.isFinishing || (android.os.Build.VERSION.SDK_INT >= 17 && activity.isDestroyed)
+        activity.isFinishing ||
+            (android.os.Build.VERSION.SDK_INT >= 17 && activity.isDestroyed)
 }
