@@ -419,7 +419,11 @@ object GhadminoAdsManager {
 
     fun loadNativeBanner(activity: Activity, container: ViewGroup) {
         initialize(activity)
-        if (!tapsellInitialized || container.childCount > 0) return
+        if (container.childCount > 0) return
+        if (!tapsellInitialized) {
+            loadAdiveryBanner(activity, container)
+            return
+        }
 
         TapsellPlus.requestNativeAd(
             activity,
@@ -427,7 +431,10 @@ object GhadminoAdsManager {
             object : AdRequestCallback() {
                 override fun response(ad: TapsellPlusAdModel) {
                     val responseId = ad.responseId
-                    if (responseId.isNullOrBlank() || isFinishingOrDestroyed(activity)) return
+                    if (responseId.isNullOrBlank() || isFinishingOrDestroyed(activity)) {
+                        if (!isFinishingOrDestroyed(activity)) loadAdiveryBanner(activity, container)
+                        return
+                    }
 
                     val holder = TapsellPlus.createAdHolder(
                         activity,
@@ -451,6 +458,7 @@ object GhadminoAdsManager {
 
                 override fun error(message: String) {
                     Log.w(TAG, "Tapsell native banner request failed: " + message)
+                    loadAdiveryBanner(activity, container)
                 }
             }
         )
