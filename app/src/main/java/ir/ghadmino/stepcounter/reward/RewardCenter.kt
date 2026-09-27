@@ -42,13 +42,13 @@ fun RewardCenter(
     onCoinsChanged: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    var steps by remember { mutableIntStateOf(StepCounterService.todaySteps) }
+    var steps by remember { mutableIntStateOf(maxOf(StepCounterService.todaySteps, StepCounterService.persistedTodaySteps(context))) }
     val levelInfo = remember(steps, coins) { LevelRepository.get(context) }
     val dailyGoal = remember { ProfileRepository.load(context).dailyGoal }
 
     LaunchedEffect(Unit) {
         while (true) {
-            steps = StepCounterService.todaySteps
+            steps = maxOf(StepCounterService.todaySteps, StepCounterService.persistedTodaySteps(context))
             kotlinx.coroutines.delay(1000)
         }
     }
