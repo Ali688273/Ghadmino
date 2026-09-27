@@ -18,6 +18,10 @@ class GhadminoApplication : Application() {
         GhadminoAdsManager.initialize(this)
 
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
+            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
+                Adivery.prepareAppOpenAd(activity, AdsConfig.ADIVERY_APP_OPEN)
+            }
+
             override fun onActivityResumed(activity: Activity) {
                 GhadminoAdsManager.initialize(activity)
 
@@ -25,12 +29,14 @@ class GhadminoApplication : Application() {
                 val awayLongEnough = now - lastPausedAt >= 20_000L
                 val cooldownElapsed = now - lastAppOpenShownAt >= 10 * 60_000L
 
-                if (awayLongEnough && cooldownElapsed && !activity.isFinishing) {
+                if (!awayLongEnough || !cooldownElapsed || activity.isFinishing) return
+
+                val placement = AdsConfig.ADIVERY_APP_OPEN
+                if (Adivery.isLoaded(placement)) {
                     lastAppOpenShownAt = now
-                    Adivery.showAppOpenAd(
-                        activity,
-                        AdsConfig.ADIVERY_APP_OPEN
-                    )
+                    Adivery.showAppOpenAd(activity, placement)
+                } else {
+                    Adivery.prepareAppOpenAd(activity, placement)
                 }
             }
 
@@ -38,7 +44,6 @@ class GhadminoApplication : Application() {
                 lastPausedAt = System.currentTimeMillis()
             }
 
-            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
             override fun onActivityStarted(activity: Activity) = Unit
             override fun onActivityStopped(activity: Activity) = Unit
             override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
