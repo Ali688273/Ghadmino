@@ -27,14 +27,18 @@ object BackupRepository {
         "ghadmino_manual_activity",
         "ghadmino_activity_intelligence",
         "ghadmino_dynamic_missions",
-        "ghadmino_inactivity_notice"
+        "ghadmino_inactivity_notice",
+        "ghadmino_free_features",
+        "ghadmino_health_sync",
+        "ghadmino_diagnostics",
+        "ghadmino_periodic_goals"
     )
 
     fun exportJson(context: Context): String {
         val root = JSONObject()
         root.put("format", "ghadmino_backup")
         root.put("version", 4)
-        root.put("scope", "profile,settings,coins,steps,history,achievements,level,speed,speed_history,workouts,manual_activity,step_plan,hourly,ui,activity_intelligence,dynamic_missions,inactivity_notice")
+        root.put("scope", "profile,settings,coins,steps,history,achievements,level,speed,speed_history,workouts,manual_activity,step_plan,hourly,ui,activity_intelligence,dynamic_missions,inactivity_notice,free_features,health_sync,diagnostics,periodic_goals")
         root.put(
             "created_at",
             SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
