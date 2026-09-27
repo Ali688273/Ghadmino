@@ -122,7 +122,7 @@ fun StepPlanScreen() {
     var target by remember { mutableIntStateOf(state.target) }
     var refresh by remember { mutableIntStateOf(0) }
 
-    val current = StepCounterService.todaySteps
+    val current = maxOf(StepCounterService.todaySteps, StepCounterService.persistedTodaySteps(context))
     val planProgress = remember(refresh, current, state) { StepPlanRepository.progress(context) }
     val todayTarget = StepPlanRepository.todayTarget(context)
     val progress = (current.toFloat() / todayTarget).coerceIn(0f, 1f)
