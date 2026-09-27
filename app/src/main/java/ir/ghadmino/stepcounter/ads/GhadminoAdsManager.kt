@@ -45,6 +45,9 @@ object GhadminoAdsManager {
     private var initialized = false
 
     @Volatile
+    private var tapsellInitializationStarted = false
+
+    @Volatile
     private var tapsellInitialized = false
 
     private fun prefs(context: Context) =
