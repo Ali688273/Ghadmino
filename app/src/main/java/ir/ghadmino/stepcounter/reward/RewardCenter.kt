@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.dp
 import ir.ghadmino.stepcounter.step.StepCounterService
 import ir.ghadmino.stepcounter.level.LevelRepository
 import ir.ghadmino.stepcounter.profile.ProfileRepository
+import ir.ghadmino.stepcounter.ads.AdRewardCard
+import ir.ghadmino.stepcounter.ads.GhadminoBanner
 
 data class ThemeOffer(val id: String, val title: String, val cost: Int, val emoji: String)
 
@@ -86,6 +88,14 @@ fun RewardCenter(
                 )
             }
         }
+
+        AdRewardCard(
+            onCoinsChanged = onCoinsChanged
+        )
+
+        GhadminoBanner(
+            modifier = Modifier.padding(horizontal = 4.dp)
+        )
 
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp)) {
