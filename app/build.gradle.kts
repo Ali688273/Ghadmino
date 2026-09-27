@@ -25,10 +25,22 @@ android {
         }
     }
 
-    buildTypes {
+    signingConfigs {
+        create("release") {
+            storeFile = rootProject.file("ghadmino-release.jks")
+            storePassword = System.getenv("GHADMINO_KEYSTORE_PASSWORD") ?: ""
+            keyAlias = System.getenv("GHADMINO_KEY_ALIAS") ?: "ghadmino"
+            keyPassword = System.getenv("GHADMINO_KEY_PASSWORD")
+                ?: System.getenv("GHADMINO_KEYSTORE_PASSWORD")
+                ?: ""
+        }
+    }
 
+    buildTypes {
         release {
             isMinifyEnabled = false
+
+            signingConfig = signingConfigs.getByName("release")
 
             proguardFiles(
                 getDefaultProguardFile(
@@ -69,7 +81,6 @@ android {
 }
 
 dependencies {
-
     implementation("androidx.core:core-ktx:1.12.0")
 
     implementation(
@@ -100,10 +111,20 @@ dependencies {
         "androidx.datastore:datastore-preferences:1.1.0"
     )
 
-    implementation("androidx.health.connect:connect-client:1.1.0")
+    implementation(
+        "androidx.health.connect:connect-client:1.1.0"
+    )
 
     // Production ad SDKs
-    implementation("ir.tapsell.plus:tapsell-plus-sdk-android:2.3.3")
-    implementation("com.adivery:sdk:4.9.0")
-    implementation("com.google.android.gms:play-services-ads-identifier:18.0.1")
+    implementation(
+        "ir.tapsell.plus:tapsell-plus-sdk-android:2.3.3"
+    )
+
+    implementation(
+        "com.adivery:sdk:4.9.0"
+    )
+
+    implementation(
+        "com.google.android.gms:play-services-ads-identifier:18.0.1"
+    )
 }
