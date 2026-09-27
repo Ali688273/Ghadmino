@@ -4,7 +4,6 @@ import android.app.Activity
 import android.widget.FrameLayout
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -14,11 +13,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -41,7 +36,7 @@ fun AdRewardCard(
         ) {
             Icon(Icons.Default.CardGiftcard, contentDescription = null)
             Text("سکه رایگان با تبلیغ")
-            Text("اگر ویدیوی جایزه‌ای تپسل آماده نباشد، ادیوری به‌صورت خودکار امتحان می‌شود.")
+            Text("ویدیوی جایزه‌ای: +۲۵ سکه؛ اگر در دسترس نباشد، تبلیغ جایگزین: +۱۰ سکه.")
 
             Button(
                 enabled = !busy,
@@ -49,10 +44,13 @@ fun AdRewardCard(
                 onClick = {
                     busy = true
                     message = null
-                    GhadminoAdsManager.showRewarded(
+
+                    GhadminoAdsManager.showCoinReward(
                         activity = activity,
-                        onReward = {
-                            CoinWallet.add(activity, 25)
+                        rewardCoins = 25,
+                        fallbackCoins = 10,
+                        onReward = { coins ->
+                            CoinWallet.add(activity, coins)
                             onCoinsChanged()
                         },
                         onFinished = {
@@ -63,7 +61,7 @@ fun AdRewardCard(
                     )
                 }
             ) {
-                Text(if (busy) "در حال آماده‌سازی تبلیغ..." else "تماشای تبلیغ و دریافت +۲۵ سکه")
+                Text(if (busy) "در حال آماده‌سازی تبلیغ..." else "تماشای تبلیغ و دریافت سکه")
             }
 
             message?.let { Text(it) }
