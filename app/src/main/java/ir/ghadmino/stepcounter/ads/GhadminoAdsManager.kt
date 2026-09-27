@@ -511,12 +511,12 @@ object GhadminoAdsManager {
 
     private fun canShowFullscreen(context: Context): Boolean {
         val last = prefs(context).getLong(LAST_FULLSCREEN, 0L)
-        return SystemClock.elapsedRealtime() - last >= FULLSCREEN_COOLDOWN_MS
+        return System.currentTimeMillis() - last >= FULLSCREEN_COOLDOWN_MS
     }
 
     private fun markFullscreenShown(context: Context) {
         prefs(context).edit()
-            .putLong(LAST_FULLSCREEN, SystemClock.elapsedRealtime())
+            .putLong(LAST_FULLSCREEN, System.currentTimeMillis())
             .apply()
     }
 
@@ -533,13 +533,13 @@ object GhadminoAdsManager {
         val last = p.getLong(LAST_REWARD, 0L)
 
         return count < MAX_REWARD_ADS_PER_DAY &&
-            SystemClock.elapsedRealtime() - last >= REWARD_COOLDOWN_MS
+            System.currentTimeMillis() - last >= REWARD_COOLDOWN_MS
     }
 
     private fun markRewardGranted(context: Context) {
         val p = prefs(context)
         p.edit()
-            .putLong(LAST_REWARD, SystemClock.elapsedRealtime())
+            .putLong(LAST_REWARD, System.currentTimeMillis())
             .putInt(REWARD_COUNT, p.getInt(REWARD_COUNT, 0) + 1)
             .apply()
     }
