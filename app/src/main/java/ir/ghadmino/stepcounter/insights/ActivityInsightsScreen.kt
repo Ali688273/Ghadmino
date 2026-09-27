@@ -35,7 +35,7 @@ fun ActivityInsightsScreen(insights: ActivityInsights, hourly: List<Int>) {
                         Text("امتیاز فعالیت امروز", style = MaterialTheme.typography.titleLarge)
                     }
                     Spacer(Modifier.height(8.dp))
-                    Text("\${insights.score} از ۱۰۰", style = MaterialTheme.typography.displaySmall)
+                    Text("${insights.score} از ۱۰۰", style = MaterialTheme.typography.displaySmall)
                     Text(insights.message)
                     Spacer(Modifier.height(10.dp))
                     LinearProgressIndicator(progress = insights.score / 100f, Modifier.fillMaxWidth())
@@ -78,7 +78,7 @@ fun ActivityInsightsScreen(insights: ActivityInsights, hourly: List<Int>) {
                         }
                     }
                     Spacer(Modifier.height(6.dp))
-                    Text("اوج فعالیت: \${ActivityInsightsRepository.formatHour(insights.peakHour)} — \${insights.peakSteps} قدم")
+                    Text("اوج فعالیت: ${ActivityInsightsRepository.formatHour(insights.peakHour)} — ${insights.peakSteps} قدم")
                 }
             }
         }
@@ -92,7 +92,7 @@ fun ActivityInsightsScreen(insights: ActivityInsights, hourly: List<Int>) {
                     }
                     Spacer(Modifier.height(8.dp))
                     if (insights.etaMinutes != null) {
-                        Text("با سرعت فعلی، حدود \${insights.etaMinutes} دقیقه دیگر تا هدف باقی می‌ماند.")
+                        Text("با سرعت فعلی، حدود ${insights.etaMinutes} دقیقه دیگر تا هدف باقی می‌ماند.")
                     } else {
                         Text("برای پیش‌بینی دقیق‌تر، ابتدا کمی فعالیت ثبت شود.")
                     }
@@ -109,8 +109,8 @@ fun ActivityInsightsScreen(insights: ActivityInsights, hourly: List<Int>) {
                         Text("رکوردهای هوشمند", style = MaterialTheme.typography.titleLarge)
                     }
                     Spacer(Modifier.height(8.dp))
-                    Text("بهترین روز در ۷ روز اخیر: \${insights.bestDaySteps} قدم")
-                    Text("زنجیره فعلی رسیدن به هدف: \${insights.bestStreak} روز")
+                    Text("بهترین روز در ۷ روز اخیر: ${insights.bestDaySteps} قدم")
+                    Text("زنجیره فعلی رسیدن به هدف: ${insights.bestStreak} روز")
                 }
             }
         }
