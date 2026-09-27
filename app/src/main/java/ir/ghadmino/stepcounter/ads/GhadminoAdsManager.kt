@@ -2,7 +2,6 @@ package ir.ghadmino.stepcounter.ads
 
 import android.app.Activity
 import android.content.Context
-import android.os.SystemClock
 import android.util.Log
 import android.view.ViewGroup
 import com.adivery.sdk.Adivery
