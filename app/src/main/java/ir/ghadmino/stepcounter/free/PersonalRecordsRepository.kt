@@ -5,6 +5,9 @@ import ir.ghadmino.stepcounter.activity.ManualActivityRepository
 import ir.ghadmino.stepcounter.profile.ProfileRepository
 import ir.ghadmino.stepcounter.step.StepHistory
 import ir.ghadmino.stepcounter.workout.WorkoutRepository
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
 data class PersonalRecords(
     val bestDaySteps:Int,
@@ -23,20 +26,22 @@ data class PersonalRecords(
 
 object PersonalRecordsRepository {
     fun calculate(context: Context): PersonalRecords {
-        val rows=StepHistory.recent(context,365)
+        val rows=StepHistory.recent(context,3650)
         val best=rows.maxByOrNull { it.second }
         val profile=ProfileRepository.load(context)
         val workouts=WorkoutRepository.load(context)
         val manual=ManualActivityRepository.all(context)
-        val bestMonth=rolling(rows,30)
+        val best30Day=rolling(rows,30)
+        val bestMonth=bestCalendarMonth(rows)
         val bestDistance=rows.maxOfOrNull { it.second * profile.strideCm / 100000.0 } ?: 0.0
-        val activeMinutes=manual.filter { it.date in rows.take(30).map { r -> r.first } }.sumOf { it.minutes } +
-            workouts.filter { it.durationMinutes > 0 }.take(30).sumOf { it.durationMinutes }
+        val recentDates = rows.take(30).mapTo(hashSetOf()) { it.first }
+        val activeMinutes=manual.filter { it.date in recentDates }.sumOf { it.minutes } +
+            workouts.filter { dateOf(it.startedAt) in recentDates && it.durationMinutes > 0 }.sumOf { it.durationMinutes }
         return PersonalRecords(
             bestDaySteps=best?.second ?: 0,
             bestDayDate=best?.first ?: "-",
             best7DayTotal=rolling(rows,7),
-            best30DayTotal=bestMonth,
+            best30DayTotal=best30Day,
             bestMonthTotal=bestMonth,
             longestStreak=longest(rows),
             currentStreak=current(context),
@@ -58,9 +63,12 @@ object PersonalRecordsRepository {
         return best
     }
 
+    private fun bestCalendarMonth(rows: List<Pair<String, Int>>): Int =
+        rows.groupBy { it.first.take(7) }.values.maxOfOrNull { group -> group.sumOf { it.second } } ?: 0
+
     private fun current(context:Context):Int {
         var n=0
-        for(row in StepHistory.recent(context,365)) {
+        for(row in StepHistory.recent(context,3650)) {
             if(row.second>0) n++ else break
         }
         return n
