@@ -8,6 +8,7 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
+import kotlin.math.max
 
 data class ActivityInsights(
     val score: Int,
@@ -39,7 +40,7 @@ object ActivityInsightsRepository {
     }
 
     fun calculate(context: Context, goal: Int): ActivityInsights {
-        val steps = StepCounterService.todaySteps
+        val steps = max(StepCounterService.todaySteps, StepCounterService.persistedTodaySteps(context))
         val hours = hourly(context)
         val activeHours = hours.count { it >= 100 }
         val peakSteps = hours.maxOrNull() ?: 0
