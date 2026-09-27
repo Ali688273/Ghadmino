@@ -451,6 +451,7 @@ object GhadminoAdsManager {
                             override fun onError(error: TapsellPlusErrorModel) {
                                 Log.w(TAG, "Tapsell native banner unavailable: " + error.errorMessage)
                                 container.removeAllViews()
+                                loadAdiveryBanner(activity, container)
                             }
                         }
                     )
