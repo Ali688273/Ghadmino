@@ -57,30 +57,36 @@ object GhadminoAdsManager {
 
             Adivery.setLoggingEnabled(BuildConfig.DEBUG)
             Adivery.configure(context.applicationContext, AdsConfig.ADIVERY_APP_KEY)
-
-            TapsellPlus.initialize(
-                context.applicationContext,
-                AdsConfig.TAPSELL_APP_KEY,
-                object : TapsellPlusInitListener {
-                    override fun onInitializeSuccess(adNetworks: AdNetworks) {
-                        tapsellInitialized = true
-                        Log.d(TAG, "TapsellPlus initialized: ${adNetworks.name}")
-                    }
-
-                    override fun onInitializeFailed(
-                        adNetworks: AdNetworks,
-                        adNetworkError: AdNetworkError
-                    ) {
-                        tapsellInitialized = false
-                        Log.w(
-                            TAG,
-                            "TapsellPlus init failed: ${adNetworks.name} - ${adNetworkError.errorMessage}"
-                        )
-                    }
-                }
-            )
-
             initialized = true
+        }
+
+        if (context is Activity && !tapsellInitializationStarted) {
+            synchronized(this) {
+                if (!tapsellInitializationStarted) {
+                    tapsellInitializationStarted = true
+                    TapsellPlus.initialize(
+                        context,
+                        AdsConfig.TAPSELL_APP_KEY,
+                        object : TapsellPlusInitListener {
+                            override fun onInitializeSuccess(adNetworks: AdNetworks) {
+                                tapsellInitialized = true
+                                Log.d(TAG, "TapsellPlus initialized: ${adNetworks.name}")
+                            }
+
+                            override fun onInitializeFailed(
+                                adNetworks: AdNetworks,
+                                adNetworkError: AdNetworkError
+                            ) {
+                                tapsellInitialized = false
+                                Log.w(
+                                    TAG,
+                                    "TapsellPlus init failed: ${adNetworks.name} - ${adNetworkError.errorMessage}"
+                                )
+                            }
+                        }
+                    )
+                }
+            }
         }
     }
 
