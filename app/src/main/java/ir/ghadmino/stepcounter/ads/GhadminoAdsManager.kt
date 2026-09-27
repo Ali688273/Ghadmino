@@ -103,7 +103,8 @@ object GhadminoAdsManager {
     fun showRewarded(
         activity: Activity,
         onReward: () -> Unit,
-        onFinished: (message: String) -> Unit = {}
+        onFinished: (message: String) -> Unit = {},
+        initializationRetry: Int = 0
     ) {
         initialize(activity)
 
@@ -161,6 +162,18 @@ object GhadminoAdsManager {
             // Adivery reports the result through the listener. If it is not
             // ready shortly after preparation, the SDK simply remains silent
             // and the caller is not blocked.
+        }
+
+        if (!tapsellInitialized && tapsellInitializationStarted && initializationRetry < 2) {
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                showRewarded(
+                    activity = activity,
+                    onReward = onReward,
+                    onFinished = onFinished,
+                    initializationRetry = initializationRetry + 1
+                )
+            }, 700L)
+            return
         }
 
         if (!tapsellInitialized) {
