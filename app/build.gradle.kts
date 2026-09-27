@@ -101,4 +101,9 @@ dependencies {
     )
 
     implementation("androidx.health.connect:connect-client:1.1.0")
+
+    // Production ad SDKs
+    implementation("ir.tapsell.plus:tapsell-plus-sdk-android:2.3.3")
+    implementation("com.adivery:sdk:4.9.0")
+    implementation("com.google.android.gms:play-services-ads-identifier:18.0.1")
 }
