@@ -1,5 +1,7 @@
 package ir.ghadmino.stepcounter.ads
 
+import ir.ghadmino.stepcounter.BuildConfig
+
 import android.app.Activity
 import android.content.Context
 import android.os.SystemClock
