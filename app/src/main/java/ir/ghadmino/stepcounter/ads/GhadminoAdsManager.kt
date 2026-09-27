@@ -416,6 +416,90 @@ object GhadminoAdsManager {
         banner.loadAd()
     }
 
+
+    fun loadNativeBanner(activity: Activity, container: ViewGroup) {
+        initialize(activity)
+        if (!tapsellInitialized || container.childCount > 0) return
+
+        TapsellPlus.requestNativeAd(
+            activity,
+            AdsConfig.TAPSELL_NATIVE_BANNER,
+            object : AdRequestCallback() {
+                override fun response(ad: TapsellPlusAdModel) {
+                    val responseId = ad.responseId
+                    if (responseId.isNullOrBlank() || isFinishingOrDestroyed(activity)) return
+
+                    val holder = TapsellPlus.createAdHolder(
+                        activity,
+                        container,
+                        ir.tapsell.plus.R.layout.native_banner
+                    )
+
+                    TapsellPlus.showNativeAd(
+                        activity,
+                        responseId,
+                        holder,
+                        object : AdShowListener() {
+                            override fun onOpened(ad: TapsellPlusAdModel) = Unit
+                            override fun onError(error: TapsellPlusErrorModel) {
+                                Log.w(TAG, "Tapsell native banner unavailable: " + error.errorMessage)
+                                container.removeAllViews()
+                            }
+                        }
+                    )
+                }
+
+                override fun error(message: String) {
+                    Log.w(TAG, "Tapsell native banner request failed: " + message)
+                }
+            }
+        )
+    }
+
+    fun loadNativeVideo(activity: Activity, container: ViewGroup) {
+        initialize(activity)
+        if (!tapsellInitialized || container.childCount > 0) return
+
+        TapsellPlus.requestNativeVideo(
+            activity,
+            AdsConfig.TAPSELL_NATIVE_VIDEO,
+            object : AdRequestCallback() {
+                override fun response(ad: TapsellPlusAdModel) {
+                    val responseId = ad.responseId
+                    if (responseId.isNullOrBlank() || isFinishingOrDestroyed(activity)) return
+
+                    val holder = ir.tapsell.plus.TapsellPlusVideoAdHolder.Builder()
+                        .setContentViewTemplate(ir.ghadmino.stepcounter.R.layout.ghadmino_native_video_ad)
+                        .setAppInstallationViewTemplate(
+                            ir.tapsell.sdk.R.layout.tapsell_app_installation_video_ad_template
+                        )
+                        .setAdContainer(container)
+                        .build()
+
+                    TapsellPlus.showNativeVideo(
+                        activity,
+                        responseId,
+                        holder,
+                        object : AdShowListener() {
+                            override fun onOpened(ad: TapsellPlusAdModel) {
+                                Log.d(TAG, "Tapsell native video opened")
+                            }
+
+                            override fun onError(error: TapsellPlusErrorModel) {
+                                Log.w(TAG, "Tapsell native video unavailable: " + error.errorMessage)
+                                container.removeAllViews()
+                            }
+                        }
+                    )
+                }
+
+                override fun error(message: String) {
+                    Log.w(TAG, "Tapsell native video request failed: " + message)
+                }
+            }
+        )
+    }
+
     private fun canShowFullscreen(context: Context): Boolean {
         val last = prefs(context).getLong(LAST_FULLSCREEN, 0L)
         return SystemClock.elapsedRealtime() - last >= FULLSCREEN_COOLDOWN_MS
