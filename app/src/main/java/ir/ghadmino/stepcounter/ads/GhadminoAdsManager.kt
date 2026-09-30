@@ -46,7 +46,7 @@ object GhadminoAdsManager {
             synchronized(this) {
                 if (!initialized) {
                     Adivery.setLoggingEnabled(BuildConfig.DEBUG)
-                    Adivery.configure(context.applicationContext, AdsConfig.ADIVERY_APP_KEY)
+                    Adivery.configure(context.applicationContext as Application, AdsConfig.ADIVERY_APP_KEY)
                     initialized = true
                 }
             }
