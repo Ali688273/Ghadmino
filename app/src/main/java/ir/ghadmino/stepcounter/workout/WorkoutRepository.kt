@@ -72,7 +72,7 @@ object WorkoutRepository {
     }
 
     fun totalSteps(context: Context): Int =
-        load(context).sumOf { it.steps }.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        load(context).sumOf { it.steps.toLong() }.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
 
     fun totalDistanceMeters(context: Context): Double =
         load(context).sumOf { it.distanceMeters }
