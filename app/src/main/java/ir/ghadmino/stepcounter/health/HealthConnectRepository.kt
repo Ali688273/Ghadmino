@@ -45,7 +45,7 @@ object HealthConnectRepository {
             AggregateRequest(
                 metrics = setOf(StepsRecord.COUNT_TOTAL),
                 timeRangeFilter = range,
-                dataOriginFilter = setOf(DataOrigin(context.packageName))
+                dataOriginFilter = listOf(DataOrigin(context.packageName))
             )
         )[StepsRecord.COUNT_TOTAL] ?: 0L
         return (all - own).coerceAtLeast(0L)
@@ -133,7 +133,7 @@ object HealthConnectRepository {
             )
         }
         if (records.isEmpty()) return 0
-        val ids = records.mapNotNull { it.metadata.clientRecordId }.toSet()
+        val ids = records.mapNotNull { it.metadata.clientRecordId }
         if (ids.isNotEmpty()) {
             try {
                 healthClient.deleteRecords(
