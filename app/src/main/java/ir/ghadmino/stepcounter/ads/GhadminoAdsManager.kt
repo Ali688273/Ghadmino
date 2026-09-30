@@ -1,6 +1,7 @@
 package ir.ghadmino.stepcounter.ads
 
 import android.app.Activity
+import android.app.Application
 import android.content.Context
 import android.util.Log
 import android.view.ViewGroup
@@ -56,7 +57,7 @@ object GhadminoAdsManager {
                 if (!tapsellInitializationStarted) {
                     tapsellInitializationStarted = true
                     TapsellPlus.initialize(
-                        context,
+                        context.applicationContext as Application,
                         AdsConfig.TAPSELL_APP_KEY,
                         object : TapsellPlusInitListener {
                             override fun onInitializeSuccess(adNetworks: AdNetworks) {
