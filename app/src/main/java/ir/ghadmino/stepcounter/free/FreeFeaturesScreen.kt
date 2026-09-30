@@ -232,6 +232,7 @@ fun FreeFeaturesScreen(onCoinsChanged: () -> Unit = {}) {
         }
     }
 }
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable private fun SourceButton(label: String, value: StepSource, current: StepSource, onClick: (StepSource) -> Unit) {
     FilterChip(selected = current == value, onClick = { onClick(value) }, label = { Text(label) })
 }
