@@ -105,7 +105,7 @@ fun ActivityCalendarScreen(goal: Int) {
             }
         }
 
-        HorizontalDivider()
+        Divider()
 
         LazyColumn(
             Modifier.fillMaxWidth(),
