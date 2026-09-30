@@ -39,8 +39,9 @@ fun BackupScreen() {
             val json = context.contentResolver.openInputStream(uri)?.use {
                 it.readBytes().toString(Charsets.UTF_8)
             } ?: throw IllegalArgumentException()
-            val validation = ImportValidationRepository.validate(json)
-            if (!validation.valid) throw IllegalArgumentException(validation.message)
+            val preview = BackupRepository.previewJson(json)
+            val validation = preview
+            if (!validation.valid) throw IllegalArgumentException("فایل پشتیبان معتبر نیست.")
             val count = BackupRepository.importJson(context, json)
             message = "پشتیبان معتبر — نسخه ${validation.version}، ${validation.preferenceGroups} بخش و ${validation.entries} مورد. $count مورد بازیابی شد."
         } catch (_: Exception) {
