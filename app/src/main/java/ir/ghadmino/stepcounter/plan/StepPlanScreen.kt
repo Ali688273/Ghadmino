@@ -86,9 +86,10 @@ object StepPlanRepository {
             .coerceIn(3000, finalTarget)
     }
 
-    private fun elapsedDays(start: String): Int = try {
-        val format = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-        val startDate = format.parse(start) ?: return 1
+    private fun elapsedDays(start: String): Int {
+        return try {
+            val format = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+            val startDate = format.parse(start) ?: return 1
         val begin = Calendar.getInstance().apply {
             time = startDate
             set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
@@ -99,16 +100,23 @@ object StepPlanRepository {
             set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
         }
         (((now.timeInMillis - begin.timeInMillis) / 86400000L).toInt() + 1).coerceIn(1, 30)
-    } catch (_: Exception) { 1 }
+        } catch (_: Exception) {
+            1
+        }
+    }
 
-    private fun dateOffsetFromStart(start: String, offset: Int): String? = try {
-        val format = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-        val date = format.parse(start) ?: return null
+    private fun dateOffsetFromStart(start: String, offset: Int): String? {
+        return try {
+            val format = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+            val date = format.parse(start) ?: return null
         Calendar.getInstance().apply {
             time = date
             add(Calendar.DAY_OF_YEAR, offset)
         }.let { format.format(it.time) }
-    } catch (_: Exception) { null }
+        } catch (_: Exception) {
+            null
+        }
+    }
 
     private fun today(): String =
         SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Calendar.getInstance().time)
