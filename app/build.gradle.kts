@@ -84,9 +84,13 @@ configurations.all {
     resolutionStrategy.force("org.jetbrains.kotlin:kotlin-stdlib:1.9.22")
     resolutionStrategy.force("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.22")
     resolutionStrategy.force("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.22")
+    resolutionStrategy.force("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+    resolutionStrategy.force("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.7.3")
 }
 
 dependencies {
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.22")
+
     implementation("androidx.core:core-ktx:1.12.0")
 
     implementation(
