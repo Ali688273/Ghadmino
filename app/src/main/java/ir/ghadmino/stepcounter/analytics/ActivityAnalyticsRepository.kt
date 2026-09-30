@@ -2,7 +2,7 @@ package ir.ghadmino.stepcounter.analytics
 
 import android.content.Context
 import ir.ghadmino.stepcounter.profile.ProfileRepository
-import ir.ghadmino.stepcounter.speed.SpeedHistoryRepository
+import ir.ghadmino.stepcounter.stats.SpeedHistoryRepository
 import ir.ghadmino.stepcounter.step.StepCounterService
 import ir.ghadmino.stepcounter.step.StepHistory
 import java.text.SimpleDateFormat
