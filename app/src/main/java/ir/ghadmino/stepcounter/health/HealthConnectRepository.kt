@@ -45,7 +45,7 @@ object HealthConnectRepository {
             AggregateRequest(
                 metrics = setOf(StepsRecord.COUNT_TOTAL),
                 timeRangeFilter = range,
-                dataOriginFilter = listOf(DataOrigin(context.packageName))
+                dataOriginFilter = setOf(DataOrigin(context.packageName))
             )
         )[StepsRecord.COUNT_TOTAL] ?: 0L
         return (all - own).coerceAtLeast(0L)
