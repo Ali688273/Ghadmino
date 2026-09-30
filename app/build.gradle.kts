@@ -80,6 +80,12 @@ android {
     }
 }
 
+configurations.all {
+    resolutionStrategy.force("org.jetbrains.kotlin:kotlin-stdlib:1.9.22")
+    resolutionStrategy.force("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.22")
+    resolutionStrategy.force("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.22")
+}
+
 dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
 
