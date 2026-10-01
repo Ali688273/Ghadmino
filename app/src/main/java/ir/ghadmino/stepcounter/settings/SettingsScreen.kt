@@ -45,7 +45,19 @@ fun SettingsScreen(){
    Row(verticalAlignment=Alignment.CenterVertically){Icon(Icons.Default.BatteryAlert,null);Spacer(Modifier.width(8.dp));Text("ثبت قدم در پس‌زمینه",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)}
    Text("سرویس فعال پس‌زمینه برای ادامه شمارش بعد از بستن صفحه استفاده می‌شود.")
    Text("اگر گوشی شمارش را متوقف می‌کند، محدودیت Battery Saver یا بهینه‌سازی باتری را بررسی کن.")
-   Button({context.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))},Modifier.fillMaxWidth()){Text("باز کردن تنظیمات باتری")}
+   Button(
+    onClick = {
+     try {
+      context.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+     } catch (_: Exception) {
+      try {
+       context.startActivity(Intent(Settings.ACTION_SETTINGS))
+      } catch (_: Exception) {
+      }
+     }
+    },
+    modifier = Modifier.fillMaxWidth()
+   ){Text("باز کردن تنظیمات باتری")}
   }}
   Card(Modifier.fillMaxWidth()){Column(Modifier.padding(18.dp)){
    Row(verticalAlignment=Alignment.CenterVertically){Icon(Icons.Default.Speed,null);Spacer(Modifier.width(8.dp));Text("دقت سرعت",style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)}
