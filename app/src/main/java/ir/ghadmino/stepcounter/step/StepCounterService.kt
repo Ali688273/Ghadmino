@@ -254,7 +254,9 @@ class StepCounterService : Service(), SensorEventListener {
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 
     override fun onDestroy() {
-        sensorManager.unregisterListener(this)
+        if (::sensorManager.isInitialized) {
+            runCatching { sensorManager.unregisterListener(this) }
+        }
         super.onDestroy()
     }
 
