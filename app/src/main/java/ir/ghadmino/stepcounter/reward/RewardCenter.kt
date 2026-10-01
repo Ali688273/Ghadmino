@@ -48,7 +48,6 @@ fun RewardCenter(
     val levelInfo = remember(steps, coins) { LevelRepository.get(context) }
     val dailyGoal = remember { ProfileRepository.load(context).dailyGoal }
     val loginClaimed = remember { mutableStateOf(false) }
-    val hundredClaimed = remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         delay(700)
@@ -60,10 +59,8 @@ fun RewardCenter(
             delay(5000)
             steps = maxOf(StepCounterService.todaySteps, StepCounterService.persistedTodaySteps(context))
             val login = CoinWallet.claimDailyLoginReward(context)
-            val hundred = CoinWallet.claimHundredStepsReward(context, steps)
-            if (login || hundred) {
-                loginClaimed.value = loginClaimed.value || login
-                hundredClaimed.value = hundredClaimed.value || hundred
+            if (login) {
+                loginClaimed.value = true
                 onCoinsChanged()
             }
         }
@@ -111,7 +108,7 @@ fun RewardCenter(
                 Text("پاداش‌های سریع", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(8.dp))
                 Text(if (loginClaimed.value || CoinWallet.isRewardClaimed(context, "daily_login_" + todayKey())) "ورود روزانه: +۱۰ سکه ✓" else "ورود روزانه: +۱۰ سکه")
-                Text(if (hundredClaimed.value || CoinWallet.isRewardClaimed(context, "hundred_steps_" + todayKey())) "رسیدن به ۱۰۰ قدم: +۵ سکه ✓" else "با رسیدن به ۱۰۰ قدم: +۵ سکه")
+                Text("پاداش قدم: هر ۱۰۰۰ قدم = ۱۰ سکه؛ ۲۰۰۰ = ۲۰، ۳۰۰۰ = ۳۰ و به همین ترتیب")
             }
         }
 
