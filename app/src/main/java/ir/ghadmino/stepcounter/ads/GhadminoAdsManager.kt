@@ -263,10 +263,6 @@ object GhadminoAdsManager {
             return
         }
 
-        fun showAdivery() {
-            showAdiveryPlacement(AdsConfig.ADIVERY_INTERSTITIAL)
-        }
-
         fun showAdiveryPlacement(placement: String) {
             var shown = false
             val listener = object : AdiveryListener() {
@@ -310,6 +306,10 @@ object GhadminoAdsManager {
                     }
                 }
             }, 2500L)
+        }
+
+        fun showAdivery() {
+            showAdiveryPlacement(AdsConfig.ADIVERY_INTERSTITIAL)
         }
 
         if (!tapsellInitialized) {
