@@ -467,6 +467,12 @@ private fun HomePage(
                 "کالری",
                 calories.toInt().toString() + " kcal"
             )
+            StatCard(
+                Modifier.weight(1f),
+                Icons.Default.DirectionsWalk,
+                "زمان راه‌رفتن",
+                walkingMinutes.toString() + " دقیقه"
+            )
         }
 
         SpeedCard(currentSpeed, averageSpeed, minimumSpeed, maximumSpeed)
@@ -513,7 +519,7 @@ private fun MorePage(
     onOpen: (String) -> Unit
 ) {
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Text("امکانات قدمینو", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
@@ -584,7 +590,7 @@ private fun FullPageDialog(
                     }
                 )
                 Box(
-                    Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 4.dp)
+                    Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 4.dp).navigationBarsPadding()
                 ) {
                     content()
                 }
