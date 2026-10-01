@@ -16,7 +16,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.Paid
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Speed
@@ -51,7 +50,6 @@ import ir.ghadmino.stepcounter.profile.ProfileScreen
 import ir.ghadmino.stepcounter.profile.ProfileExtrasScreen
 import ir.ghadmino.stepcounter.achievement.AchievementsScreen
 import ir.ghadmino.stepcounter.level.LevelScreen
-import ir.ghadmino.stepcounter.reward.RewardCenter
 import ir.ghadmino.stepcounter.speed.SpeedTracker
 import ir.ghadmino.stepcounter.stats.StatsRepository
 import ir.ghadmino.stepcounter.stats.StatsScreen
@@ -60,7 +58,11 @@ import ir.ghadmino.stepcounter.step.StepHistory
 import ir.ghadmino.stepcounter.free.FreeFeaturesScreen
 import ir.ghadmino.stepcounter.free.WeeklyReportScheduler
 import ir.ghadmino.stepcounter.ui.theme.GhadminoTheme
+import ir.ghadmino.stepcounter.ads.GhadminoAdsManager
+import ir.ghadmino.stepcounter.ads.GhadminoBanner
+import ir.ghadmino.stepcounter.ads.GhadminoNativeAdCards
 import kotlinx.coroutines.delay
+import kotlin.math.roundToInt
 
 class MainActivity : ComponentActivity() {
     private lateinit var speedTracker: SpeedTracker
@@ -173,6 +175,14 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
         }
     }
 
+    LaunchedEffect(tab) {
+        if (tab == 1 || tab == 2) {
+            (context as? ComponentActivity)?.let { activity ->
+                GhadminoAdsManager.showInterstitial(activity)
+            }
+        }
+    }
+
     val progress = if (goal > 0) (steps.toFloat() / goal).coerceIn(0f, 1f) else 0f
     val profile = ProfileRepository.load(context)
     val distanceKm = steps * profile.strideCm / 100000.0
@@ -189,20 +199,14 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
                             when (tab) {
                                 0 -> "داشبورد فعالیت"
                                 1 -> "آمار و گزارش‌ها"
-                                2 -> "پاداش و فروشگاه"
+                                2 -> "بیشتر"
                                 else -> "بیشتر"
                             },
                             style = MaterialTheme.typography.labelSmall
                         )
                     }
                 },
-                actions = {
-                    AssistChip(
-                        onClick = { tab = 2 },
-                        label = { Text(coins.toString()) },
-                        leadingIcon = { Icon(Icons.Default.Paid, null) }
-                    )
-                }
+                actions = { }
             )
         },
         bottomBar = {
@@ -222,12 +226,6 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
                 NavigationBarItem(
                     selected = tab == 2,
                     onClick = { tab = 2 },
-                    icon = { Icon(Icons.Default.Paid, null) },
-                    label = { Text("پاداش") }
-                )
-                NavigationBarItem(
-                    selected = tab == 3,
-                    onClick = { tab = 3 },
                     icon = { Icon(Icons.Default.Settings, null) },
                     label = { Text("بیشتر") }
                 )
@@ -257,35 +255,7 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
                 StatsRepository.load(context, goal),
                 goal
             )
-            2 -> RewardCenter(
-                coins = coins,
-                onCoinsChanged = { coins = CoinWallet.balance(context) },
-                selectedTheme = selectedTheme,
-                onBuyFreeze = {
-                    info = if (CoinWallet.unlock(context, "streak_freeze", 250))
-                        "محافظ زنجیره خریداری شد."
-                    else
-                        "سکه کافی نیست."
-                    coins = CoinWallet.balance(context)
-                },
-                onBuyTheme = { id, cost ->
-                    if (cost == 0) {
-                        CoinWallet.setSelectedTheme(context, id)
-                        selectedTheme = id
-                        onThemeChanged(id)
-                        info = "تم فعال شد."
-                    } else if (CoinWallet.unlock(context, "theme_" + id, cost)) {
-                        CoinWallet.setSelectedTheme(context, id)
-                        selectedTheme = id
-                        onThemeChanged(id)
-                        coins = CoinWallet.balance(context)
-                        info = "تم خریداری و فعال شد."
-                    } else {
-                        info = "سکه کافی نیست."
-                    }
-                }
-            )
-            3 -> MorePage(
+            2 -> MorePage(
                 profileName = profileName,
                 onOpen = { morePage = it }
             )
@@ -316,16 +286,20 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
         "calendar" -> FullPageDialog("تقویم فعالیت و گزارش روزانه", onClose = { morePage = null }) {
             ActivityCalendarScreen(goal)
         }
-        "history" -> FullPageDialog("تاریخچه ۷ روزه", onClose = { morePage = null }) {
+        "history" -> FullPageDialog("تاریخچه ۳۰ روز اخیر", onClose = { morePage = null }) {
             Column(
-                Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                StepHistory.recent(context).forEach {
-                    ListItem(
-                        headlineContent = { Text(it.first) },
-                        trailingContent = { Text(it.second.toString() + " قدم") }
-                    )
+                StepHistory.recent(context, 30).forEach { item ->
+                    Card(Modifier.fillMaxWidth()) {
+                        ListItem(
+                            headlineContent = { Text(item.first) },
+                            trailingContent = { Text(item.second.toString() + " قدم") }
+                        )
+                    }
                 }
             }
         }
@@ -447,12 +421,16 @@ private fun HomePage(
                 Text(goal.toString() + " قدم", style = MaterialTheme.typography.titleLarge)
                 Slider(
                     value = goal.toFloat(),
-                    onValueChange = { onGoalChanged(it.toInt()) },
+                    onValueChange = {
+                        onGoalChanged(((it / 1000f).roundToInt() * 1000).coerceIn(1000, 30000))
+                    },
                     valueRange = 1000f..30000f,
                     steps = 28
                 )
             }
         }
+
+        GhadminoBanner(modifier = Modifier.fillMaxWidth())
 
         Card(
             Modifier.fillMaxWidth(),
@@ -483,7 +461,9 @@ private fun MorePage(
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Text("امکانات قدمینو", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text("هر بخش صفحه جداگانه دارد تا برنامه خلوت و حرفه‌ای بماند.")
+        Text("بخش‌های کاربردی برنامه در صفحه‌های جداگانه قرار گرفته‌اند.")
+        GhadminoBanner(modifier = Modifier.fillMaxWidth())
+        GhadminoNativeAdCards()
 
         MoreItem("👤", if (profileName.isBlank()) "پروفایل" else profileName, "اطلاعات بدنی و هدف‌ها") { onOpen("profile") }
         MoreItem("🏆", "دستاوردها", "مدال‌ها و پاداش‌های پیشرفت") { onOpen("achievements") }
