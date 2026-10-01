@@ -28,6 +28,8 @@ class SpeedTracker(private val context: Context) {
 
     val maximumSpeedKmh: Float
         get() = SpeedTrackerState.maximumSpeedKmh
+    val activeMinutesToday: Int
+        get() = SpeedTrackerState.activeMinutesToday
 
     @SuppressLint("MissingPermission")
     fun start() {
@@ -50,6 +52,7 @@ private object SpeedTrackerState {
     private const val KEY_SAMPLES = "speed_samples"
     private const val KEY_MIN = "speed_min"
     private const val KEY_MAX = "speed_max"
+    private const val KEY_ACTIVE_SECONDS = "active_seconds"
 
     @Volatile var currentSpeedKmh: Float = 0f
         private set
@@ -58,6 +61,8 @@ private object SpeedTrackerState {
     @Volatile var minimumSpeedKmh: Float = 0f
         private set
     @Volatile var maximumSpeedKmh: Float = 0f
+        private set
+    @Volatile var activeMinutesToday: Int = 0
         private set
 
     private var started = false
@@ -156,6 +161,13 @@ private object SpeedTrackerState {
             else -> 0f
         }
 
+        if (previous != null && seconds >= 0.5f && seconds <= 10f && speed >= 0.5f) {
+            val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            val activeSeconds = prefs.getLong(KEY_ACTIVE_SECONDS, 0L) + seconds.toLong()
+            prefs.edit().putLong(KEY_ACTIVE_SECONDS, activeSeconds).apply()
+            activeMinutesToday = (activeSeconds / 60L).toInt()
+        }
+
         lastLocation = Location(location)
         lastSpeedTimeMillis = now
 
@@ -229,6 +241,7 @@ private object SpeedTrackerState {
         averageSpeedKmh = if (samples > 0) total / samples else 0f
         minimumSpeedKmh = if (samples > 0) prefs.getFloat(KEY_MIN, 0f) else 0f
         maximumSpeedKmh = if (samples > 0) prefs.getFloat(KEY_MAX, 0f) else 0f
+        activeMinutesToday = (prefs.getLong(KEY_ACTIVE_SECONDS, 0L) / 60L).toInt()
     }
 
     fun stop(context: Context) {
@@ -255,12 +268,14 @@ private object SpeedTrackerState {
             .putFloat(KEY_TOTAL, 0f)
             .putFloat(KEY_MIN, 0f)
             .putFloat(KEY_MAX, 0f)
+            .putLong(KEY_ACTIVE_SECONDS, 0L)
             .apply()
 
         currentSpeedKmh = 0f
         averageSpeedKmh = 0f
         minimumSpeedKmh = 0f
         maximumSpeedKmh = 0f
+        activeMinutesToday = 0
         lastLocation = null
         lastSpeedTimeMillis = 0L
         smoothedSpeedKmh = 0f
