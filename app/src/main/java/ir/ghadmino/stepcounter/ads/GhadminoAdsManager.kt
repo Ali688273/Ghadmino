@@ -263,7 +263,8 @@ object GhadminoAdsManager {
             return
         }
 
-        fun showAdiveryPlacement(placement: String) {
+        lateinit var showAdiveryPlacement: (String) -> Unit
+        showAdiveryPlacement = { placement: String ->
             var shown = false
             val listener = object : AdiveryListener() {
                 override fun onInterstitialAdLoaded(placementId: String) {
