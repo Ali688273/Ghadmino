@@ -15,7 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import ir.ghadmino.stepcounter.ads.GhadminoBanner
+import ir.ghadmino.stepcounter.ads.GhadminoInstantBanner
 import ir.ghadmino.stepcounter.step.StepHistory
 import kotlin.math.max
 
@@ -39,7 +39,7 @@ fun StatsScreen(stats: GhadminoStats, goal: Int) {
         verticalArrangement = Arrangement.spacedBy(10.dp),
         contentPadding = PaddingValues(12.dp)
     ) {
-        item { GhadminoBanner(modifier = Modifier.fillMaxWidth()) }
+        item { GhadminoInstantBanner(modifier = Modifier.fillMaxWidth()) }
 
         item {
             Text(
