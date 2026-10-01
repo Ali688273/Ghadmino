@@ -140,7 +140,7 @@ fun StatsScreen(stats: GhadminoStats, goal: Int) {
                             Text(item.second.toString())
                         }
                         if (item != days.last()) {
-                            HorizontalDivider()
+                            Divider()
                         }
                     }
                 }
