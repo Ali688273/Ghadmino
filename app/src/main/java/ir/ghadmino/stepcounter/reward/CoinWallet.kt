@@ -66,6 +66,28 @@ object CoinWallet {
     }
 
 
+    @Synchronized
+    fun claimDailyLoginReward(c: Context): Boolean {
+        val key = "daily_login_" + today()
+        return claimRewardOnce(c, key, 10)
+    }
+
+    @Synchronized
+    private fun checkMilestones(c: Context, lifetime: Int) {
+        val milestones = listOf(
+            10_000 to 25,
+            25_000 to 50,
+            50_000 to 100,
+            100_000 to 250,
+            250_000 to 500,
+            500_000 to 750,
+            1_000_000 to 1500
+        )
+        milestones.forEach { (target, reward) ->
+            claimRewardOnce(c, "lifetime_milestone_$target", reward)
+        }
+    }
+
     fun isRewardClaimed(c: Context, marker: String): Boolean =
         p(c).getBoolean(marker, false)
 
