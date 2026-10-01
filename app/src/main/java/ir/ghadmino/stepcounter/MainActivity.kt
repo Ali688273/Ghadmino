@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import ir.ghadmino.stepcounter.reward.CoinWallet
+import ir.ghadmino.stepcounter.reward.RewardCenter
 import ir.ghadmino.stepcounter.analytics.ActivityAnalyticsRepository
 import ir.ghadmino.stepcounter.analytics.ActivityIntelligenceScreen
 import ir.ghadmino.stepcounter.notification.InactivityScheduler
@@ -176,7 +177,7 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
     }
 
     LaunchedEffect(tab) {
-        if (tab == 1 || tab == 2) {
+        if (tab == 1) {
             (context as? ComponentActivity)?.let { activity ->
                 GhadminoAdsManager.showInterstitial(activity)
             }
@@ -322,6 +323,36 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
         "free" -> FullPageDialog("۲۰ قابلیت رایگان", onClose = { morePage = null }) {
             FreeFeaturesScreen { coins = CoinWallet.balance(context) }
         }
+        "rewards" -> FullPageDialog("پاداش و سکه", onClose = { morePage = null }) {
+            RewardCenter(
+                coins = coins,
+                selectedTheme = selectedTheme,
+                onBuyFreeze = {
+                    info = "محافظ زنجیره در نسخه فعلی نیاز به فعال‌سازی جداگانه دارد."
+                },
+                onBuyTheme = { id, cost ->
+                    val unlocked = CoinWallet.isUnlocked(context, "theme_" + id)
+                    val ok = if (unlocked) {
+                        CoinWallet.setSelectedTheme(context, id)
+                        selectedTheme = id
+                        true
+                    } else if (CoinWallet.unlock(context, "theme_" + id, cost)) {
+                        CoinWallet.setSelectedTheme(context, id)
+                        selectedTheme = id
+                        true
+                    } else false
+                    if (ok) {
+                        coins = CoinWallet.balance(context)
+                        onThemeChanged(id)
+                    } else {
+                        info = "سکه کافی نیست."
+                    }
+                },
+                onCoinsChanged = {
+                    coins = CoinWallet.balance(context)
+                }
+            )
+        }
         "goal" -> FullPageDialog("تنظیم هدف", onClose = { morePage = null }) {
             Column(
                 Modifier.fillMaxWidth(),
@@ -464,6 +495,7 @@ private fun MorePage(
         GhadminoBanner(modifier = Modifier.fillMaxWidth())
         MoreItem("👤", if (profileName.isBlank()) "پروفایل" else profileName, "اطلاعات بدنی و هدف‌ها") { onOpen("profile") }
         MoreItem("🏆", "دستاوردها", "مدال‌ها و پاداش‌های پیشرفت") { onOpen("achievements") }
+        MoreItem("🎁", "پاداش و سکه", "دریافت سکه با قدم‌زدن، مأموریت‌ها و تماشای تبلیغ") { onOpen("rewards") }
         MoreItem("⭐", "سطح و XP", "سطح کاربر و میزان پیشرفت") { onOpen("level") }
         MoreItem("🎨", "شخصی‌سازی", "قاب، نشان و امکانات قابل خرید") { onOpen("extras") }
         MoreItem("📅", "تقویم فعالیت", "انتخاب هر روز و مشاهده گزارش واقعی همان روز") { onOpen("calendar") }
