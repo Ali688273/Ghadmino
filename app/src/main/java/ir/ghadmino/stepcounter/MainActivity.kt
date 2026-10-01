@@ -163,6 +163,10 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
                 if (steps >= goal) CoinWallet.claimGoalReward(context)
                 lastSavedSteps = steps
             }
+            // Small one-time rewards are checked every cycle so they are not
+            // missed when the step value changed before the UI was ready.
+            CoinWallet.claimDailyLoginReward(context)
+            CoinWallet.claimHundredStepsReward(context, steps)
             coins = CoinWallet.balance(context)
             currentSpeed = speedTracker.currentSpeedKmh
             averageSpeed = speedTracker.averageSpeedKmh
