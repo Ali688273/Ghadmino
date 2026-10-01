@@ -103,17 +103,40 @@ object CoinWallet {
     }
 
     @Synchronized
-    fun claimHundredStepsReward(c: Context, steps: Int): Boolean {
-        if (steps < 100) return false
-        val key = "hundred_steps_" + today()
-        if (p(c).getBoolean(key, false)) return false
-        val next = (balance(c).toLong() + 5L)
-            .coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
-        return p(c).edit()
-            .putInt("balance", next)
-            .putBoolean(key, true)
-            .commit()
+    fun syncStepReward(c: Context, steps: Int) {
+        val prefs = p(c)
+        val date = today()
+        val persisted = StepCounterService.persistedTodaySteps(c)
+        val safeSteps = maxOf(steps.coerceAtLeast(0), persisted)
+        val blocks = safeSteps / 1000
+        val key = "rewarded_blocks_" + date
+        val old = prefs.getInt(key, 0)
+
+        if (blocks > old) {
+            val reward = ((blocks - old).toLong() * 10L)
+                .coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+            val nextBalance = (balance(c).toLong() + reward.toLong())
+                .coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+            prefs.edit()
+                .putInt("balance", nextBalance)
+                .putInt(key, blocks)
+                .apply()
+        } else if (!prefs.contains(key)) {
+            prefs.edit().putInt(key, blocks).apply()
+        }
+
+        val lifetime = StepHistory.totalLifetime(c)
+        prefs.edit().putInt("lifetime_steps", lifetime).apply()
+        checkMilestones(c, lifetime)
+
+        val achievementCheckKey = "achievement_check_" + date
+        val currentCheckKey = date + ":" + blocks
+        if (prefs.getString(achievementCheckKey, null) != currentCheckKey) {
+            AchievementRepository.evaluate(c)
+            prefs.edit().putString(achievementCheckKey, currentCheckKey).apply()
+        }
     }
+
 
     fun isRewardClaimed(c: Context, marker: String): Boolean =
         p(c).getBoolean(marker, false)
