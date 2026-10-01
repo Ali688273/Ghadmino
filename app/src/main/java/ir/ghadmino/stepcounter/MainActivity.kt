@@ -133,6 +133,8 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
     var averageSpeed by remember { mutableFloatStateOf(speedTracker.averageSpeedKmh) }
     var minimumSpeed by remember { mutableFloatStateOf(speedTracker.minimumSpeedKmh) }
     var maximumSpeed by remember { mutableFloatStateOf(speedTracker.maximumSpeedKmh) }
+    var walkingMinutes by remember { mutableIntStateOf(speedTracker.activeMinutesToday) }
+    var showInitialProfile by remember { mutableStateOf(!ProfileRepository.isComplete(context)) }
     var coins by remember { mutableIntStateOf(CoinWallet.balance(context)) }
     var selectedTheme by remember { mutableStateOf(CoinWallet.selectedTheme(context)) }
     var tab by remember { mutableIntStateOf(0) }
@@ -166,12 +168,12 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
             // Small one-time rewards are checked every cycle so they are not
             // missed when the step value changed before the UI was ready.
             CoinWallet.claimDailyLoginReward(context)
-            CoinWallet.claimHundredStepsReward(context, steps)
             coins = CoinWallet.balance(context)
             currentSpeed = speedTracker.currentSpeedKmh
             averageSpeed = speedTracker.averageSpeedKmh
             minimumSpeed = speedTracker.minimumSpeedKmh
             maximumSpeed = speedTracker.maximumSpeedKmh
+            walkingMinutes = speedTracker.activeMinutesToday
             if (now - lastInsightRefresh >= 10000L) {
                 insights = ActivityInsightsRepository.calculate(context, goal)
                 lastInsightRefresh = now
@@ -249,6 +251,7 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
                 averageSpeed = averageSpeed,
                 minimumSpeed = minimumSpeed,
                 maximumSpeed = maximumSpeed,
+                walkingMinutes = walkingMinutes,
                 onGoalChanged = {
                     goal = it
                     val profile = ProfileRepository.load(context)
@@ -375,6 +378,25 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
                     steps = 28
                 )
                 Text("هدف بین ۱۰۰۰ تا ۳۰۰۰۰ قدم قابل تنظیم است.")
+            }
+        }
+    }
+
+    if (showInitialProfile) {
+        Dialog(onDismissRequest = {}) {
+            Card(Modifier.fillMaxWidth().padding(12.dp)) {
+                Column(Modifier.padding(16.dp).verticalScroll(rememberScrollState())) {
+                    Text("اطلاعات اولیه", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(8.dp))
+                    Text("برای محاسبه دقیق‌تر کالری، مسافت و فعالیت، اطلاعات بدنی خودت را وارد کن.")
+                    Spacer(Modifier.height(12.dp))
+                    ProfileScreen {
+                        ProfileRepository.markComplete(context)
+                        showInitialProfile = false
+                        profileName = ProfileRepository.load(context).name
+                        goal = ProfileRepository.load(context).dailyGoal
+                    }
+                }
             }
         }
     }
