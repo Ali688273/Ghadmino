@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.key
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -43,13 +44,19 @@ fun RewardCenter(
 ) {
     val context = LocalContext.current
     var steps by remember { mutableIntStateOf(maxOf(StepCounterService.todaySteps, StepCounterService.persistedTodaySteps(context))) }
+    var showNativeAds by remember { mutableStateOf(false) }
     val levelInfo = remember(steps, coins) { LevelRepository.get(context) }
     val dailyGoal = remember { ProfileRepository.load(context).dailyGoal }
 
     LaunchedEffect(Unit) {
+        delay(700)
+        showNativeAds = true
+    }
+
+    LaunchedEffect(Unit) {
         while (true) {
+            delay(5000)
             steps = maxOf(StepCounterService.todaySteps, StepCounterService.persistedTodaySteps(context))
-            kotlinx.coroutines.delay(1000)
         }
     }
 
@@ -98,7 +105,9 @@ fun RewardCenter(
             modifier = Modifier.padding(horizontal = 4.dp)
         )
 
-        GhadminoNativeAdCards()
+        if (showNativeAds) {
+            GhadminoNativeAdCards()
+        }
 
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp)) {
