@@ -47,6 +47,8 @@ fun RewardCenter(
     var showNativeAds by remember { mutableStateOf(false) }
     val levelInfo = remember(steps, coins) { LevelRepository.get(context) }
     val dailyGoal = remember { ProfileRepository.load(context).dailyGoal }
+    val loginClaimed = remember { mutableStateOf(false) }
+    val hundredClaimed = remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         delay(700)
@@ -57,6 +59,13 @@ fun RewardCenter(
         while (true) {
             delay(5000)
             steps = maxOf(StepCounterService.todaySteps, StepCounterService.persistedTodaySteps(context))
+            val login = CoinWallet.claimDailyLoginReward(context)
+            val hundred = CoinWallet.claimHundredStepsReward(context, steps)
+            if (login || hundred) {
+                loginClaimed.value = loginClaimed.value || login
+                hundredClaimed.value = hundredClaimed.value || hundred
+                onCoinsChanged()
+            }
         }
     }
 
@@ -94,6 +103,15 @@ fun RewardCenter(
                 Text(
                     "با قدم‌زدن، مأموریت‌ها و دستاوردها سکه جمع کن و برای امکانات برنامه خرج کن."
                 )
+            }
+        }
+
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp)) {
+                Text("پاداش‌های سریع", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(8.dp))
+                Text(if (loginClaimed.value || CoinWallet.isRewardClaimed(context, "daily_login_" + todayKey())) "ورود روزانه: +۱۰ سکه ✓" else "ورود روزانه: +۱۰ سکه")
+                Text(if (hundredClaimed.value || CoinWallet.isRewardClaimed(context, "hundred_steps_" + todayKey())) "رسیدن به ۱۰۰ قدم: +۵ سکه ✓" else "با رسیدن به ۱۰۰ قدم: +۵ سکه")
             }
         }
 
@@ -331,3 +349,7 @@ private fun isMissionClaimed(
         .format(java.util.Date())
     return prefs.getString("mission_" + missionId + "_date", null) == date
 }
+
+
+private fun todayKey(): String =
+    java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
