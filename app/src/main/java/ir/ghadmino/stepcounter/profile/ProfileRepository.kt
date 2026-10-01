@@ -20,6 +20,10 @@ data class UserProfile(
 object ProfileRepository {
     private const val PREFS = "ghadmino_profile"
 
+    fun isComplete(context: Context): Boolean = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean("profile_complete", false)
+
+    fun markComplete(context: Context) { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean("profile_complete", true).apply() }
+
     fun load(context: Context): UserProfile {
         val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         return UserProfile(
