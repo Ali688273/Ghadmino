@@ -60,7 +60,6 @@ import ir.ghadmino.stepcounter.free.WeeklyReportScheduler
 import ir.ghadmino.stepcounter.ui.theme.GhadminoTheme
 import ir.ghadmino.stepcounter.ads.GhadminoAdsManager
 import ir.ghadmino.stepcounter.ads.GhadminoBanner
-import ir.ghadmino.stepcounter.ads.GhadminoNativeAdCards
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
@@ -287,13 +286,12 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
             ActivityCalendarScreen(goal)
         }
         "history" -> FullPageDialog("تاریخچه ۳۰ روز اخیر", onClose = { morePage = null }) {
-            Column(
-                Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+            androidx.compose.foundation.lazy.LazyColumn(
+                Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(4.dp)
             ) {
-                StepHistory.recent(context, 30).forEach { item ->
+                items(StepHistory.recent(context, 30)) { item ->
                     Card(Modifier.fillMaxWidth()) {
                         ListItem(
                             headlineContent = { Text(item.first) },
@@ -332,7 +330,7 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
                 Slider(
                     value = goal.toFloat(),
                     onValueChange = {
-                        goal = it.toInt()
+                        goal = ((it / 1000f).roundToInt() * 1000).coerceIn(1000, 30000)
                         val profile = ProfileRepository.load(context)
                         ProfileRepository.save(context, profile.copy(dailyGoal = goal))
                         prefs.edit().putInt("daily_goal", goal).apply()
@@ -463,8 +461,6 @@ private fun MorePage(
         Text("امکانات قدمینو", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Text("بخش‌های کاربردی برنامه در صفحه‌های جداگانه قرار گرفته‌اند.")
         GhadminoBanner(modifier = Modifier.fillMaxWidth())
-        GhadminoNativeAdCards()
-
         MoreItem("👤", if (profileName.isBlank()) "پروفایل" else profileName, "اطلاعات بدنی و هدف‌ها") { onOpen("profile") }
         MoreItem("🏆", "دستاوردها", "مدال‌ها و پاداش‌های پیشرفت") { onOpen("achievements") }
         MoreItem("⭐", "سطح و XP", "سطح کاربر و میزان پیشرفت") { onOpen("level") }
