@@ -264,7 +264,10 @@ object GhadminoAdsManager {
         }
 
         fun showAdivery() {
-            val placement = AdsConfig.ADIVERY_INTERSTITIAL
+            showAdiveryPlacement(AdsConfig.ADIVERY_INTERSTITIAL)
+        }
+
+        fun showAdiveryPlacement(placement: String) {
             var shown = false
             val listener = object : AdiveryListener() {
                 override fun onInterstitialAdLoaded(placementId: String) {
@@ -300,7 +303,11 @@ object GhadminoAdsManager {
             android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
                 if (!shown && !Adivery.isLoaded(placement)) {
                     Adivery.removePlacementListener(placement)
-                    onFinished("فعلاً تبلیغی در دسترس نیست.")
+                    if (placement == AdsConfig.ADIVERY_INTERSTITIAL) {
+                        showAdiveryPlacement(AdsConfig.ADIVERY_PRE_ROLL)
+                    } else {
+                        onFinished("فعلاً تبلیغی در دسترس نیست.")
+                    }
                 }
             }, 2500L)
         }
@@ -311,6 +318,47 @@ object GhadminoAdsManager {
         }
 
         var shown = false
+        var previewTried = false
+
+        fun tryPreviewVideo() {
+            if (previewTried) {
+                showAdivery()
+                return
+            }
+            previewTried = true
+            TapsellPlus.requestInterstitialAd(
+                activity,
+                AdsConfig.TAPSELL_PREVIEW_VIDEO,
+                object : AdRequestCallback() {
+                    override fun response(ad: TapsellPlusAdModel) {
+                        val id = ad.responseId
+                        if (id.isNullOrBlank()) {
+                            showAdivery()
+                            return
+                        }
+                        TapsellPlus.showInterstitialAd(
+                            activity,
+                            id,
+                            object : AdShowListener() {
+                                override fun onOpened(ad: TapsellPlusAdModel) {
+                                    markFullscreenShown(activity)
+                                }
+                                override fun onClosed(ad: TapsellPlusAdModel) {
+                                    onFinished("تبلیغ تمام شد.")
+                                }
+                                override fun onError(error: TapsellPlusErrorModel) {
+                                    showAdivery()
+                                }
+                            }
+                        )
+                    }
+                    override fun error(message: String) {
+                        showAdivery()
+                    }
+                }
+            )
+        }
+
         TapsellPlus.requestInterstitialAd(
             activity,
             AdsConfig.TAPSELL_INTERSTITIAL,
@@ -344,7 +392,7 @@ object GhadminoAdsManager {
                 }
 
                 override fun error(message: String) {
-                    showAdivery()
+                    tryPreviewVideo()
                 }
             }
         )
