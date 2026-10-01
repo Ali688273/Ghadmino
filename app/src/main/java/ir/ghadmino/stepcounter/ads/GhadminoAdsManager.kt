@@ -385,7 +385,7 @@ object GhadminoAdsManager {
                             }
 
                             override fun onError(error: TapsellPlusErrorModel) {
-                                showAdivery()
+                                tryPreviewVideo()
                             }
                         }
                     )
