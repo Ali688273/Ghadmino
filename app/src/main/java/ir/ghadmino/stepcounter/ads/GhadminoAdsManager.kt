@@ -417,6 +417,44 @@ object GhadminoAdsManager {
     }
 
 
+    fun loadInstantBanner(activity: Activity, container: ViewGroup) {
+        initialize(activity)
+        if (container.childCount > 0) return
+        if (!tapsellInitialized) {
+            loadAdiveryBanner(activity, container)
+            return
+        }
+        TapsellPlus.requestStandardBannerAd(
+            activity,
+            AdsConfig.TAPSELL_INSTANT_BANNER,
+            TapsellPlusBannerType.BANNER_320x50,
+            object : AdRequestCallback() {
+                override fun response(ad: TapsellPlusAdModel) {
+                    val responseId = ad.responseId
+                    if (responseId.isNullOrBlank()) {
+                        loadAdiveryBanner(activity, container)
+                        return
+                    }
+                    TapsellPlus.showStandardBannerAd(
+                        activity,
+                        responseId,
+                        container,
+                        object : AdShowListener() {
+                            override fun onOpened(ad: TapsellPlusAdModel) = Unit
+                            override fun onError(error: TapsellPlusErrorModel) {
+                                container.removeAllViews()
+                                loadAdiveryBanner(activity, container)
+                            }
+                        }
+                    )
+                }
+                override fun error(message: String) {
+                    loadAdiveryBanner(activity, container)
+                }
+            }
+        )
+    }
+
     fun loadNativeBanner(activity: Activity, container: ViewGroup) {
         initialize(activity)
         if (container.childCount > 0) return
