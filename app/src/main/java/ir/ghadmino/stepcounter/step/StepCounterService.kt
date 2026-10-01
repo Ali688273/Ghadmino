@@ -65,7 +65,16 @@ class StepCounterService : Service(), SensorEventListener {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        startForeground(NOTIFICATION_ID, buildNotification())
+
+        // A foreground-service failure must not take down the whole application.
+        // Android 14+ enforces the declared health-service prerequisites.
+        try {
+            startForeground(NOTIFICATION_ID, buildNotification())
+        } catch (t: Throwable) {
+            android.util.Log.e("GhadminoSteps", "Foreground step service could not start.", t)
+            stopSelf()
+            return
+        }
 
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
         stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
