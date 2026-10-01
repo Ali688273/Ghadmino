@@ -90,6 +90,31 @@ object CoinWallet {
         }
     }
 
+    @Synchronized
+    fun claimDailyLoginReward(c: Context): Boolean {
+        val key = "daily_login_" + today()
+        if (p(c).getBoolean(key, false)) return false
+        val next = (balance(c).toLong() + 10L)
+            .coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        return p(c).edit()
+            .putInt("balance", next)
+            .putBoolean(key, true)
+            .commit()
+    }
+
+    @Synchronized
+    fun claimHundredStepsReward(c: Context, steps: Int): Boolean {
+        if (steps < 100) return false
+        val key = "hundred_steps_" + today()
+        if (p(c).getBoolean(key, false)) return false
+        val next = (balance(c).toLong() + 5L)
+            .coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        return p(c).edit()
+            .putInt("balance", next)
+            .putBoolean(key, true)
+            .commit()
+    }
+
     fun isRewardClaimed(c: Context, marker: String): Boolean =
         p(c).getBoolean(marker, false)
 
