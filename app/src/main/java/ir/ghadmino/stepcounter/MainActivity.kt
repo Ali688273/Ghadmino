@@ -421,6 +421,7 @@ private fun HomePage(
     averageSpeed: Float,
     minimumSpeed: Float,
     maximumSpeed: Float,
+    walkingMinutes: Int,
     onGoalChanged: (Int) -> Unit
 ) {
     Column(
