@@ -538,6 +538,7 @@ private fun MorePage(
     profileName: String,
     onOpen: (String) -> Unit
 ) {
+    val activityContext = LocalContext.current
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -549,7 +550,7 @@ private fun MorePage(
             modifier = Modifier.fillMaxWidth().height(50.dp),
             factory = {
                 android.widget.FrameLayout(it).also { container ->
-                    val activity = LocalContext.current as? ComponentActivity
+                    val activity = activityContext as? ComponentActivity
                     if (activity != null) {
                         GhadminoAdsManager.loadInstantBanner(activity, container)
                     }
