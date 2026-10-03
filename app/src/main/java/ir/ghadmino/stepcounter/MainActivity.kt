@@ -6,6 +6,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -62,11 +64,21 @@ import ir.ghadmino.stepcounter.free.WeeklyReportScheduler
 import ir.ghadmino.stepcounter.ui.theme.GhadminoTheme
 import ir.ghadmino.stepcounter.ads.GhadminoAdsManager
 import ir.ghadmino.stepcounter.ads.GhadminoBanner
+import ir.ghadmino.stepcounter.ads.GhadminoNativeAdCards
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
 class MainActivity : ComponentActivity() {
     private lateinit var speedTracker: SpeedTracker
+    private val adHandler = Handler(Looper.getMainLooper())
+    private var adActivityResumed = false
+    private val delayedAdRunnable = object : Runnable {
+        override fun run() {
+            if (!adActivityResumed || isFinishing || isDestroyed) return
+            GhadminoAdsManager.showInterstitial(this@MainActivity)
+            adHandler.postDelayed(this, 5 * 60 * 1000L)
+        }
+    }
     private val permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         speedTracker.start()
         if (hasActivityRecognitionPermission()) startStepService()
@@ -75,6 +87,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         speedTracker = SpeedTracker(this)
+        GhadminoAdsManager.initialize(this)
         requestPermissions()
         setContent {
             var themeId by remember { mutableStateOf(CoinWallet.selectedTheme(this@MainActivity)) }
@@ -90,8 +103,20 @@ class MainActivity : ComponentActivity() {
         WeeklyReportScheduler.schedule(this)
     }
 
-    override fun onResume() { super.onResume(); if (::speedTracker.isInitialized) speedTracker.start() }
-    override fun onPause() { if (::speedTracker.isInitialized) speedTracker.stop(); super.onPause() }
+    override fun onResume() {
+        super.onResume()
+        adActivityResumed = true
+        if (::speedTracker.isInitialized) speedTracker.start()
+        adHandler.removeCallbacks(delayedAdRunnable)
+        adHandler.postDelayed(delayedAdRunnable, 3 * 60 * 1000L)
+    }
+
+    override fun onPause() {
+        adActivityResumed = false
+        adHandler.removeCallbacks(delayedAdRunnable)
+        if (::speedTracker.isInitialized) speedTracker.stop()
+        super.onPause()
+    }
 
     private fun requestPermissions() {
         val permissions = mutableListOf<String>()
@@ -179,14 +204,6 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
                 lastInsightRefresh = now
             }
             delay(1000)
-        }
-    }
-
-    LaunchedEffect(tab) {
-        if (tab == 1) {
-            (context as? ComponentActivity)?.let { activity ->
-                GhadminoAdsManager.showInterstitial(activity)
-            }
         }
     }
 
@@ -495,6 +512,8 @@ private fun HomePage(
 
         GhadminoBanner(modifier = Modifier.fillMaxWidth())
 
+        GhadminoNativeAdCards()
+
         Card(
             Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -526,6 +545,17 @@ private fun MorePage(
         Text("امکانات قدمینو", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Text("بخش‌های کاربردی برنامه در صفحه‌های جداگانه قرار گرفته‌اند.")
         GhadminoBanner(modifier = Modifier.fillMaxWidth())
+        androidx.compose.ui.viewinterop.AndroidView(
+            modifier = Modifier.fillMaxWidth().height(50.dp),
+            factory = {
+                android.widget.FrameLayout(it).also { container ->
+                    val activity = context as? ComponentActivity
+                    if (activity != null) {
+                        GhadminoAdsManager.loadInstantBanner(activity, container)
+                    }
+                }
+            }
+        )
         MoreItem("👤", if (profileName.isBlank()) "پروفایل" else profileName, "اطلاعات بدنی و هدف‌ها") { onOpen("profile") }
         MoreItem("🏆", "دستاوردها", "مدال‌ها و پاداش‌های پیشرفت") { onOpen("achievements") }
         MoreItem("🎁", "پاداش و سکه", "دریافت سکه با قدم‌زدن، مأموریت‌ها و تماشای تبلیغ") { onOpen("rewards") }
