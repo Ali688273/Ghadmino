@@ -238,6 +238,49 @@ object GhadminoAdsManager {
         )
     }
 
+    /** Safe App-Open placement; never blocks startup. */
+    fun showAppOpen(activity: Activity, onFinished: () -> Unit = {}) {
+        initialize(activity)
+        if (isFinishingOrDestroyed(activity) || !canShowFullscreen(activity)) {
+            onFinished()
+            return
+        }
+
+        val placement = AdsConfig.ADIVERY_APP_OPEN
+        var shown = false
+        val listener = object : AdiveryListener() {
+            override fun onAppOpenAdLoaded(placementId: String) {
+                if (placementId == placement && !shown && Adivery.isLoaded(placement)) {
+                    Adivery.showAd(placement)
+                }
+            }
+            override fun onAppOpenAdShown(placementId: String) {
+                if (placementId == placement) {
+                    shown = true
+                    markFullscreenShown(activity)
+                }
+            }
+            override fun onAppOpenAdClicked(placementId: String) = Unit
+            override fun onAppOpenAdClosed(placementId: String) {
+                if (placementId != placement) return
+                Adivery.removePlacementListener(placement)
+                onFinished()
+            }
+            override fun log(placementId: String, message: String) {
+                Log.d(TAG, "Adivery app-open: $message")
+            }
+        }
+
+        Adivery.addPlacementListener(placement, listener)
+        Adivery.prepareAppOpenAd(activity, placement)
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            if (!shown && !Adivery.isLoaded(placement)) {
+                Adivery.removePlacementListener(placement)
+                onFinished()
+            }
+        }, 2500L)
+    }
+
     fun showInterstitial(
         activity: Activity,
         onFinished: () -> Unit = {}
