@@ -549,7 +549,7 @@ private fun MorePage(
             modifier = Modifier.fillMaxWidth().height(50.dp),
             factory = {
                 android.widget.FrameLayout(it).also { container ->
-                    val activity = context as? ComponentActivity
+                    val activity = LocalContext.current as? ComponentActivity
                     if (activity != null) {
                         GhadminoAdsManager.loadInstantBanner(activity, container)
                     }
