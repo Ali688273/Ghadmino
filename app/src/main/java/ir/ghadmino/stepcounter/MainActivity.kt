@@ -512,8 +512,6 @@ private fun HomePage(
 
         GhadminoBanner(modifier = Modifier.fillMaxWidth())
 
-        GhadminoNativeAdCards()
-
         Card(
             Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -546,6 +544,7 @@ private fun MorePage(
         Text("امکانات قدمینو", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Text("بخش‌های کاربردی برنامه در صفحه‌های جداگانه قرار گرفته‌اند.")
         GhadminoBanner(modifier = Modifier.fillMaxWidth())
+        GhadminoNativeAdCards()
         androidx.compose.ui.viewinterop.AndroidView(
             modifier = Modifier.fillMaxWidth().height(50.dp),
             factory = {
