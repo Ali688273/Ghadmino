@@ -384,8 +384,13 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
 
     if (showInitialProfile) {
         Dialog(onDismissRequest = {}) {
-            Card(Modifier.fillMaxWidth().padding(12.dp)) {
-                Column(Modifier.padding(16.dp).verticalScroll(rememberScrollState())) {
+            Card(
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 620.dp)
+                    .padding(12.dp)
+            ) {
+                Column(Modifier.fillMaxWidth().padding(16.dp)) {
                     Text("اطلاعات اولیه", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(8.dp))
                     Text("برای محاسبه دقیق‌تر کالری، مسافت و فعالیت، اطلاعات بدنی خودت را وارد کن.")
