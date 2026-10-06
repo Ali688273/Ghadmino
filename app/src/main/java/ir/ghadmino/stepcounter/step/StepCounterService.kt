@@ -21,6 +21,7 @@ import ir.ghadmino.stepcounter.analytics.ActivityAnalyticsRepository
 import ir.ghadmino.stepcounter.insights.ActivityInsightsRepository
 import ir.ghadmino.stepcounter.widget.GhadminoWidgetProvider
 import ir.ghadmino.stepcounter.free.DiagnosticsHistoryRepository
+import ir.ghadmino.stepcounter.activity.ActivityTimeRepository
 import ir.ghadmino.stepcounter.free.StepSource
 import ir.ghadmino.stepcounter.free.StepSourceRepository
 import java.text.SimpleDateFormat
@@ -143,6 +144,7 @@ class StepCounterService : Service(), SensorEventListener {
         if (delta > 0) {
             ActivityAnalyticsRepository.markActivity(this)
             ActivityInsightsRepository.recordStepChange(this, delta)
+            ActivityTimeRepository.onStepEvent(this, delta)
         }
 
         prefs.edit()
