@@ -190,6 +190,10 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit) {
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                ),
                 title = {
                     Column {
                         Text("قدمینو", fontWeight = FontWeight.Bold)
@@ -208,7 +212,9 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit) {
             )
         },
         bottomBar = {
-            NavigationBar {
+            NavigationBar(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            ) {
                 NavigationBarItem(
                     selected = tab == 0,
                     onClick = { tab = 0 },
@@ -431,24 +437,30 @@ private fun HomePage(
             StatCard(
                 Modifier.weight(1f),
                 Icons.Default.Route,
+                0,
                 "مسافت",
                 String.format("%.2f km", distanceKm)
             )
             StatCard(
                 Modifier.weight(1f),
                 Icons.Default.LocalFireDepartment,
+                1,
                 "کالری",
                 calories.toInt().toString() + " kcal"
             )
             StatCard(
                 Modifier.weight(1f),
                 Icons.Default.DirectionsWalk,
+                2,
                 "زمان راه‌رفتن",
                 walkingMinutes.toString() + " دقیقه"
             )
         }
 
-        Card(Modifier.fillMaxWidth()) {
+        Card(
+            Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+        ) {
             Column(Modifier.padding(18.dp)) {
                 Text("هدف روزانه", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Text(goal.toString() + " قدم", style = MaterialTheme.typography.titleLarge)
@@ -523,7 +535,17 @@ private fun MoreItem(
     description: String,
     onClick: () -> Unit
 ) {
-    Card(Modifier.fillMaxWidth()) {
+    val tone = (title.hashCode() and Int.MAX_VALUE) % 4
+    val container = when (tone) {
+        0 -> MaterialTheme.colorScheme.primaryContainer
+        1 -> MaterialTheme.colorScheme.secondaryContainer
+        2 -> MaterialTheme.colorScheme.tertiaryContainer
+        else -> MaterialTheme.colorScheme.surfaceVariant
+    }
+    Card(
+        Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = container)
+    ) {
         Row(
             Modifier.fillMaxWidth().padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -549,11 +571,16 @@ private fun FullPageDialog(
     Dialog(onDismissRequest = onClose) {
         Surface(
             Modifier.fillMaxWidth().fillMaxHeight(0.92f),
+            color = MaterialTheme.colorScheme.background,
             shape = MaterialTheme.shapes.large,
             tonalElevation = 6.dp
         ) {
             Column(Modifier.fillMaxSize()) {
                 TopAppBar(
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    ),
                     title = { Text(title) },
                     navigationIcon = {
                         IconButton(onClick = onClose) {
@@ -572,8 +599,22 @@ private fun FullPageDialog(
 }
 
 @Composable
-fun StatCard(modifier: Modifier, icon: ImageVector, title: String, value: String) {
-    Card(modifier) {
+fun StatCard(
+    modifier: Modifier,
+    icon: ImageVector,
+    tone: Int = 0,
+    title: String,
+    value: String
+) {
+    val container = when (tone % 3) {
+        0 -> MaterialTheme.colorScheme.primaryContainer
+        1 -> MaterialTheme.colorScheme.secondaryContainer
+        else -> MaterialTheme.colorScheme.tertiaryContainer
+    }
+    Card(
+        modifier,
+        colors = CardDefaults.cardColors(containerColor = container)
+    ) {
         Column(Modifier.padding(16.dp)) {
             Icon(icon, null)
             Spacer(Modifier.height(8.dp))
