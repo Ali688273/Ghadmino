@@ -19,7 +19,6 @@ import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.*
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.runtime.*
@@ -52,7 +51,6 @@ import ir.ghadmino.stepcounter.profile.ProfileScreen
 import ir.ghadmino.stepcounter.profile.ProfileExtrasScreen
 import ir.ghadmino.stepcounter.achievement.AchievementsScreen
 import ir.ghadmino.stepcounter.level.LevelScreen
-import ir.ghadmino.stepcounter.speed.SpeedTracker
 import ir.ghadmino.stepcounter.stats.StatsRepository
 import ir.ghadmino.stepcounter.stats.StatsScreen
 import ir.ghadmino.stepcounter.step.StepCounterService
@@ -64,22 +62,20 @@ import ir.ghadmino.stepcounter.ads.GhadminoAdsManager
 import ir.ghadmino.stepcounter.ads.GhadminoBanner
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
+import ir.ghadmino.stepcounter.activity.ActivityTimeRepository
 
 class MainActivity : ComponentActivity() {
-    private lateinit var speedTracker: SpeedTracker
     private val permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-        speedTracker.start()
         if (hasActivityRecognitionPermission()) startStepService()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        speedTracker = SpeedTracker(this)
         requestPermissions()
         setContent {
             var themeId by remember { mutableStateOf(CoinWallet.selectedTheme(this@MainActivity)) }
             GhadminoTheme(themeId = themeId) {
-                GhadminoApp(speedTracker) { newTheme ->
+                GhadminoApp { newTheme ->
                     CoinWallet.setSelectedTheme(this@MainActivity, newTheme)
                     themeId = newTheme
                 }
@@ -90,8 +86,6 @@ class MainActivity : ComponentActivity() {
         WeeklyReportScheduler.schedule(this)
     }
 
-    override fun onResume() { super.onResume(); if (::speedTracker.isInitialized) speedTracker.start() }
-    override fun onPause() { if (::speedTracker.isInitialized) speedTracker.stop(); super.onPause() }
 
     private fun requestPermissions() {
         val permissions = mutableListOf<String>()
@@ -123,17 +117,13 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
+fun GhadminoApp(onThemeChanged: (String) -> Unit) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("ghadmino_ui", Context.MODE_PRIVATE) }
     var goal by remember { mutableIntStateOf(ProfileRepository.load(context).dailyGoal) }
     var steps by remember { mutableIntStateOf(ActivityAnalyticsRepository.today(context)) }
     var stepSource by remember { mutableStateOf(StepSourceRepository.get(context)) }
-    var currentSpeed by remember { mutableFloatStateOf(speedTracker.currentSpeedKmh) }
-    var averageSpeed by remember { mutableFloatStateOf(speedTracker.averageSpeedKmh) }
-    var minimumSpeed by remember { mutableFloatStateOf(speedTracker.minimumSpeedKmh) }
-    var maximumSpeed by remember { mutableFloatStateOf(speedTracker.maximumSpeedKmh) }
-    var walkingMinutes by remember { mutableIntStateOf(speedTracker.activeMinutesToday) }
+    var walkingMinutes by remember { mutableIntStateOf(ActivityTimeRepository.todayActiveMinutes(context)) }
     var showInitialProfile by remember { mutableStateOf(!ProfileRepository.isComplete(context)) }
     var coins by remember { mutableIntStateOf(CoinWallet.balance(context)) }
     var selectedTheme by remember { mutableStateOf(CoinWallet.selectedTheme(context)) }
@@ -169,11 +159,7 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
             // missed when the step value changed before the UI was ready.
             CoinWallet.claimDailyLoginReward(context)
             coins = CoinWallet.balance(context)
-            currentSpeed = speedTracker.currentSpeedKmh
-            averageSpeed = speedTracker.averageSpeedKmh
-            minimumSpeed = speedTracker.minimumSpeedKmh
-            maximumSpeed = speedTracker.maximumSpeedKmh
-            walkingMinutes = speedTracker.activeMinutesToday
+            walkingMinutes = ActivityTimeRepository.todayActiveMinutes(context)
             if (now - lastInsightRefresh >= 10000L) {
                 insights = ActivityInsightsRepository.calculate(context, goal)
                 lastInsightRefresh = now
@@ -193,7 +179,12 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
     val progress = if (goal > 0) (steps.toFloat() / goal).coerceIn(0f, 1f) else 0f
     val profile = ProfileRepository.load(context)
     val distanceKm = steps * profile.strideCm / 100000.0
-    val calories = steps * profile.strideCm * profile.weightKg * 0.5 / 100000.0
+    val activeSeconds = ActivityTimeRepository.todayActiveSeconds(context)
+    val distanceMeters = steps * profile.strideCm.toDouble() / 100.0
+    val walkingSpeedKmh = if (activeSeconds > 0) (distanceMeters / activeSeconds * 3.6).coerceIn(1.5, 7.5) else 4.0
+    val walkingSpeedMPerMin = walkingSpeedKmh * 1000.0 / 60.0
+    val met = ((0.1 * walkingSpeedMPerMin + 3.5) / 3.5).coerceIn(2.0, 6.8)
+    val calories = if (activeSeconds > 0) met * profile.weightKg * activeSeconds / 3600.0 else 0.0
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -247,10 +238,6 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
                 progress = progress,
                 distanceKm = distanceKm,
                 calories = calories,
-                currentSpeed = currentSpeed,
-                averageSpeed = averageSpeed,
-                minimumSpeed = minimumSpeed,
-                maximumSpeed = maximumSpeed,
                 walkingMinutes = walkingMinutes,
                 onGoalChanged = {
                     goal = it
@@ -274,6 +261,7 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
         "profile" -> FullPageDialog("پروفایل", onClose = { morePage = null }) {
             ProfileScreen {
                 profileName = ProfileRepository.load(context).name
+                morePage = null
             }
         }
         "achievements" -> FullPageDialog("دستاوردها", onClose = { morePage = null }) {
@@ -330,34 +318,17 @@ fun GhadminoApp(speedTracker: SpeedTracker, onThemeChanged: (String) -> Unit) {
         "free" -> FullPageDialog("۲۰ قابلیت رایگان", onClose = { morePage = null }) {
             FreeFeaturesScreen { coins = CoinWallet.balance(context) }
         }
-        "rewards" -> FullPageDialog("پاداش و سکه", onClose = { morePage = null }) {
+        "rewards" -> FullPageDialog("پاداش و امکانات رایگان", onClose = { morePage = null }) {
             RewardCenter(
                 coins = coins,
                 selectedTheme = selectedTheme,
-                onBuyFreeze = {
-                    info = "محافظ زنجیره در نسخه فعلی نیاز به فعال‌سازی جداگانه دارد."
+                onBuyFreeze = { info = "این بخش در نسخه رایگان فعال است." },
+                onBuyTheme = { id, _ ->
+                    CoinWallet.setSelectedTheme(context, id)
+                    selectedTheme = id
+                    onThemeChanged(id)
                 },
-                onBuyTheme = { id, cost ->
-                    val unlocked = CoinWallet.isUnlocked(context, "theme_" + id)
-                    val ok = if (unlocked) {
-                        CoinWallet.setSelectedTheme(context, id)
-                        selectedTheme = id
-                        true
-                    } else if (CoinWallet.unlock(context, "theme_" + id, cost)) {
-                        CoinWallet.setSelectedTheme(context, id)
-                        selectedTheme = id
-                        true
-                    } else false
-                    if (ok) {
-                        coins = CoinWallet.balance(context)
-                        onThemeChanged(id)
-                    } else {
-                        info = "سکه کافی نیست."
-                    }
-                },
-                onCoinsChanged = {
-                    coins = CoinWallet.balance(context)
-                }
+                onCoinsChanged = { coins = CoinWallet.balance(context) }
             )
         }
         "goal" -> FullPageDialog("تنظیم هدف", onClose = { morePage = null }) {
@@ -422,10 +393,6 @@ private fun HomePage(
     progress: Float,
     distanceKm: Double,
     calories: Double,
-    currentSpeed: Float,
-    averageSpeed: Float,
-    minimumSpeed: Float,
-    maximumSpeed: Float,
     walkingMinutes: Int,
     onGoalChanged: (Int) -> Unit
 ) {
@@ -481,8 +448,6 @@ private fun HomePage(
             )
         }
 
-        SpeedCard(currentSpeed, averageSpeed, minimumSpeed, maximumSpeed)
-
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(18.dp)) {
                 Text("هدف روزانه", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -533,9 +498,9 @@ private fun MorePage(
         GhadminoBanner(modifier = Modifier.fillMaxWidth())
         MoreItem("👤", if (profileName.isBlank()) "پروفایل" else profileName, "اطلاعات بدنی و هدف‌ها") { onOpen("profile") }
         MoreItem("🏆", "دستاوردها", "مدال‌ها و پاداش‌های پیشرفت") { onOpen("achievements") }
-        MoreItem("🎁", "پاداش و سکه", "دریافت سکه با قدم‌زدن، مأموریت‌ها و تماشای تبلیغ") { onOpen("rewards") }
+        MoreItem("🎁", "پاداش و امکانات رایگان", "فعالیت‌ها، پیشرفت و امکانات بدون قفل و بدون سکه") { onOpen("rewards") }
         MoreItem("⭐", "سطح و XP", "سطح کاربر و میزان پیشرفت") { onOpen("level") }
-        MoreItem("🎨", "شخصی‌سازی", "قاب، نشان و امکانات قابل خرید") { onOpen("extras") }
+        MoreItem("🎨", "شخصی‌سازی رایگان", "قاب‌ها، نشان‌ها و امکانات بدون پرداخت") { onOpen("extras") }
         MoreItem("📅", "تقویم فعالیت", "انتخاب هر روز و مشاهده گزارش واقعی همان روز") { onOpen("calendar") }
         MoreItem("📋", "تاریخچه", "مشاهده قدم‌های روزهای اخیر") { onOpen("history") }
         MoreItem("📊", "گزارش هوشمند", "روند، رکورد، پیش‌بینی و ماموریت‌های روزانه") { onOpen("smart") }
@@ -545,8 +510,9 @@ private fun MorePage(
         MoreItem("🏃", "تمرین پیاده‌روی", "شروع، توقف و ثبت یک جلسه واقعی") { onOpen("workout") }
         MoreItem("📆", "برنامه افزایش قدم", "هدف‌گذاری تدریجی و قابل پیگیری") { onOpen("plan") }
         MoreItem("💾", "پشتیبان‌گیری", "ذخیره و بازیابی رایگان اطلاعات روی فایل") { onOpen("backup") }
-        MoreItem("🧰", "۲۰ قابلیت رایگان", "منبع قدم، Health Connect، رکورد، هدف، خروجی و عیب‌یابی") { onOpen("free") }
+        MoreItem("🧰", "۲۰ قابلیت رایگان", "۲۰ ابزار کاربردی برای منبع قدم، Health Connect، رکورد، هدف، خروجی و عیب‌یابی") { onOpen("free") }
         MoreItem("➕", "ثبت فعالیت دستی", "ثبت قدم یا فعالیتی که حسگر ثبت نکرده") { onOpen("manual_activity") }
+        Spacer(Modifier.height(32.dp))
     }
 }
 
