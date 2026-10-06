@@ -6,347 +6,100 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.Paid
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.key
-import kotlinx.coroutines.delay
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import ir.ghadmino.stepcounter.step.StepCounterService
 import ir.ghadmino.stepcounter.level.LevelRepository
 import ir.ghadmino.stepcounter.profile.ProfileRepository
-import ir.ghadmino.stepcounter.ads.AdRewardCard
-import ir.ghadmino.stepcounter.ads.GhadminoBanner
-import ir.ghadmino.stepcounter.ads.GhadminoNativeAdCards
+import ir.ghadmino.stepcounter.step.StepCounterService
 
-data class ThemeOffer(val id: String, val title: String, val cost: Int, val emoji: String)
+data class ThemeOffer(val id:String,val title:String,val cost:Int,val emoji:String)
 
-private val themeOffers = listOf(
-    ThemeOffer("ocean", "اقیانوس", 500, "🌊"),
-    ThemeOffer("forest", "جنگل", 1000, "🌿"),
-    ThemeOffer("sunset", "غروب", 1500, "🌅"),
-    ThemeOffer("rose", "رز", 2000, "🌹"),
-    ThemeOffer("royal", "سلطنتی", 3500, "👑")
+private val themeOffers=listOf(
+    ThemeOffer("ocean","اقیانوس",0,"🌊"),
+    ThemeOffer("forest","جنگل",0,"🌿"),
+    ThemeOffer("sunset","غروب",0,"🌅"),
+    ThemeOffer("rose","رز",0,"🌹"),
+    ThemeOffer("royal","سلطنتی",0,"👑")
 )
 
 @Composable
 fun RewardCenter(
-    coins: Int,
-    selectedTheme: String,
-    onBuyFreeze: () -> Unit,
-    onBuyTheme: (id: String, cost: Int) -> Unit,
-    onCoinsChanged: () -> Unit = {}
-) {
-    val context = LocalContext.current
-    var steps by remember { mutableIntStateOf(maxOf(StepCounterService.todaySteps, StepCounterService.persistedTodaySteps(context))) }
-    var showNativeAds by remember { mutableStateOf(false) }
-    val levelInfo = remember(steps, coins) { LevelRepository.get(context) }
-    val dailyGoal = remember { ProfileRepository.load(context).dailyGoal }
-    val loginClaimed = remember { mutableStateOf(false) }
+    coins:Int,
+    selectedTheme:String,
+    onBuyFreeze:()->Unit,
+    onBuyTheme:(String,Int)->Unit,
+    onCoinsChanged:()->Unit={}
+){
+    val context=LocalContext.current
+    var steps by remember{mutableIntStateOf(maxOf(StepCounterService.todaySteps,StepCounterService.persistedTodaySteps(context)))}
+    val levelInfo=remember(steps){LevelRepository.get(context)}
+    val goal=remember{ProfileRepository.load(context).dailyGoal}
 
-    LaunchedEffect(Unit) {
-        delay(700)
-        showNativeAds = true
-    }
-
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(5000)
-            steps = maxOf(StepCounterService.todaySteps, StepCounterService.persistedTodaySteps(context))
-            val login = CoinWallet.claimDailyLoginReward(context)
-            if (login) {
-                loginClaimed.value = true
-                onCoinsChanged()
-            }
+    LaunchedEffect(Unit){
+        while(true){
+            kotlinx.coroutines.delay(2000)
+            steps=maxOf(StepCounterService.todaySteps,StepCounterService.persistedTodaySteps(context))
         }
     }
 
-    Column(
-        Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(8.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Card(
-            Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
-            )
-        ) {
-            Column(Modifier.padding(20.dp)) {
-                Row {
-                    Icon(Icons.Default.Paid, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        "کیف پول سکه",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(8.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
+        Card(Modifier.fillMaxWidth(),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.primaryContainer)){
+            Column(Modifier.padding(20.dp)){
+                Text("پاداش و امکانات رایگان",style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold)
+                Text("در این نسخه هیچ قابلیت، تم یا پیشرفتی با سکه قفل نیست.")
+                Spacer(Modifier.height(8.dp))
+                Text("قدم امروز: "+steps)
+                Text("هدف امروز: "+goal)
+            }
+        }
+
+        Card(Modifier.fillMaxWidth()){
+            Column(Modifier.padding(16.dp)){
+                Row{Icon(Icons.Default.EmojiEvents,null);Spacer(Modifier.width(8.dp));Text("سطح و پیشرفت",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)}
+                Spacer(Modifier.height(8.dp))
+                Text("سطح "+levelInfo.level+" • "+levelInfo.xp+" XP")
+                Text("هر ۱۰۰ قدم = ۱ XP؛ فعالیت بیشتر یعنی پیشرفت بیشتر.")
                 Spacer(Modifier.height(6.dp))
-                Text(
-                    coins.toString(),
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.Bold
-                )
-                Text("سکه قابل استفاده")
-                Spacer(Modifier.height(10.dp))
-                Text(
-                    "با قدم‌زدن، مأموریت‌ها و دستاوردها سکه جمع کن و برای امکانات برنامه خرج کن."
-                )
+                LinearProgressIndicator(progress=levelInfo.progress,modifier=Modifier.fillMaxWidth())
             }
         }
 
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp)) {
-                Text("پاداش‌های سریع", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Card(Modifier.fillMaxWidth(),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.secondaryContainer)){
+            Column(Modifier.padding(16.dp)){
+                Row{Icon(Icons.Default.CheckCircle,null);Spacer(Modifier.width(8.dp));Text("پاداش‌های فعالیت",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)}
                 Spacer(Modifier.height(8.dp))
-                Text(if (loginClaimed.value || CoinWallet.isRewardClaimed(context, "daily_login_" + todayKey())) "ورود روزانه: +۱۰ سکه ✓" else "ورود روزانه: +۱۰ سکه")
-                Text("پاداش قدم: هر ۱۰۰۰ قدم = ۱۰ سکه؛ ۲۰۰۰ = ۲۰، ۳۰۰۰ = ۳۰ و به همین ترتیب")
+                Text("رسیدن به ۳۰٪، ۶۰٪ و ۱۰۰٪ هدف روزانه به‌عنوان نقاط پیشرفت ثبت می‌شود.")
+                Text("رسیدن به ۳۰۰۰، ۷۰۰۰ و ۱۰۰۰۰ قدم هم در پیشرفت و دستاوردها ثبت می‌شود.")
+                Text("نیازی به تماشای تبلیغ، خرید یا خرج کردن سکه نیست.")
             }
         }
 
-        AdRewardCard(
-            onCoinsChanged = onCoinsChanged
-        )
-
-        GhadminoBanner(
-            modifier = Modifier.padding(horizontal = 4.dp)
-        )
-
-        if (showNativeAds) {
-            GhadminoNativeAdCards()
-        }
-
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp)) {
-                Row {
-                    Icon(Icons.Default.EmojiEvents, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("سطح و تجربه", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                }
+        Card(Modifier.fillMaxWidth()){
+            Column(Modifier.padding(16.dp)){
+                Row{Icon(Icons.Default.Star,null);Spacer(Modifier.width(8.dp));Text("تم‌های رایگان",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)}
                 Spacer(Modifier.height(8.dp))
-                Text("سطح فعلی: ${levelInfo.level} • XP: ${levelInfo.xp}")
-                Text("تا سطح بعد: ${levelInfo.nextLevelXp - levelInfo.xp} XP")
-                Spacer(Modifier.height(6.dp))
-                LinearProgressIndicator(progress = levelInfo.progress, modifier = Modifier.fillMaxWidth())
-            }
-        }
-
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp)) {
-                Row {
-                    Icon(Icons.Default.EmojiEvents, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        "مأموریت‌های امروز",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                Spacer(Modifier.height(10.dp))
-
-                MissionRow(
-                    title = "۳۰۰۰ قدم",
-                    reward = 10,
-                    completed = steps >= 3000,
-                    claimed = isMissionClaimed(context, "3000"),
-                    onClaim = {
-                        claimMission(context, "3000", 3000, 10, steps, onCoinsChanged)
-                    }
-                )
-                MissionRow(
-                    title = "۷۰۰۰ قدم",
-                    reward = 20,
-                    completed = steps >= 7000,
-                    claimed = isMissionClaimed(context, "7000"),
-                    onClaim = {
-                        claimMission(context, "7000", 7000, 20, steps, onCoinsChanged)
-                    }
-                )
-                MissionRow(
-                    title = "۱۰۰۰۰ قدم",
-                    reward = 40,
-                    completed = steps >= 10000,
-                    claimed = isMissionClaimed(context, "10000"),
-                    onClaim = {
-                        claimMission(context, "10000", 10000, 40, steps, onCoinsChanged)
-                    }
-                )
-            }
-        }
-
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp)) {
-                Row {
-                    Icon(Icons.Default.CheckCircle, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("پاداش هدف روزانه", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                }
-                Spacer(Modifier.height(6.dp))
-                Text("هدف امروز: $dailyGoal قدم")
-                Text(if (steps >= dailyGoal) "هدف تکمیل شده؛ +۲۰ سکه" else "برای دریافت پاداش ${dailyGoal - steps} قدم دیگر لازم است.")
-                Spacer(Modifier.height(8.dp))
-                Button(
-                    onClick = { if (CoinWallet.claimGoalReward(context)) onCoinsChanged() },
-                    enabled = steps >= dailyGoal,
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("دریافت +۲۰ سکه") }
-            }
-        }
-
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp)) {
-                Row {
-                    Icon(Icons.Default.Star, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        "دستاوردهای سکه‌ای",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                Spacer(Modifier.height(8.dp))
-                Text("۱۰ هزار قدم مجموعی  →  +۲۵ سکه")
-                Text("۲۵ هزار قدم مجموعی →  +۵۰ سکه")
-                Text("۵۰ هزار قدم مجموعی →  +۱۰۰ سکه")
-                Text("۱۰۰ هزار قدم مجموعی → +۲۵۰ سکه")
-                Text("۲۵۰ هزار قدم مجموعی → +۵۰۰ سکه")
-                Text("۵۰۰ هزار قدم مجموعی → +۷۵۰ سکه")
-                Text("۱ میلیون قدم مجموعی → +۱۵۰۰ سکه")
-            }
-        }
-
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp)) {
-                Row {
-                    Icon(Icons.Default.ShoppingCart, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        "فروشگاه قدمینو",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                Spacer(Modifier.height(8.dp))
-                Text("تم‌های قابل خرید", style = MaterialTheme.typography.titleMedium)
-                Spacer(Modifier.height(6.dp))
-
-                themeOffers.forEach { offer ->
-                    key(offer.id) {
-                        val unlocked = CoinWallet.isUnlocked(context, "theme_" + offer.id)
-                        val active = selectedTheme == offer.id
-
-                        OutlinedButton(
-                            onClick = {
-                                if (!unlocked) {
-                                    onBuyTheme(offer.id, offer.cost)
-                                } else {
-                                    onBuyTheme(offer.id, 0)
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(
-                                if (unlocked) Icons.Default.CheckCircle else Icons.Default.Paid,
-                                null
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                when {
-                                    active -> offer.emoji + " " + offer.title + " • فعال"
-                                    unlocked -> offer.emoji + " " + offer.title + " • باز شده"
-                                    else -> offer.emoji + " " + offer.title + " • " + offer.cost + " سکه"
-                                }
-                            )
-                        }
+                themeOffers.forEach{offer->
+                    OutlinedButton(
+                        onClick={onBuyTheme(offer.id,0)},
+                        modifier=Modifier.fillMaxWidth().padding(vertical=3.dp)
+                    ){
+                        Text(if(selectedTheme==offer.id) offer.emoji+" "+offer.title+" • فعال" else offer.emoji+" "+offer.title+" • رایگان")
                     }
                 }
+            }
+        }
 
-                Spacer(Modifier.height(6.dp))
-                OutlinedButton(
-                    onClick = onBuyFreeze,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("🛡 محافظ زنجیره — ۲۵۰ سکه")
-                }
+        Card(Modifier.fillMaxWidth()){
+            Column(Modifier.padding(16.dp)){
+                Text("چرا این بخش وجود دارد؟",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
+                Text("سطح و XP فقط برای نمایش روند پیشرفت و ایجاد انگیزه هستند؛ هیچ قابلیت اصلی برنامه پشت آن قفل نمی‌شود.")
+                Text("همه امکانات قدم‌شمار، آمار، نمودار، ثبت دستی، پشتیبان‌گیری و شخصی‌سازی برای همه کاربران آزاد است.")
             }
         }
     }
 }
-
-private fun claimMission(
-    context: android.content.Context,
-    missionId: String,
-    target: Int,
-    reward: Int,
-    steps: Int,
-    onCoinsChanged: () -> Unit
-) {
-    val claimed = CoinWallet.claimDailyMission(
-        c = context,
-        missionId = missionId,
-        target = target,
-        reward = reward,
-        steps = steps
-    )
-
-    if (claimed) {
-        onCoinsChanged()
-    }
-}
-
-@Composable
-private fun MissionRow(
-    title: String,
-    reward: Int,
-    completed: Boolean,
-    claimed: Boolean,
-    onClaim: () -> Unit
-) {
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .padding(vertical = 5.dp)
-    ) {
-        Row {
-            Text(title, style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.weight(1f))
-            Text("+" + reward + " سکه")
-        }
-        Spacer(Modifier.height(5.dp))
-        Button(
-            onClick = onClaim,
-            enabled = completed && !claimed,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                when {
-                    claimed -> "پاداش دریافت شد ✓"
-                    completed -> "دریافت پاداش"
-                    else -> "ادامه بده تا " + title
-                }
-            )
-        }
-    }
-}
-
-private fun isMissionClaimed(
-    context: android.content.Context,
-    missionId: String
-): Boolean {
-    val prefs = context.getSharedPreferences("ghadmino_coins", android.content.Context.MODE_PRIVATE)
-    val date = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
-        .format(java.util.Date())
-    return prefs.getString("mission_" + missionId + "_date", null) == date
-}
-
-
-private fun todayKey(): String =
-    java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
