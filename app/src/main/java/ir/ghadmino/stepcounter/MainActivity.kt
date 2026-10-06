@@ -572,44 +572,6 @@ private fun FullPageDialog(
 }
 
 @Composable
-fun SpeedCard(current: Float, average: Float, minimum: Float, maximum: Float) {
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(18.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Speed, null, Modifier.size(30.dp))
-                Spacer(Modifier.size(10.dp))
-                Text("سرعت حرکت", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            }
-            Spacer(Modifier.height(14.dp))
-            Text("سرعت فعلی")
-            Text(
-                String.format("%.1f km/h", current),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(Modifier.height(14.dp))
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                SpeedValue("میانگین", average)
-                SpeedValue("کمترین", minimum)
-                SpeedValue("بیشترین", maximum)
-            }
-        }
-    }
-}
-
-@Composable
-fun SpeedValue(title: String, value: Float) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(title, style = MaterialTheme.typography.labelMedium)
-        Text(String.format("%.1f", value), fontWeight = FontWeight.Bold)
-        Text("km/h", style = MaterialTheme.typography.labelSmall)
-    }
-}
-
-@Composable
 fun StatCard(modifier: Modifier, icon: ImageVector, title: String, value: String) {
     Card(modifier) {
         Column(Modifier.padding(16.dp)) {
