@@ -69,7 +69,7 @@ object StatsRepository {
 
     fun period(c: Context, goal: Int, days: Int): PeriodReport {
         val safeDays = days.coerceIn(1, 3650)
-        val data = load(c, goal, safeDays).days
+        val data = readData(c, safeDays)
         val total = data.sumOf { it.second }
         val average = if (data.isEmpty()) 0 else total / data.size
         val best = data.maxByOrNull { it.second } ?: (today() to 0)
