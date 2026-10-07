@@ -24,7 +24,9 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalLayoutDirection
 import ir.ghadmino.stepcounter.ads.GhadminoBanner
 import ir.ghadmino.stepcounter.step.StepHistory
 import java.text.SimpleDateFormat
@@ -238,12 +240,14 @@ private fun ActivityChart(data: List<Point>, line: Boolean, goal: Int) {
                 }
             }
         }
-        Row(
-            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            data.forEach {
-                Text(it.label, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 4.dp))
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                data.forEach {
+                    Text(it.label, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 4.dp))
+                }
             }
         }
     }
@@ -256,7 +260,7 @@ private fun chartData(context: Context, period: Int): List<Point> {
         val label = SimpleDateFormat("MM/dd", Locale.US)
         (period - 1 downTo 0).map { offset ->
             val date = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -offset) }.time
-            Point(label.format(date), rows[key.format(date)] ?: 0)
+            Point(jalaliDayLabel(date), rows[key.format(date)] ?: 0)
         }
     } else {
         val key = SimpleDateFormat("yyyy-MM", Locale.US)
@@ -267,11 +271,43 @@ private fun chartData(context: Context, period: Int): List<Point> {
                 add(Calendar.MONTH, -offset)
             }.time
             val prefix = key.format(date)
-            Point(label.format(date), rows.filterKeys { it.startsWith(prefix) }.values.sum())
+            Point(jalaliMonthLabel(date), rows.filterKeys { it.startsWith(prefix) }.values.sum())
         }
     }
 }
 
+
+private fun jalaliDayLabel(calendar: Calendar): String {
+    val (year, month, day) = gregorianToJalali(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH) + 1, calendar.get(Calendar.DAY_OF_MONTH))
+    return toPersianDigits(day.toString() + "/" + month)
+}
+
+private fun jalaliMonthLabel(calendar: Calendar): String {
+    val (year, month, _) = gregorianToJalali(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH) + 1, calendar.get(Calendar.DAY_OF_MONTH))
+    return toPersianDigits(year.toString() + "/" + month)
+}
+
+private fun toPersianDigits(value: String): String = value.map {
+    when (it) {
+        '0' -> '۰'; '1' -> '۱'; '2' -> '۲'; '3' -> '۳'; '4' -> '۴'
+        '5' -> '۵'; '6' -> '۶'; '7' -> '۷'; '8' -> '۸'; '9' -> '۹'
+        else -> it
+    }
+}.joinToString("")
+
+private fun gregorianToJalali(gy: Int, gm: Int, gd: Int): Triple<Int, Int, Int> {
+    val gdm = intArrayOf(0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334)
+    val gy2 = if (gm > 2) gy + 1 else gy
+    var days = 355666 + (365 * gy) + ((gy2 + 3) / 4) - ((gy2 + 99) / 100) + ((gy2 + 399) / 400) + gd + gdm[gm - 1]
+    var jy = -1595 + 33 * (days / 12053)
+    days %= 12053
+    jy += 4 * (days / 1461)
+    days %= 1461
+    if (days > 365) { jy += (days - 1) / 365; days = (days - 1) % 365 }
+    val jm = if (days < 186) 1 + days / 31 else 7 + (days - 186) / 30
+    val jd = 1 + if (days < 186) days % 31 else (days - 186) % 30
+    return Triple(jy, jm, jd)
+}
 @Composable
 private fun Metric(modifier: Modifier, title: String, value: String, unit: String) {
     Card(modifier) {
