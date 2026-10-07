@@ -32,7 +32,7 @@ fun ProfileExtrasScreen(onChanged: () -> Unit = {}) {
             ) {
                 Column(Modifier.padding(18.dp)) {
                     Text("شخصی‌سازی کاملاً رایگان", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text("همه قاب‌ها، نشان‌ها و امکانات این بخش بدون سکه و بدون پرداخت در دسترس هستند.")
+                    Text("همه قاب‌ها، نشان‌ها و امکانات این بخش برای همه کاربران رایگان و فعال هستند.")
                     selectedItem?.let {
                         Spacer(Modifier.height(12.dp))
                         Text("آیتم فعال: " + it.emoji + " " + it.title, fontWeight = FontWeight.Bold)
@@ -71,7 +71,7 @@ fun ProfileExtrasScreen(onChanged: () -> Unit = {}) {
                 Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
             ) {
-                Text("قفل سکه‌ای حذف شده است؛ هیچ قابلیت این صفحه نیاز به پرداخت یا سکه ندارد.", Modifier.padding(16.dp))
+                Text("تمام امکانات این صفحه رایگان و بدون محدودیت در دسترس هستند.", Modifier.padding(16.dp))
             }
         }
     }
