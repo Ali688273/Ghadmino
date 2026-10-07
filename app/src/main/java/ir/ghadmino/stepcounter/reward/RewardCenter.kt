@@ -51,7 +51,7 @@ fun RewardCenter(
         Card(Modifier.fillMaxWidth(),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.primaryContainer)){
             Column(Modifier.padding(20.dp)){
                 Text("پاداش و امکانات رایگان",style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold)
-                Text("در این نسخه هیچ قابلیت، تم یا پیشرفتی با سکه قفل نیست.")
+                Text("در این نسخه همه قابلیت‌ها، تم‌ها و مسیر پیشرفت برای همه کاربران آزاد است.")
                 Spacer(Modifier.height(8.dp))
                 Text("قدم امروز: "+steps)
                 Text("هدف امروز: "+goal)
@@ -75,7 +75,7 @@ fun RewardCenter(
                 Spacer(Modifier.height(8.dp))
                 Text("رسیدن به ۳۰٪، ۶۰٪ و ۱۰۰٪ هدف روزانه به‌عنوان نقاط پیشرفت ثبت می‌شود.")
                 Text("رسیدن به ۳۰۰۰، ۷۰۰۰ و ۱۰۰۰۰ قدم هم در پیشرفت و دستاوردها ثبت می‌شود.")
-                Text("نیازی به تماشای تبلیغ، خرید یا خرج کردن سکه نیست.")
+                Text("برای استفاده از این امکانات نیازی به خرید یا پرداخت نیست.")
             }
         }
 
