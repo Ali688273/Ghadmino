@@ -510,12 +510,12 @@ private fun MorePage(
         GhadminoBanner(modifier = Modifier.fillMaxWidth())
         MoreItem("👤", if (profileName.isBlank()) "پروفایل" else profileName, "اطلاعات بدنی و هدف‌ها") { onOpen("profile") }
         MoreItem("🏆", "دستاوردها", "مدال‌ها و پاداش‌های پیشرفت") { onOpen("achievements") }
-        MoreItem("🎁", "پاداش و امکانات رایگان", "فعالیت‌ها، پیشرفت و امکانات بدون قفل و بدون سکه") { onOpen("rewards") }
+        MoreItem("🎁", "پاداش و امکانات رایگان", "فعالیت‌ها و امکانات کاملاً رایگان") { onOpen("rewards") }
         MoreItem("⭐", "سطح و XP", "سطح کاربر و میزان پیشرفت") { onOpen("level") }
         MoreItem("🎨", "شخصی‌سازی رایگان", "قاب‌ها، نشان‌ها و امکانات بدون پرداخت") { onOpen("extras") }
         MoreItem("📅", "تقویم فعالیت", "انتخاب هر روز و مشاهده گزارش واقعی همان روز") { onOpen("calendar") }
         MoreItem("📋", "تاریخچه", "مشاهده قدم‌های روزهای اخیر") { onOpen("history") }
-        MoreItem("📊", "گزارش هوشمند", "روند، رکورد، پیش‌بینی و ماموریت‌های روزانه") { onOpen("smart") }
+        MoreItem("📊", "گزارش هوشمند", "روند، رکورد و پیش‌بینی فعالیت") { onOpen("smart") }
         MoreItem("📈", "تحلیل فعالیت", "امتیاز، فعالیت ساعتی و پیش‌بینی هدف") { onOpen("insights") }
         MoreItem("🎯", "تنظیم هدف", "تغییر هدف روزانه قدم‌ها") { onOpen("goal") }
         MoreItem("❤️", "Health Connect", "اتصال قدمینو به داده‌های سلامت اندروید") { onOpen("health") }
