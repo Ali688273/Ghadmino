@@ -1,4 +1,5 @@
 package ir.ghadmino.stepcounter.analytics
+
 import android.content.Intent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -10,16 +11,86 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import java.util.Locale
+
 @Composable
-fun ActivityIntelligenceScreen(onCoinsChanged:()->Unit={}){
- val c=LocalContext.current;var r by remember{mutableStateOf(ActivityAnalyticsRepository.report(c))};var ms by remember{mutableStateOf(DynamicMissionRepository.list(c))}
- Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
-  Text("گزارش هوشمند",style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold)
-  Card(Modifier.fillMaxWidth()){Column(Modifier.padding(18.dp)){Text("امروز",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold);Text("${r.today} از ${r.goal} قدم");LinearProgressIndicator(r.progress/100f,Modifier.fillMaxWidth().padding(vertical=8.dp));Text("مسافت %.2f km • ${r.calories} kcal تخمینی".format(Locale.US,r.distanceKm));if(r.minutesToGoal>0)Text("با نرخ فعلی حدود ${r.minutesToGoal} دقیقه تا هدف باقی مانده.")}}
-  Card(Modifier.fillMaxWidth()){Column(Modifier.padding(18.dp)){Text("روند ۷ / ۳۰ / ۹۰ روز",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold);Text("۷ روز: ${r.week} قدم");Text("هفته قبل: ${r.previousWeek} قدم");Text("تغییر: ${r.change}%");Text("۳۰ روز: ${r.month} قدم");Text("میانگین ۳۰ روز: ${r.monthAverage}");Text("میانگین ۹۰ روز: ${r.average90}");Text("روزهای فعال ۳۰ روز: ${r.active30}")}}
-  Card(Modifier.fillMaxWidth()){Column(Modifier.padding(18.dp)){Text("رکوردها",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold);Text("بیشترین قدم: ${r.best.second} در ${r.best.first}");Text("زنجیره فعال: ${r.streak} روز");val s=ActivityAnalyticsRepository.speedRecords(c);Text("بهترین میانگین سرعت: %.1f km/h".format(Locale.US,s.first));Text("بیشترین سرعت: %.1f km/h".format(Locale.US,s.second))}}
-  Card(Modifier.fillMaxWidth()){Column(Modifier.padding(18.dp)){Text("ماموریت‌های روزانه",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold);ms.forEach{(m,claimed)->val ready=DynamicMissionRepository.ready(c,m);Text("${m.title} — ${m.reward} سکه");if(claimed)Text("دریافت شده")else if(ready)Button(onClick={if(DynamicMissionRepository.claim(c,m)){ms=DynamicMissionRepository.list(c);onCoinsChanged()}}){Text("دریافت سکه")}else Text("در حال پیشرفت");Spacer(Modifier.height(6.dp))}}}
-  Button(onClick={val i=Intent(Intent.ACTION_SEND).apply{type="text/plain";putExtra(Intent.EXTRA_TEXT,ActivityAnalyticsRepository.shareText(c))};c.startActivity(Intent.createChooser(i,"اشتراک گزارش"))},Modifier.fillMaxWidth()){Text("اشتراک گزارش")}
-  OutlinedButton(onClick={r=ActivityAnalyticsRepository.report(c);ms=DynamicMissionRepository.list(c)},Modifier.fillMaxWidth()){Text("به‌روزرسانی")}
- }
+fun ActivityIntelligenceScreen(onCoinsChanged: () -> Unit = {}) {
+    val context = LocalContext.current
+    var report by remember { mutableStateOf(ActivityAnalyticsRepository.report(context)) }
+
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text("گزارش هوشمند", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(18.dp)) {
+                Text("امروز", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("${report.today} از ${report.goal} قدم")
+                LinearProgressIndicator(
+                    progress = report.progress / 100f,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                )
+                Text("مسافت %.2f km • ${report.calories} kcal تخمینی".format(Locale.US, report.distanceKm))
+                if (report.minutesToGoal > 0) {
+                    Text("با نرخ فعلی حدود ${report.minutesToGoal} دقیقه تا هدف باقی مانده.")
+                }
+            }
+        }
+
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(18.dp)) {
+                Text("روند ۷ / ۳۰ / ۹۰ روز", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("۷ روز: ${report.week} قدم")
+                Text("هفته قبل: ${report.previousWeek} قدم")
+                Text("تغییر: ${report.change}%")
+                Text("۳۰ روز: ${report.month} قدم")
+                Text("میانگین ۳۰ روز: ${report.monthAverage}")
+                Text("میانگین ۹۰ روز: ${report.average90}")
+                Text("روزهای فعال ۳۰ روز: ${report.active30}")
+            }
+        }
+
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(18.dp)) {
+                Text("رکوردها", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("بیشترین قدم: ${report.best.second} در ${report.best.first}")
+                Text("زنجیره فعال: ${report.streak} روز")
+                val speed = ActivityAnalyticsRepository.speedRecords(context)
+                Text("بهترین میانگین سرعت: %.1f km/h".format(Locale.US, speed.first))
+                Text("بیشترین سرعت: %.1f km/h".format(Locale.US, speed.second))
+            }
+        }
+
+        Card(
+            Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+        ) {
+            Column(Modifier.padding(18.dp)) {
+                Text("وضعیت امکانات", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("تمام قابلیت‌های این گزارش برای همه کاربران آزاد است.")
+                Text("برای استفاده از گزارش نیازی به خرید یا پرداخت نیست.")
+            }
+        }
+
+        Button(
+            onClick = {
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, ActivityAnalyticsRepository.shareText(context))
+                }
+                context.startActivity(Intent.createChooser(intent, "اشتراک گزارش"))
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("اشتراک گزارش")
+        }
+
+        OutlinedButton(
+            onClick = { report = ActivityAnalyticsRepository.report(context) },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("به‌روزرسانی")
+        }
+    }
 }
