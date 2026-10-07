@@ -260,7 +260,7 @@ private fun chartData(context: Context, period: Int): List<Point> {
         val label = SimpleDateFormat("MM/dd", Locale.US)
         (period - 1 downTo 0).map { offset ->
             val date = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -offset) }.time
-            Point(jalaliDayLabel(date), rows[key.format(date)] ?: 0)
+            Point(jalaliDayLabel(Calendar.getInstance().apply { time = date }), rows[key.format(date)] ?: 0)
         }
     } else {
         val key = SimpleDateFormat("yyyy-MM", Locale.US)
@@ -271,7 +271,7 @@ private fun chartData(context: Context, period: Int): List<Point> {
                 add(Calendar.MONTH, -offset)
             }.time
             val prefix = key.format(date)
-            Point(jalaliMonthLabel(date), rows.filterKeys { it.startsWith(prefix) }.values.sum())
+            Point(jalaliMonthLabel(Calendar.getInstance().apply { time = date }), rows.filterKeys { it.startsWith(prefix) }.values.sum())
         }
     }
 }
