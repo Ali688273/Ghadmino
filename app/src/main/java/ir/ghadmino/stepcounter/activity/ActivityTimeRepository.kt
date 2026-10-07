@@ -17,7 +17,7 @@ object ActivityTimeRepository {
     private const val KEY_DATE = "date"
     private const val KEY_ACTIVE_SECONDS = "active_seconds"
     private const val KEY_LAST_STEP_MILLIS = "last_step_millis"
-    private const val MAX_GAP_SECONDS = 20L
+    private const val MAX_GAP_SECONDS = 120L
 
     @Synchronized
     fun onStepEvent(context: Context, deltaSteps: Int, nowMillis: Long = System.currentTimeMillis()) {
