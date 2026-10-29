@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ali688273.github.io/Ghadmino/sitemap.xml
