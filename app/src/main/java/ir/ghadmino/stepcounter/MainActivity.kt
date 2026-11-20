@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import ir.ghadmino.stepcounter.reward.CoinWallet
 import ir.ghadmino.stepcounter.reward.RewardCenter
 import ir.ghadmino.stepcounter.analytics.ActivityAnalyticsRepository
@@ -236,6 +237,17 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit) {
                     val profile = ProfileRepository.load(context)
                     ProfileRepository.save(context, profile.copy(dailyGoal = it))
                     prefs.edit().putInt("daily_goal", it).apply()
+                },
+                onManualActivityChanged = {
+                    steps = ActivityAnalyticsRepository.today(context)
+                    StepHistory.saveToday(context, steps)
+                    CoinWallet.syncStepReward(context, steps)
+                    walkingMinutes = ActivityTimeRepository.todayActiveMinutes(context) +
+                        ir.ghadmino.stepcounter.activity.ManualActivityRepository.minutesForDate(
+                            context,
+                            java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+                        )
+                    insights = ActivityInsightsRepository.calculate(context, goal)
                 }
             )
             1 -> StatsScreen(
@@ -289,9 +301,6 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit) {
                     }
                 }
             }
-        }
-        "manual_activity" -> FullPageDialog("ثبت فعالیت دستی", onClose = { morePage = null }) {
-            ManualActivityScreen()
         }
         "challenges" -> FullPageDialog("چالش‌ها", onClose = { morePage = null }) { ChallengesScreen { coins = CoinWallet.balance(context) } }
         "settings" -> FullPageDialog("تنظیمات", onClose = { morePage = null }) { SettingsScreen() }
@@ -386,7 +395,8 @@ private fun HomePage(
     distanceKm: Double,
     calories: Double,
     walkingMinutes: Int,
-    onGoalChanged: (Int) -> Unit
+    onGoalChanged: (Int) -> Unit,
+    onManualActivityChanged: () -> Unit
 ) {
     Column(
         Modifier.fillMaxSize().padding(padding).padding(16.dp).verticalScroll(rememberScrollState()),
@@ -442,6 +452,8 @@ private fun HomePage(
                 walkingMinutes.toString() + " دقیقه"
             )
         }
+
+        ManualActivityScreen(onChanged = onManualActivityChanged)
 
         Card(
             Modifier.fillMaxWidth(),
@@ -509,7 +521,6 @@ private fun MorePage(
         MoreItem("📆", "برنامه افزایش قدم", "هدف‌گذاری تدریجی و قابل پیگیری") { onOpen("plan") }
         MoreItem("💾", "پشتیبان‌گیری", "ذخیره و بازیابی رایگان اطلاعات روی فایل") { onOpen("backup") }
         MoreItem("🧰", "۲۰ قابلیت رایگان", "۲۰ ابزار کاربردی برای منبع قدم، Health Connect، رکورد، هدف، خروجی و عیب‌یابی") { onOpen("free") }
-        MoreItem("➕", "ثبت فعالیت دستی", "ثبت قدم یا فعالیتی که حسگر ثبت نکرده") { onOpen("manual_activity") }
         Spacer(Modifier.height(32.dp))
     }
 }
@@ -554,7 +565,10 @@ private fun FullPageDialog(
     onClose: () -> Unit,
     content: @Composable () -> Unit
 ) {
-    Dialog(onDismissRequest = onClose) {
+    Dialog(
+        onDismissRequest = onClose,
+        properties = DialogProperties(dismissOnClickOutside = false)
+    ) {
         Surface(
             Modifier.fillMaxWidth().fillMaxHeight(0.92f),
             color = MaterialTheme.colorScheme.background,
