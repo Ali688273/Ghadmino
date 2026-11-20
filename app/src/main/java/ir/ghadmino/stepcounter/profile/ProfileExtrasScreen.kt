@@ -17,7 +17,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import ir.ghadmino.stepcounter.step.StepHistory
-import ir.ghadmino.stepcounter.widget.GhadminoWidgetProvider
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -76,7 +75,6 @@ fun ProfileExtrasScreen(onChanged: () -> Unit = {}) {
             ChoiceCard(item, widgetTheme == item.id) {
                 ProfileExtrasRepository.selectWidgetTheme(context, item.id)
                 widgetTheme = item.id
-                GhadminoWidgetProvider.updateAll(context)
                 onChanged()
             }
         }
