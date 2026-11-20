@@ -27,7 +27,6 @@ fun FreeFeaturesScreen() {
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     var source by remember { mutableStateOf(StepSourceRepository.get(context)) }
-    var records by remember { mutableStateOf(PersonalRecordsRepository.calculate(context)) }
     var goals by remember { mutableStateOf(PeriodicGoalRepository.load(context)) }
     var weeklyTarget by remember { mutableIntStateOf(goals.weeklyTarget) }
     var monthlyTarget by remember { mutableIntStateOf(goals.monthlyTarget) }
@@ -94,27 +93,7 @@ fun FreeFeaturesScreen() {
 
             Section("۳ — نمای سالانه فعالیت") { AnnualHeatmap(context) { selectedHeatmapDay = it } ; selectedHeatmapDay?.let { Text("روز ${it.first}: ${it.second} قدم") } }
 
-            Section("۴ — روند ۷، ۳۰ و ۹۰ روزه") {
-                TrendCard(context, 7)
-                TrendCard(context, 30)
-                TrendCard(context, 90)
-            }
-
-            Section("۵ — رکوردهای شخصی") {
-                RecordRow("بهترین روز", records.bestDaySteps.toString() + " قدم — " + records.bestDayDate)
-                RecordRow("بهترین ۷ روز", records.best7DayTotal.toString() + " قدم")
-                RecordRow("بهترین ۳۰ روز", records.best30DayTotal.toString() + " قدم")
-                RecordRow("بهترین ماه", records.bestMonthTotal.toString() + " قدم")
-                RecordRow("بیشترین مسافت روزانه", String.format(Locale.US, "%.2f km", records.bestDistanceKm))
-                RecordRow("زنجیره فعلی", records.currentStreak.toString() + " روز")
-                RecordRow("طولانی‌ترین زنجیره", records.longestStreak.toString() + " روز")
-                RecordRow("روزهای فعال ۳۰ روز", records.activeDays30.toString())
-                RecordRow("بیشترین مسافت تمرین", String.format(Locale.US, "%.2f km", records.bestWorkoutDistanceMeters / 1000.0))
-                RecordRow("بیشترین زمان تمرین", records.bestWorkoutMinutes.toString() + " دقیقه")
-                RecordRow("دقایق فعالیت ثبت‌شده", records.activeMinutes30.toString() + " دقیقه")
-            }
-
-            Section("۶ و ۷ — هدف هفتگی و ماهانه") {
+            Section("۴ و ۵ — هدف هفتگی و ماهانه") {
                 GoalRow("هفتگی", goals.weeklyProgress, weeklyTarget)
                 Slider(value = weeklyTarget.toFloat(), onValueChange = { weeklyTarget = it.toInt() }, valueRange = 10000f..150000f, steps = 27)
                 GoalRow("ماهانه", goals.monthlyProgress, monthlyTarget)
@@ -127,13 +106,13 @@ fun FreeFeaturesScreen() {
                 Text("با رسیدن به هدف‌های هفتگی و ماهانه، پیشرفتت در همین بخش قابل مشاهده است.")
             }
 
-            Section("۸ — سطح، XP و مأموریت‌های محلی") {
+            Section("۶ — سطح، XP و مأموریت‌های محلی") {
                 Text("سطح و XP از قدم‌های طولانی‌مدت، مأموریت‌ها و دستاوردها محاسبه می‌شود.")
                 Text("ماموریت‌های واقعی: ۶۰٪ هدف، ۱۰۰٪ هدف و ۲۰۰۰ قدم بیشتر از هدف.")
                 Text("XP فقط شاخص پیشرفت فعالیت است و قابلیت یا محتوایی را قفل نمی‌کند.")
             }
 
-            Section("۱۱ و ۱۲ — گزارش روزانه و هفتگی") {
+            Section("۷ و ۸ — گزارش روزانه و هفتگی") {
                 endReport = EndOfDayReportRepository.today(context)
                 Text("امروز: " + endReport.steps + " قدم — " + endReport.progress + "% هدف")
                 Text("مسافت تقریبی: " + String.format(Locale.US, "%.2f", endReport.distanceKm) + " km")
@@ -144,14 +123,14 @@ fun FreeFeaturesScreen() {
                 Text("گزارش هفتگی خودکار هر دوشنبه طبق زمان‌بندی سیستم ارسال می‌شود؛ محاسبات گزارش روی داده محلی انجام می‌شود.")
             }
 
-            Section("۱۳ — شاخص تقریبی فعالیت") {
+            Section("۹ — شاخص تقریبی فعالیت") {
                 val active = StepHistory.recent(context, 7).count { row -> row.second >= 3000 }
                 Text("روزهای دارای فعالیت قابل‌توجه در ۷ روز: " + active)
                 Text("الگوی فعالیت: " + when { active >= 6 -> "فعال" ; active >= 3 -> "متوسط" ; else -> "کم‌فعال" })
                 Text("این شاخص فقط بر اساس داده قدم است و تشخیص قطعی نوع فعالیت یا وضعیت پزشکی نیست.")
             }
 
-            Section("۱۴ و ۱۵ — خروجی و اعتبارسنجی") {
+            Section("۱۰ و ۱۱ — خروجی و اعتبارسنجی") {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = { FreeExportRepository.share(context, FreeExportRepository.csv(context), "text/csv") }) { Text("CSV") }
                     Button(onClick = { FreeExportRepository.share(context, FreeExportRepository.json(context), "application/json") }) { Text("JSON") }
@@ -162,19 +141,19 @@ fun FreeFeaturesScreen() {
                 }) { Text("اعتبارسنجی خروجی") }
             }
 
-            Section("۱۶ — ویجت") {
+            Section("۱۲ — ویجت") {
                 Text("ویجت اصلی حفظ شده و ویجت خلاصه ۷ روزه نیز اضافه می‌شود.")
             }
 
-            Section("۱۷ — روشن و تیره") {
+            Section("۱۳ — روشن و تیره") {
                 Text("تم برنامه از حالت روشن/تیره سیستم پشتیبانی می‌کند.")
             }
 
-            Section("۱۸ — زبان") {
+            Section("۱۴ — زبان") {
                 Text("داده‌ها مستقل از زبان ذخیره می‌شوند. ترجمه کامل رابط فعلی در مرحله جداگانه انجام می‌شود تا متن‌های سخت‌کدشده ناقص نشوند.")
             }
 
-            Section("۱۹ — عیب‌یابی") {
+            Section("۱۵ — عیب‌یابی") {
                 Button(onClick = { scope.launch { diag = diagnostics(context) } }) { Text("اجرای عیب‌یابی") }
                 diag?.let {
                     CheckRow("حسگر قدم", it.sensor)
@@ -189,13 +168,12 @@ fun FreeFeaturesScreen() {
                 }
             }
 
-            Section("۲۰ — کنترل پایداری") {
+            Section("۱۶ — کنترل پایداری") {
                 Text("ثبت داده‌ها محلی است؛ خطاهای Health Connect به رابط کاربری برگردانده می‌شوند.")
                 Button(onClick = { scenarios = InternalScenarioTests.run(); message = "بررسی‌های داخلی اجرا شد." }) { Text("اجرای تست‌های داخلی") }
                 scenarios.forEach { result -> Text(if(result.passed) "✓ " + result.name else "⚠ " + result.name) }
                 StabilityChecks.pure().forEach { result -> Text(if(result.passed) "✓ " + result.name else "⚠ " + result.name) }
                 Button(onClick = {
-                    records = PersonalRecordsRepository.calculate(context)
                     goals = PeriodicGoalRepository.load(context)
                     message = "داده‌ها تازه‌سازی شد."
                 }) { Text("تازه‌سازی امن") }
