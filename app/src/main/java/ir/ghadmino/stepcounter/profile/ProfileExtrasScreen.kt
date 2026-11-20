@@ -1,6 +1,7 @@
 package ir.ghadmino.stepcounter.profile
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -172,6 +173,10 @@ private fun ChoiceCard(item: ProfileExtra, selected: Boolean, onClick: () -> Uni
         Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically) {
             Text(item.emoji, style = MaterialTheme.typography.headlineSmall)
+            if (item.id in listOf("green", "ocean", "violet", "sunset", "midnight")) {
+                Spacer(Modifier.width(6.dp))
+                Box(Modifier.size(width = 34.dp, height = 22.dp).background(widgetThemeColor(item.id), RoundedCornerShape(7.dp)))
+            }
             Spacer(Modifier.width(12.dp))
             Text(item.title, Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
             if (selected) {
@@ -191,4 +196,12 @@ private fun Metric(label: String, value: String) {
         Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
     }
+}
+
+private fun widgetThemeColor(id: String): Color = when (id) {
+    "ocean" -> Color(0xFF0284C7)
+    "violet" -> Color(0xFF7C3AED)
+    "sunset" -> Color(0xFFEA580C)
+    "midnight" -> Color(0xFF1E293B)
+    else -> Color(0xFF315E4B)
 }
