@@ -21,6 +21,7 @@ import ir.ghadmino.stepcounter.notification.InactivityScheduler
 import ir.ghadmino.stepcounter.notification.ReminderScheduler
 import kotlin.math.roundToInt
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onProfile: () -> Unit,
