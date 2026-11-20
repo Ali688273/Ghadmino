@@ -460,21 +460,18 @@ private fun HomePage(
             StatCard(
                 Modifier.weight(1f),
                 Icons.Default.Route,
-                0,
                 "مسافت",
                 String.format("%.2f km", distanceKm)
             )
             StatCard(
                 Modifier.weight(1f),
                 Icons.Default.LocalFireDepartment,
-                1,
                 "کالری",
                 calories.toInt().toString() + " kcal"
             )
             StatCard(
                 Modifier.weight(1f),
                 Icons.Default.DirectionsWalk,
-                2,
                 "زمان راه‌رفتن",
                 walkingMinutes.toString() + " دقیقه"
             )
@@ -625,24 +622,37 @@ private fun FullPageDialog(
 fun StatCard(
     modifier: Modifier,
     icon: ImageVector,
-    tone: Int = 0,
     title: String,
     value: String
 ) {
-    val container = when (tone % 3) {
-        0 -> MaterialTheme.colorScheme.primaryContainer
-        1 -> MaterialTheme.colorScheme.secondaryContainer
-        else -> MaterialTheme.colorScheme.tertiaryContainer
-    }
     Card(
-        modifier,
-        colors = CardDefaults.cardColors(containerColor = container)
+        modifier.heightIn(min = 112.dp),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(50),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(Modifier.padding(16.dp)) {
-            Icon(icon, null)
-            Spacer(Modifier.height(8.dp))
-            Text(title, style = MaterialTheme.typography.labelMedium)
-            Text(value, fontWeight = FontWeight.Bold)
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(icon, null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+            Spacer(Modifier.height(6.dp))
+            Text(
+                title,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                maxLines = 1
+            )
+            Text(
+                value,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                maxLines = 1
+            )
         }
     }
 }
