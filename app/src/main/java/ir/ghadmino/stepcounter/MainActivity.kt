@@ -671,7 +671,7 @@ fun StatCard(
                 value,
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                color = contentColor,
                 maxLines = 1
             )
         }
