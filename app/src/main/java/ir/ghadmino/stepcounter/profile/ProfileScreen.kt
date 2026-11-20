@@ -43,6 +43,8 @@ fun ProfileScreen(onSaved: () -> Unit) {
     ) {
         Card(
             Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            border = if (frameColor == Color.Transparent) null else BorderStroke(3.dp, frameColor),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.primaryContainer
             )
@@ -52,8 +54,7 @@ fun ProfileScreen(onSaved: () -> Unit) {
                     Surface(
                         modifier = Modifier.size(68.dp),
                         shape = RoundedCornerShape(18.dp),
-                        tonalElevation = 4.dp,
-                        border = if (frameColor == Color.Transparent) null else BorderStroke(3.dp, frameColor)
+                        tonalElevation = 4.dp
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
