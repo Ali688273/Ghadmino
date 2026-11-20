@@ -487,10 +487,15 @@ private fun chartData(
                 set(Calendar.DAY_OF_MONTH, day)
             }
             val date = dateCalendar.time
-            val label = if (useSolarCalendar) {
-                toPersianDigits(day.toString().padStart(2, '0'))
+            // برچسب‌های ماهانه هم‌قالب هفتگی‌اند؛ برای جلوگیری از شلوغی فقط هر پنج روز و روز پایانی نمایش داده می‌شود.
+            val showLabel = day == 1 || (day - 1) % 5 == 0 || day == dayCount
+            val labelCalendar = Calendar.getInstance().apply { time = date }
+            val label = if (!showLabel) {
+                ""
+            } else if (useSolarCalendar) {
+                jalaliDayLabel(labelCalendar)
             } else {
-                day.toString().padStart(2, '0')
+                SimpleDateFormat("MM/dd", Locale.US).format(date)
             }
             Point(label, StepHistory.get(context, key.format(date)))
         }
