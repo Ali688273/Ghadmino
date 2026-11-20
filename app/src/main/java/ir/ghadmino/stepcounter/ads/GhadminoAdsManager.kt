@@ -141,13 +141,20 @@ object GhadminoAdsManager {
             onFinished("برای جلوگیری از مزاحمت، تبلیغ تمام‌صفحه فعلاً نمایش داده نشد.")
             return
         }
+        val placement = AdsConfig.ADIVERY_INTERSTITIAL
         var finished = false
+        var shown = false
+        var fallbackStarted = false
+        var listener: AdiveryListener? = null
+
         fun finish(message: String) {
             if (finished) return
             finished = true
+            listener?.let { Adivery.removePlacementListener(placement) }
             onFinished(message)
         }
-        fun tapsellFallback(index: Int = 0) {
+
+        fun requestTapsell(index: Int = 0) {
             val zones = listOf(AdsConfig.TAPSELL_INTERSTITIAL)
             if (finished || isFinishingOrDestroyed(activity)) return
             if (!tapsellInitialized || index >= zones.size) {
@@ -159,57 +166,71 @@ object GhadminoAdsManager {
                 override fun response(ad: TapsellPlusAdModel) {
                     val id = ad.responseId
                     if (id.isNullOrBlank() || finished || isFinishingOrDestroyed(activity)) {
-                        tapsellFallback(index + 1)
+                        requestTapsell(index + 1)
                         return
                     }
                     TapsellPlus.showInterstitialAd(activity, id, object : AdShowListener() {
-                        override fun onOpened(ad: TapsellPlusAdModel) { markFullscreenShown(activity) }
-                        override fun onClosed(ad: TapsellPlusAdModel) { finish("تبلیغ تمام شد.") }
+                        override fun onOpened(ad: TapsellPlusAdModel) {
+                            markFullscreenShown(activity)
+                        }
+                        override fun onClosed(ad: TapsellPlusAdModel) {
+                            finish("تبلیغ تمام شد.")
+                        }
                         override fun onError(error: TapsellPlusErrorModel) {
                             Log.w(TAG, "Tapsell fullscreen failed: ${error.errorMessage}")
-                            tapsellFallback(index + 1)
+                            requestTapsell(index + 1)
                         }
                     })
                 }
                 override fun error(message: String) {
                     Log.w(TAG, "Tapsell zone $zone unavailable: $message")
-                    tapsellFallback(index + 1)
+                    requestTapsell(index + 1)
                 }
             })
         }
-        val placement = AdsConfig.ADIVERY_INTERSTITIAL
-        var shown = false
-        val listener = object : AdiveryListener() {
+
+        fun startTapsellFallback() {
+            if (finished || fallbackStarted || isFinishingOrDestroyed(activity)) return
+            fallbackStarted = true
+            listener?.let { Adivery.removePlacementListener(placement) }
+            requestTapsell()
+        }
+
+        val adiveryListener = object : AdiveryListener() {
             override fun onInterstitialAdLoaded(placementId: String) {
-                if (!finished && placementId == placement && Adivery.isLoaded(placement)) Adivery.showAd(placement)
+                if (!finished && !fallbackStarted && placementId == placement &&
+                    runCatching { Adivery.isLoaded(placement) }.getOrDefault(false)
+                ) {
+                    runCatching { Adivery.showAd(placement) }
+                        .onFailure { startTapsellFallback() }
+                }
             }
             override fun onInterstitialAdShown(placementId: String) {
-                if (placementId == placement) {
+                if (placementId == placement && !fallbackStarted) {
                     shown = true
                     markFullscreenShown(activity)
                 }
             }
             override fun onInterstitialAdClicked(placementId: String) = Unit
             override fun onInterstitialAdClosed(placementId: String) {
-                if (placementId != placement) return
-                Adivery.removePlacementListener(placement)
+                if (placementId != placement || fallbackStarted) return
                 finish("تبلیغ تمام شد.")
             }
-            override fun log(placementId: String, message: String) { Log.d(TAG, "Adivery interstitial: $message") }
-        }
-        Adivery.addPlacementListener(placement, listener)
-        if (runCatching { Adivery.isLoaded(placement) }.getOrDefault(false)) {
-            runCatching { Adivery.showAd(placement) }.onFailure {
-                Adivery.removePlacementListener(placement)
-                tapsellFallback()
+            override fun log(placementId: String, message: String) {
+                Log.d(TAG, "Adivery interstitial: $message")
             }
+        }
+        listener = adiveryListener
+        Adivery.addPlacementListener(placement, adiveryListener)
+
+        if (runCatching { Adivery.isLoaded(placement) }.getOrDefault(false)) {
+            runCatching { Adivery.showAd(placement) }
+                .onFailure { startTapsellFallback() }
         } else {
-            Adivery.prepareInterstitialAd(activity, placement)
+            runCatching { Adivery.prepareInterstitialAd(activity, placement) }
+                .onFailure { startTapsellFallback() }
             android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                if (!finished && !shown && !Adivery.isLoaded(placement)) {
-                    Adivery.removePlacementListener(placement)
-                    tapsellFallback()
-                }
+                if (!finished && !shown && !fallbackStarted) startTapsellFallback()
             }, 3000L)
         }
     }
@@ -246,7 +267,18 @@ object GhadminoAdsManager {
     private fun loadAdiveryBanner(activity: Activity, container: ViewGroup, onFailed: () -> Unit = {}) {
         if (container.childCount > 0) return
 
-        val banner = AdiveryBannerAdView(activity).apply {
+        val handler = android.os.Handler(android.os.Looper.getMainLooper())
+        var resolved = false
+        lateinit var banner: AdiveryBannerAdView
+        val timeout = Runnable {
+            if (!resolved) {
+                resolved = true
+                Log.w(TAG, "Adivery banner timed out; trying Tapsell fallback")
+                container.removeView(banner)
+                onFailed()
+            }
+        }
+        banner = AdiveryBannerAdView(activity).apply {
             layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
@@ -254,10 +286,18 @@ object GhadminoAdsManager {
             setPlacementId(AdsConfig.ADIVERY_BANNER)
             setBannerSize(BannerSize.BANNER)
             setBannerAdListener(object : AdiveryAdListener() {
-                override fun onAdLoaded() = Unit
+                override fun onAdLoaded() {
+                    if (!resolved) {
+                        resolved = true
+                        handler.removeCallbacks(timeout)
+                    }
+                }
                 override fun onAdShown() = Unit
                 override fun onAdClicked() = Unit
                 override fun onError(reason: String) {
+                    if (resolved) return
+                    resolved = true
+                    handler.removeCallbacks(timeout)
                     Log.w(TAG, "Adivery banner unavailable: $reason")
                     container.removeView(this@apply)
                     onFailed()
@@ -267,6 +307,7 @@ object GhadminoAdsManager {
 
         container.addView(banner)
         banner.loadAd()
+        handler.postDelayed(timeout, 5000L)
     }
 
 
