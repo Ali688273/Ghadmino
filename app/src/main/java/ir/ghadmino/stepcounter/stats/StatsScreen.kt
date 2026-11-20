@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalLayoutDirection
 import ir.ghadmino.stepcounter.ads.GhadminoBanner
 import ir.ghadmino.stepcounter.step.StepHistory
+import ir.ghadmino.stepcounter.settings.SettingsRepository
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -47,12 +48,13 @@ private data class Point(val label: String, val value: Int)
 @Composable
 fun StatsScreen(stats: GhadminoStats, goal: Int) {
     val context = LocalContext.current
+    val useSolarCalendar = SettingsRepository.load(context).useSolarCalendar
     var period by remember { mutableIntStateOf(7) }
     var type by remember { mutableStateOf("line") }
     var trendExpanded by remember { mutableStateOf(false) }
     var recordsExpanded by remember { mutableStateOf(false) }
     var recentExpanded by remember { mutableStateOf(false) }
-    val data = remember(period) { chartData(context, period) }
+    val data = remember(period, useSolarCalendar) { chartData(context, period, useSolarCalendar) }
     val report = remember(period, goal) { StatsRepository.period(context, goal, period) }
 
     Box(
@@ -142,7 +144,7 @@ fun StatsScreen(stats: GhadminoStats, goal: Int) {
                     DetailPill(
                         Modifier.fillMaxWidth(),
                         "بهترین روز",
-                        StatsRepository.label(stats.bestDay.first) + " — " + stats.bestDay.second + " قدم"
+                        StatsRepository.label(stats.bestDay.first, useSolarCalendar) + " — " + stats.bestDay.second + " قدم"
                     )
                     Spacer(Modifier.height(8.dp))
                     DetailPill(
@@ -155,8 +157,8 @@ fun StatsScreen(stats: GhadminoStats, goal: Int) {
                         Modifier.fillMaxWidth(),
                         "بازه ثبت رکورد زنجیره",
                         if (stats.longestStreak.value > 0) {
-                            StatsRepository.label(stats.longestStreak.startDate) + " تا " +
-                                StatsRepository.label(stats.longestStreak.endDate)
+                            StatsRepository.label(stats.longestStreak.startDate, useSolarCalendar) + " تا " +
+                                StatsRepository.label(stats.longestStreak.endDate, useSolarCalendar)
                         } else {
                             "هنوز رکوردی ثبت نشده است"
                         }
@@ -178,7 +180,7 @@ fun StatsScreen(stats: GhadminoStats, goal: Int) {
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(StatsRepository.label(row.first), style = MaterialTheme.typography.bodyMedium)
+                            Text(StatsRepository.label(row.first, useSolarCalendar), style = MaterialTheme.typography.bodyMedium)
                             Text(row.second.toString() + " قدم", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                         }
                         if (index != recent.lastIndex) Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
@@ -393,14 +395,17 @@ private fun ActivityChart(data: List<Point>, line: Boolean, goal: Int) {
     }
 }
 
-private fun chartData(context: Context, period: Int): List<Point> {
+private fun chartData(context: Context, period: Int, useSolarCalendar: Boolean): List<Point> {
     val rows = StepHistory.recent(context, period).associate { it.first to it.second }
     return if (period < 365) {
         val key = SimpleDateFormat("yyyy-MM-dd", Locale.US)
         val label = SimpleDateFormat("MM/dd", Locale.US)
         (period - 1 downTo 0).map { offset ->
             val date = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -offset) }.time
-            Point(jalaliDayLabel(Calendar.getInstance().apply { time = date }), rows[key.format(date)] ?: 0)
+            val calendar = Calendar.getInstance().apply { time = date }
+            val label = if (useSolarCalendar) jalaliDayLabel(calendar)
+                else SimpleDateFormat("MM/dd", Locale.US).format(date)
+            Point(label, rows[key.format(date)] ?: 0)
         }
     } else {
         val key = SimpleDateFormat("yyyy-MM", Locale.US)
@@ -411,7 +416,10 @@ private fun chartData(context: Context, period: Int): List<Point> {
                 add(Calendar.MONTH, -offset)
             }.time
             val prefix = key.format(date)
-            Point(jalaliMonthLabel(Calendar.getInstance().apply { time = date }), rows.filterKeys { it.startsWith(prefix) }.values.sum())
+            val calendar = Calendar.getInstance().apply { time = date }
+            val label = if (useSolarCalendar) jalaliMonthLabel(calendar)
+                else SimpleDateFormat("yyyy/MM", Locale.US).format(date)
+            Point(label, rows.filterKeys { it.startsWith(prefix) }.values.sum())
         }
     }
 }
