@@ -70,6 +70,7 @@ object GhadminoAdsManager {
                                 adNetworkError: AdNetworkError
                             ) {
                                 tapsellInitialized = false
+                                tapsellInitializationStarted = false
                                 Log.w(TAG, "Tapsell init failed: ${adNetworks.name} - ${adNetworkError.errorMessage}")
                             }
                         }
@@ -144,6 +145,7 @@ object GhadminoAdsManager {
         val placement = AdsConfig.ADIVERY_INTERSTITIAL
         var finished = false
         var shown = false
+        var adiveryShowRequested = false
         var fallbackStarted = false
         var listener: AdiveryListener? = null
 
@@ -198,9 +200,11 @@ object GhadminoAdsManager {
 
         val adiveryListener = object : AdiveryListener() {
             override fun onInterstitialAdLoaded(placementId: String) {
-                if (!finished && !fallbackStarted && placementId == placement &&
+                if (!finished && !fallbackStarted && !adiveryShowRequested &&
+                    placementId == placement &&
                     runCatching { Adivery.isLoaded(placement) }.getOrDefault(false)
                 ) {
+                    adiveryShowRequested = true
                     runCatching { Adivery.showAd(placement) }
                         .onFailure { startTapsellFallback() }
                 }
@@ -224,6 +228,7 @@ object GhadminoAdsManager {
         Adivery.addPlacementListener(placement, adiveryListener)
 
         if (runCatching { Adivery.isLoaded(placement) }.getOrDefault(false)) {
+            adiveryShowRequested = true
             runCatching { Adivery.showAd(placement) }
                 .onFailure { startTapsellFallback() }
         } else {
