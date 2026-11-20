@@ -152,7 +152,7 @@ private fun FeatureSection(
     Card(
         Modifier.fillMaxWidth().animateContentSize(),
         shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(Modifier.fillMaxWidth()) {
@@ -166,11 +166,10 @@ private fun FeatureSection(
                     Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Spacer(Modifier.width(8.dp))
-                Icon(
-                    if (expanded) androidx.compose.material.icons.Icons.Default.ExpandLess
-                    else androidx.compose.material.icons.Icons.Default.ExpandMore,
-                    contentDescription = if (expanded) "بستن" else "باز کردن",
-                    tint = MaterialTheme.colorScheme.primary
+                Text(
+                    if (expanded) "−" else "+",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
             AnimatedVisibility(visible = expanded) {
