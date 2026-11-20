@@ -28,7 +28,7 @@ object FreeExportRepository {
             .toString(2)
     }
 
-    fun isValidJson(json: String): Boolean = try {
+    fun isValidJson(json: String): Boolean {\n        return try {
         val root = JSONObject(json)
         if (root.optInt("version", -1) != 1) return false
         val days = root.optJSONArray("days") ?: return false
