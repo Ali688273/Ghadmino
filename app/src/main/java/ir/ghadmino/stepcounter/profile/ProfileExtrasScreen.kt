@@ -17,9 +17,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
-import ir.ghadmino.stepcounter.step.StepHistory
-import java.text.NumberFormat
-import java.util.Locale
 
 @Composable
 fun ProfileExtrasScreen(onChanged: () -> Unit = {}) {
@@ -80,30 +77,6 @@ fun ProfileExtrasScreen(onChanged: () -> Unit = {}) {
             }
         }
 
-        item {
-            SectionHeading("۴. آمار پیشرفته", "خلاصه واقعی فعالیتت؛ بر اساس سوابق ذخیره‌شده در گوشی.")
-            Card(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Metric("مجموع ۷ روز", formatter.format(total7) + " قدم")
-                        Metric("میانگین روزانه", formatter.format(total7 / 7) + " قدم")
-                    }
-                    HorizontalDivider()
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Metric("مجموع ۳۰ روز", formatter.format(total30) + " قدم")
-                        Metric("روزهای فعال", "$activeDays از ۳۰ روز")
-                    }
-                    HorizontalDivider()
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Metric("بهترین روز ۳۰ روز", formatter.format(bestDay) + " قدم")
-                        Metric("مجموع ثبت‌شده", formatter.format(StepHistory.totalLifetime(context)) + " قدم")
-                    }
-                    Text("این آمار با ثبت قدم‌های جدید تغییر می‌کند و برای نمایش آن نیازی به خرید یا فعال‌سازی نیست.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
         item {
             Card(
                 Modifier.fillMaxWidth(),
