@@ -372,7 +372,7 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit, onFontScaleChanged: (Float) ->
         "backup" -> FullPageDialog("پشتیبان‌گیری و بازیابی", onClose = { morePage = null }) {
             BackupScreen()
         }
-        "free" -> FullPageDialog("۲۰ قابلیت رایگان", onClose = { morePage = null }) {
+        "free" -> FullPageDialog("ابزارهای تکمیلی", onClose = { morePage = null }) {
             FreeFeaturesScreen()
         }
 
@@ -538,7 +538,7 @@ private fun MorePage(
         MoreItem("📅", "تقویم فعالیت", "فعالیت روزهای گذشته را انتخاب کن و گزارش هر روز را ببین.") { onOpen("calendar") }
         MoreItem("📈", "تحلیل فعالیت", "امتیاز فعالیت، زمان‌های پرتحرک و وضعیت رسیدن به هدف را ببین.") { onOpen("insights") }
         MoreItem("📆", "برنامه افزایش قدم", "برای افزایش تدریجی قدم‌ها برنامه بساز و پیشرفتت را دنبال کن.") { onOpen("plan") }
-        MoreItem("🧰", "۲۰ قابلیت رایگان", "ابزارهای منبع قدم، اتصال سلامت، رکوردها، هدف‌گذاری، خروجی و عیب‌یابی.") { onOpen("free") }
+        MoreItem("🧰", "ابزارهای تکمیلی", "انتخاب منبع قدم، خروجی تاریخچه و عیب‌یابی قدم‌شمار.") { onOpen("free") }
         GhadminoNativeAdCards(videoOnly = true)
         Spacer(Modifier.height(24.dp))
     }
