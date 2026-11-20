@@ -144,7 +144,13 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit) {
                 steps = phoneSteps
             } else if (now - lastHealthRefresh >= 60000L) {
                 val hc = try { HealthConnectRepository.todaySteps(context) } catch (_: Exception) { null }
-                steps = if (hc != null) hc.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt() else phoneSteps
+                val manualSteps = ir.ghadmino.stepcounter.activity.ManualActivityRepository.stepsForDate(
+                    context,
+                    java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+                )
+                steps = if (hc != null) {
+                    (hc + manualSteps.toLong()).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+                } else phoneSteps
                 lastHealthRefresh = now
             }
             if (steps != lastSavedSteps) {
