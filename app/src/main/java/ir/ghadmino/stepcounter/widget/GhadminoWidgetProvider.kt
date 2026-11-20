@@ -35,7 +35,10 @@ class GhadminoWidgetProvider : AppWidgetProvider() {
             val manager = AppWidgetManager.getInstance(context)
             val component = ComponentName(context, GhadminoWidgetProvider::class.java)
             val ids = manager.getAppWidgetIds(component)
-            if (ids.isEmpty()) return
+            if (ids.isEmpty()) {
+                GhadminoWeekWidgetProvider.updateAll(context)
+                return
+            }
 
             val steps = ActivityAnalyticsRepository.today(context)
             val goal = ProfileRepository.load(context).dailyGoal.coerceAtLeast(1)
