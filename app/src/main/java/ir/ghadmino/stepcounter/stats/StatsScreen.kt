@@ -364,10 +364,11 @@ private fun ActivityChart(data: List<Point>, line: Boolean, goal: Int, annual: B
         return
     }
 
-    // محور نمودار از ۲۰ هزار قدم شروع می‌شود و در صورت نیاز، هر ۴ هزار قدم ادامه پیدا می‌کند.
-    val highestValue = max(data.maxOfOrNull { it.value } ?: 0, goal).coerceAtLeast(20_000)
-    val maxValue = ((highestValue + 3_999) / 4_000) * 4_000
-    val axisSteps = (maxValue / 4_000)
+    // نمودار روزانه/ماهانه از ۲۰ هزار شروع می‌شود؛ نمودار سالانه مقیاس مستقل خود را دارد.
+    val rawMaximum = max(1, max(data.maxOfOrNull { it.value } ?: 0, goal))
+    val highestValue = if (annual) rawMaximum else rawMaximum.coerceAtLeast(20_000)
+    val maxValue = if (annual) highestValue else ((highestValue + 3_999) / 4_000) * 4_000
+    val axisSteps = (maxValue / 4_000).coerceAtLeast(1)
     val scheme = MaterialTheme.colorScheme
     val outlineColor = scheme.outline.copy(alpha = 0.16f)
     val goalColor = scheme.error.copy(alpha = 0.55f)
