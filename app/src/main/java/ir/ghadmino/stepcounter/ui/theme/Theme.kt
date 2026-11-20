@@ -18,27 +18,39 @@ fun GhadminoTheme(
     val light = when (themeId) {
         "ocean" -> lightColorScheme(
             primary = Color(0xFF006C8E), secondary = Color(0xFF41636D),
-            tertiary = Color(0xFF635F87), background = Color(0xFFF6FAFC), surface = Color(0xFFF6FAFC)
+            tertiary = Color(0xFF635F87), background = Color(0xFFF6FAFC), surface = Color(0xFFF6FAFC),
+            primaryContainer = Color(0xFFD4F1FA), secondaryContainer = Color(0xFFDCEEF2),
+            tertiaryContainer = Color(0xFFE9E3FA), surfaceVariant = Color(0xFFE8F1F4)
         )
         "sunset" -> lightColorScheme(
             primary = Color(0xFF9C3D00), secondary = Color(0xFF76574B),
-            tertiary = Color(0xFF675F8A), background = Color(0xFFFFF8F5), surface = Color(0xFFFFF8F5)
+            tertiary = Color(0xFF675F8A), background = Color(0xFFFFF8F5), surface = Color(0xFFFFF8F5),
+            primaryContainer = Color(0xFFFFE0CE), secondaryContainer = Color(0xFFF3E2DA),
+            tertiaryContainer = Color(0xFFEAE3F8), surfaceVariant = Color(0xFFF4E8E2)
         )
         "forest" -> lightColorScheme(
             primary = Color(0xFF356A3B), secondary = Color(0xFF536653),
-            tertiary = Color(0xFF6A5D2E), background = Color(0xFFF7FAF5), surface = Color(0xFFF7FAF5)
+            tertiary = Color(0xFF6A5D2E), background = Color(0xFFF7FAF5), surface = Color(0xFFF7FAF5),
+            primaryContainer = Color(0xFFDCEED9), secondaryContainer = Color(0xFFE3EADF),
+            tertiaryContainer = Color(0xFFF0EACF), surfaceVariant = Color(0xFFEAF0E6)
         )
         "royal" -> lightColorScheme(
             primary = Color(0xFF5D3B8C), secondary = Color(0xFF635A6E),
-            tertiary = Color(0xFF7B4F00), background = Color(0xFFFAF8FF), surface = Color(0xFFFAF8FF)
+            tertiary = Color(0xFF7B4F00), background = Color(0xFFFAF8FF), surface = Color(0xFFFAF8FF),
+            primaryContainer = Color(0xFFEBDDFF), secondaryContainer = Color(0xFFE9E1F0),
+            tertiaryContainer = Color(0xFFFFE8C7), surfaceVariant = Color(0xFFF0EAF7)
         )
         "rose" -> lightColorScheme(
             primary = Color(0xFF9A405C), secondary = Color(0xFF765762),
-            tertiary = Color(0xFF765A20), background = Color(0xFFFFF8F9), surface = Color(0xFFFFF8F9)
+            tertiary = Color(0xFF765A20), background = Color(0xFFFFF8F9), surface = Color(0xFFFFF8F9),
+            primaryContainer = Color(0xFFFFDCE6), secondaryContainer = Color(0xFFF3E1E7),
+            tertiaryContainer = Color(0xFFF5E9CE), surfaceVariant = Color(0xFFF6E9EE)
         )
         else -> lightColorScheme(
             primary = Color(0xFF176B5B), secondary = Color(0xFF4C635D),
-            tertiary = Color(0xFF8A5000), background = Color(0xFFF8FAF9), surface = Color(0xFFF8FAF9)
+            tertiary = Color(0xFF8A5000), background = Color(0xFFF8FAF9), surface = Color(0xFFF8FAF9),
+            primaryContainer = Color(0xFFD1EEE7), secondaryContainer = Color(0xFFDCEAE5),
+            tertiaryContainer = Color(0xFFFFE8C7), surfaceVariant = Color(0xFFE7F0EC)
         )
     }
 
