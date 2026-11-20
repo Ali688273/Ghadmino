@@ -50,10 +50,33 @@ fun ActivityCalendarScreen(goal: Int) {
     val estimatedCalories = estimateWalkingCalories(selectedSteps, profile.weightKg)
 
     Column(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            TextButton(onClick = { monthOffset-- }) { Text("‹ ماه قبل") }
-            Text(monthLabel(month, useSolarCalendar), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            TextButton(onClick = { monthOffset++ }) { Text("ماه بعد ›") }
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TextButton(
+                onClick = { monthOffset-- },
+                modifier = Modifier.width(88.dp),
+                contentPadding = PaddingValues(horizontal = 2.dp)
+            ) {
+                Text("‹ ماه قبل", maxLines = 1, softWrap = false)
+            }
+            Text(
+                monthLabel(month, useSolarCalendar),
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                softWrap = false
+            )
+            TextButton(
+                onClick = { monthOffset++ },
+                modifier = Modifier.width(88.dp),
+                contentPadding = PaddingValues(horizontal = 2.dp)
+            ) {
+                Text("ماه بعد ›", maxLines = 1, softWrap = false)
+            }
         }
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
