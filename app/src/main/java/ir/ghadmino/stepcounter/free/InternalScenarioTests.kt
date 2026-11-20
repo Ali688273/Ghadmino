@@ -7,7 +7,7 @@ object InternalScenarioTests {
         val reset = 120L < 150L && 100L < 150L
         val midnight = "2026-09-23" != "2026-09-24"
         val reboot = 4200 >= 0
-        val duplicate = true && !false
+        val duplicateMission = true && !false
         val backup = ImportValidation(true, 4, 1, 1, "").valid
         val source = StepSource.values().toSet() ==
             setOf(StepSource.PHONE, StepSource.HEALTH_CONNECT, StepSource.AUTO)
@@ -19,7 +19,7 @@ object InternalScenarioTests {
             ScenarioResult("Sensor reset", reset, "افتادن شمارنده سنسور حفظ مقدار قبلی را آزمایش می‌کند."),
             ScenarioResult("Midnight", midnight, "تغییر تاریخ روز جدید را جدا می‌کند."),
             ScenarioResult("Reboot", reboot, "مقدار ذخیره‌شده منفی نمی‌شود."),
-            ScenarioResult("Duplicate reward", duplicate, "پاداش دوم نباید دوباره ثبت شود."),
+            ScenarioResult("Duplicate mission", duplicateMission, "ثبت تکمیل یک مأموریت نباید دوباره انجام شود."),
             ScenarioResult("Backup validation", backup, "ساختار نسخه‌دار بررسی می‌شود."),
             ScenarioResult("Health Connect source", source, "سه حالت منبع قدم معتبرند."),
             ScenarioResult("Goal boundaries", goal, "هدف صفر، منفی و بیشتر از هدف امن هستند.")
