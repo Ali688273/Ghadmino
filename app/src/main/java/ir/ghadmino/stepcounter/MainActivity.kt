@@ -10,7 +10,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -19,6 +18,7 @@ import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -28,12 +28,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import ir.ghadmino.stepcounter.analytics.ActivityAnalyticsRepository
-import ir.ghadmino.stepcounter.analytics.ActivityIntelligenceScreen
 import ir.ghadmino.stepcounter.notification.InactivityScheduler
 import ir.ghadmino.stepcounter.backup.BackupScreen
 import ir.ghadmino.stepcounter.insights.ActivityInsightsRepository
@@ -42,7 +42,6 @@ import ir.ghadmino.stepcounter.health.HealthConnectScreen
 import ir.ghadmino.stepcounter.health.HealthConnectRepository
 import ir.ghadmino.stepcounter.free.StepSource
 import ir.ghadmino.stepcounter.free.StepSourceRepository
-import ir.ghadmino.stepcounter.workout.WorkoutScreen
 import ir.ghadmino.stepcounter.plan.StepPlanScreen
 import ir.ghadmino.stepcounter.activity.ManualActivityScreen
 import ir.ghadmino.stepcounter.history.ActivityCalendarScreen
@@ -64,6 +63,7 @@ import ir.ghadmino.stepcounter.ads.GhadminoAdsManager
 import ir.ghadmino.stepcounter.ads.GhadminoBanner
 import ir.ghadmino.stepcounter.ads.GhadminoNativeAdCards
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import ir.ghadmino.stepcounter.activity.ActivityTimeRepository
 
@@ -163,6 +163,7 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit, onFontScaleChanged: (Float) ->
     var profileName by remember { mutableStateOf(ProfileRepository.load(context).name) }
     var insights by remember { mutableStateOf(ActivityInsightsRepository.calculate(context, goal)) }
     val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         var lastHealthRefresh = 0L
@@ -172,17 +173,16 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit, onFontScaleChanged: (Float) ->
             stepSource = StepSourceRepository.get(context)
             val phoneSteps = ActivityAnalyticsRepository.today(context)
             val now = System.currentTimeMillis()
+            val manualSteps = ir.ghadmino.stepcounter.activity.ManualActivityRepository.stepsForDate(
+                context,
+                java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+            )
             if (stepSource == StepSource.PHONE || (stepSource == StepSource.AUTO && StepCounterService.sensorAvailable)) {
-                steps = phoneSteps
+                steps = (phoneSteps.toLong() + manualSteps).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
             } else if (now - lastHealthRefresh >= 60000L) {
                 val hc = try { HealthConnectRepository.todaySteps(context) } catch (_: Exception) { null }
-                val manualSteps = ir.ghadmino.stepcounter.activity.ManualActivityRepository.stepsForDate(
-                    context,
-                    java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
-                )
-                steps = if (hc != null) {
-                    (hc + manualSteps.toLong()).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
-                } else phoneSteps
+                val baseSteps = hc ?: phoneSteps.toLong()
+                steps = (baseSteps + manualSteps).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
                 lastHealthRefresh = now
             }
             if (steps != lastSavedSteps) {
@@ -250,7 +250,7 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit, onFontScaleChanged: (Float) ->
                 NavigationBarItem(
                     selected = tab == 2,
                     onClick = { tab = 2 },
-                    icon = { Icon(Icons.Default.Settings, null) },
+                    icon = { Icon(Icons.Default.MoreVert, null) },
                     label = { Text("بیشتر") }
                 )
                 NavigationBarItem(
@@ -271,21 +271,26 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit, onFontScaleChanged: (Float) ->
                 distanceKm = distanceKm,
                 calories = calories,
                 walkingMinutes = walkingMinutes,
-                onGoalChanged = {
-                    goal = it
-                    val profile = ProfileRepository.load(context)
-                    ProfileRepository.save(context, profile.copy(dailyGoal = it))
-                    prefs.edit().putInt("daily_goal", it).apply()
-                },
                 onManualActivityChanged = {
-                    steps = ActivityAnalyticsRepository.today(context)
-                    StepHistory.saveToday(context, steps)
-                    walkingMinutes = ActivityTimeRepository.todayActiveMinutes(context) +
-                        ir.ghadmino.stepcounter.activity.ManualActivityRepository.minutesForDate(
-                            context,
-                            java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
-                        )
-                    insights = ActivityInsightsRepository.calculate(context, goal)
+                    scope.launch {
+                        val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+                        val phoneStepsNow = ActivityAnalyticsRepository.today(context)
+                        val manualStepsNow = ir.ghadmino.stepcounter.activity.ManualActivityRepository.stepsForDate(context, today)
+                        val baseStepsNow = if (
+                            stepSource == StepSource.PHONE ||
+                            (stepSource == StepSource.AUTO && StepCounterService.sensorAvailable)
+                        ) {
+                            phoneStepsNow.toLong()
+                        } else {
+                            (try { HealthConnectRepository.todaySteps(context) } catch (_: Exception) { null })
+                                ?: phoneStepsNow.toLong()
+                        }
+                        steps = (baseStepsNow + manualStepsNow).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+                        StepHistory.saveToday(context, steps)
+                        walkingMinutes = ActivityTimeRepository.todayActiveMinutes(context) +
+                            ir.ghadmino.stepcounter.activity.ManualActivityRepository.minutesForDate(context, today)
+                        insights = ActivityInsightsRepository.calculate(context, goal)
+                    }
                 }
             )
             1 -> StatsScreen(
@@ -298,9 +303,16 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit, onFontScaleChanged: (Float) ->
             )
             3 -> SettingsScreen(
                 onProfile = { morePage = "profile" },
-                onHistory = { morePage = "history" },
                 onHealth = { morePage = "health" },
                 onBackup = { morePage = "backup" },
+                dailyGoal = goal,
+                onDailyGoalChanged = {
+                    goal = it
+                    val updatedProfile = ProfileRepository.load(context).copy(dailyGoal = it)
+                    ProfileRepository.save(context, updatedProfile)
+                    prefs.edit().putInt("daily_goal", it).apply()
+                },
+                stepCounterAvailable = StepCounterService.sensorAvailable,
                 selectedTheme = selectedTheme,
                 onThemeSelected = { id ->
                     selectedTheme = id
@@ -330,37 +342,15 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit, onFontScaleChanged: (Float) ->
         "extras" -> FullPageDialog("شخصی‌سازی", onClose = { morePage = null }) {
             ProfileExtrasScreen()
         }
-        "smart" -> FullPageDialog("گزارش هوشمند", onClose = { morePage = null }) {
-            ActivityIntelligenceScreen()
-        }
         "insights" -> FullPageDialog("تحلیل فعالیت", onClose = { morePage = null }) {
             ActivityInsightsScreen(insights, ActivityInsightsRepository.hourly(context))
         }
         "calendar" -> FullPageDialog("تقویم فعالیت و گزارش روزانه", onClose = { morePage = null }) {
             ActivityCalendarScreen(goal)
         }
-        "history" -> FullPageDialog("تاریخچه ۳۰ روز اخیر", onClose = { morePage = null }) {
-            androidx.compose.foundation.lazy.LazyColumn(
-                Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(4.dp)
-            ) {
-                items(StepHistory.recent(context, 30)) { item ->
-                    Card(Modifier.fillMaxWidth()) {
-                        ListItem(
-                            headlineContent = { Text(item.first) },
-                            trailingContent = { Text(item.second.toString() + " قدم") }
-                        )
-                    }
-                }
-            }
-        }
         "challenges" -> FullPageDialog("چالش‌ها", onClose = { morePage = null }) { ChallengesScreen() }
         "health" -> FullPageDialog("Health Connect", onClose = { morePage = null }) {
             HealthConnectScreen()
-        }
-        "workout" -> FullPageDialog("تمرین پیاده‌روی", onClose = { morePage = null }) {
-            WorkoutScreen()
         }
         "plan" -> FullPageDialog("برنامه افزایش قدم", onClose = { morePage = null }) {
             StepPlanScreen()
@@ -368,7 +358,7 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit, onFontScaleChanged: (Float) ->
         "backup" -> FullPageDialog("پشتیبان‌گیری و بازیابی", onClose = { morePage = null }) {
             BackupScreen()
         }
-        "free" -> FullPageDialog("۲۰ قابلیت رایگان", onClose = { morePage = null }) {
+        "free" -> FullPageDialog("ابزارهای تکمیلی", onClose = { morePage = null }) {
             FreeFeaturesScreen()
         }
 
@@ -435,7 +425,6 @@ private fun HomePage(
     distanceKm: Double,
     calories: Double,
     walkingMinutes: Int,
-    onGoalChanged: (Int) -> Unit,
     onManualActivityChanged: () -> Unit
 ) {
     Column(
@@ -475,65 +464,31 @@ private fun HomePage(
                 Icons.Default.Route,
                 "مسافت",
                 String.format(java.util.Locale.US, "%.2f km", distanceKm),
-                containerColor = Color(0xFFE6F0FF),
-                contentColor = Color(0xFF244A78)
+                containerColor = Color(0xFFE8EEF5),
+                contentColor = Color(0xFF34465A)
             )
             StatCard(
                 Modifier.weight(1f),
                 Icons.Default.LocalFireDepartment,
                 "کالری",
                 calories.toInt().toString() + " kcal",
-                containerColor = Color(0xFFFFF0DF),
-                contentColor = Color(0xFF80501F)
+                containerColor = Color(0xFFE8EEF5),
+                contentColor = Color(0xFF34465A)
             )
             StatCard(
                 Modifier.weight(1f),
                 Icons.Default.DirectionsWalk,
                 "زمان راه‌رفتن",
                 walkingMinutes.toString() + " دقیقه",
-                containerColor = Color(0xFFE3F4EF),
-                contentColor = Color(0xFF245D50)
+                containerColor = Color(0xFFE8EEF5),
+                contentColor = Color(0xFF34465A)
             )
         }
 
         ManualActivityScreen(onChanged = onManualActivityChanged)
 
-        Card(
-            Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
-        ) {
-            Column(Modifier.padding(18.dp)) {
-                Text("هدف روزانه", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text(goal.toString() + " قدم", style = MaterialTheme.typography.titleLarge)
-                Slider(
-                    value = goal.toFloat(),
-                    onValueChange = {
-                        onGoalChanged(((it / 1000f).roundToInt() * 1000).coerceIn(1000, 30000))
-                    },
-                    valueRange = 1000f..30000f,
-                    steps = 28
-                )
-            }
-        }
-
         GhadminoBanner(modifier = Modifier.fillMaxWidth())
 
-        Card(
-            Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-        ) {
-            Column(Modifier.padding(18.dp)) {
-                Text("وضعیت قدم‌شمار", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    if (StepCounterService.sensorAvailable)
-                        "✓ حسگر قدم‌شمار فعال است"
-                    else
-                        "⚠ حسگر قدم‌شمار روی این گوشی پیدا نشد"
-                )
-                Text("شمارش قدم‌ها در پس‌زمینه ادامه پیدا می‌کند.")
-            }
-        }
     }
 }
 
@@ -543,24 +498,35 @@ private fun MorePage(
     onOpen: (String) -> Unit
 ) {
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        Modifier.fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .navigationBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Text("امکانات قدمینو", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text("بخش‌های کاربردی برنامه در صفحه‌های جداگانه قرار گرفته‌اند.")
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                "امکانات قدمینو",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                "ابزارها و گزارش‌های برنامه را از این بخش باز کن.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 21.sp
+            )
+        }
         GhadminoBanner(modifier = Modifier.fillMaxWidth())
-        MoreItem("🏆", "دستاوردها", "مدال‌ها و نشان‌های پیشرفت") { onOpen("achievements") }
-        MoreItem("🎁", "امکانات رایگان", "ابزارها و قابلیت‌های در دسترس همه کاربران") { onOpen("free") }
-        MoreItem("⭐", "سطح و XP", "سطح کاربر و میزان پیشرفت") { onOpen("level") }
-        MoreItem("🎨", "شخصی‌سازی رایگان", "قاب‌ها، نشان‌ها و امکانات بدون پرداخت") { onOpen("extras") }
-        MoreItem("📅", "تقویم فعالیت", "انتخاب هر روز و مشاهده گزارش واقعی همان روز") { onOpen("calendar") }
-        MoreItem("📊", "گزارش هوشمند", "روند، رکورد و پیش‌بینی فعالیت") { onOpen("smart") }
-        MoreItem("📈", "تحلیل فعالیت", "امتیاز، فعالیت ساعتی و پیش‌بینی هدف") { onOpen("insights") }
-        MoreItem("🏃", "تمرین پیاده‌روی", "شروع، توقف و ثبت یک جلسه واقعی") { onOpen("workout") }
-        MoreItem("📆", "برنامه افزایش قدم", "هدف‌گذاری تدریجی و قابل پیگیری") { onOpen("plan") }
-        MoreItem("🧰", "۲۰ قابلیت رایگان", "۲۰ ابزار کاربردی برای منبع قدم، Health Connect، رکورد، هدف، خروجی و عیب‌یابی") { onOpen("free") }
+        MoreItem("🏆", "دستاوردها", "مدال‌ها و نشان‌هایی که با فعالیت و پیشرفت به دست می‌آوری.") { onOpen("achievements") }
+        MoreItem("⭐", "سطح و XP", "سطح فعلی و امتیاز تجربه‌ای را که کسب کرده‌ای ببین.") { onOpen("level") }
+        MoreItem("🎨", "شخصی‌سازی رایگان", "قاب پروفایل، نشان کنار نام و انتخاب ظاهر ویجت؛ همه رایگان.") { onOpen("extras") }
+        MoreItem("📅", "تقویم فعالیت", "فعالیت روزهای گذشته را انتخاب کن و گزارش هر روز را ببین.") { onOpen("calendar") }
+        MoreItem("📈", "تحلیل فعالیت", "امتیاز فعالیت، زمان‌های پرتحرک و وضعیت رسیدن به هدف را ببین.") { onOpen("insights") }
+        MoreItem("📆", "برنامه افزایش قدم", "برای افزایش تدریجی قدم‌ها برنامه بساز و پیشرفتت را دنبال کن.") { onOpen("plan") }
+        MoreItem("🧰", "ابزارهای تکمیلی", "انتخاب منبع قدم، خروجی تاریخچه و عیب‌یابی قدم‌شمار.") { onOpen("free") }
         GhadminoNativeAdCards(videoOnly = true)
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(24.dp))
     }
 }
 
@@ -580,19 +546,45 @@ private fun MoreItem(
     }
     Card(
         Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = container)
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = container),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
-            Modifier.fillMaxWidth().padding(16.dp),
+            Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(emoji, style = MaterialTheme.typography.headlineMedium)
-            Spacer(Modifier.width(14.dp))
-            Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text(description, style = MaterialTheme.typography.bodyMedium)
+            Box(
+                Modifier.size(46.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(emoji, style = MaterialTheme.typography.headlineSmall)
             }
-            TextButton(onClick = onClick) { Text("ورود") }
+            Spacer(Modifier.width(12.dp))
+            Column(
+                Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    lineHeight = 25.sp
+                )
+                Text(
+                    description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 21.sp
+                )
+            }
+            Spacer(Modifier.width(6.dp))
+            TextButton(
+                onClick = onClick,
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
+            ) {
+                Text("ورود", fontWeight = FontWeight.SemiBold)
+            }
         }
     }
 }

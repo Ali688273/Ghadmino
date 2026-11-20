@@ -4,9 +4,6 @@ import android.content.Context
 import ir.ghadmino.stepcounter.activity.ManualActivityRepository
 import ir.ghadmino.stepcounter.profile.ProfileRepository
 import ir.ghadmino.stepcounter.step.StepHistory
-import ir.ghadmino.stepcounter.workout.WorkoutRepository
-import java.text.SimpleDateFormat
-import java.util.Locale
 
 data class PersonalRecords(
     val bestDaySteps:Int,
@@ -28,14 +25,12 @@ object PersonalRecordsRepository {
         val rows=StepHistory.recent(context,3650)
         val best=rows.maxByOrNull { it.second }
         val profile=ProfileRepository.load(context)
-        val workouts=WorkoutRepository.load(context)
         val manual=ManualActivityRepository.all(context)
         val best30Day=rolling(rows,30)
         val bestMonth=bestCalendarMonth(rows)
         val bestDistance=rows.maxOfOrNull { it.second * profile.strideCm / 100000.0 } ?: 0.0
         val recentDates = rows.take(30).mapTo(hashSetOf()) { it.first }
-        val activeMinutes=manual.filter { it.date in recentDates }.sumOf { it.minutes } +
-            workouts.filter { dateOf(it.startedAt) in recentDates && it.durationMinutes > 0 }.sumOf { it.durationMinutes }
+        val activeMinutes=manual.filter { it.date in recentDates }.sumOf { it.minutes }
         return PersonalRecords(
             bestDaySteps=best?.second ?: 0,
             bestDayDate=best?.first ?: "-",
@@ -46,8 +41,9 @@ object PersonalRecordsRepository {
             currentStreak=current(context),
             activeDays30=rows.take(30).count { it.second>0 },
             bestDistanceKm=bestDistance,
-            bestWorkoutDistanceMeters=workouts.maxOfOrNull { it.distanceMeters } ?: 0.0,
-            bestWorkoutMinutes=workouts.maxOfOrNull { it.durationMinutes } ?: 0,
+            // Kept for compatibility with existing callers; the removed workout feature no longer records these values.
+            bestWorkoutDistanceMeters=0.0,
+            bestWorkoutMinutes=0,
             activeMinutes30=activeMinutes
         )
     }
@@ -81,6 +77,4 @@ object PersonalRecordsRepository {
         }
         return best
     }
-    private fun dateOf(timestamp: Long): String =
-        SimpleDateFormat("yyyy-MM-dd", Locale.US).format(java.util.Date(timestamp))
 }

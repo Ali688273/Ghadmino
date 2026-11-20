@@ -8,6 +8,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BatteryAlert
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.*
@@ -19,13 +20,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import ir.ghadmino.stepcounter.notification.InactivityScheduler
 import ir.ghadmino.stepcounter.notification.ReminderScheduler
+import kotlin.math.roundToInt
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onProfile: () -> Unit,
-    onHistory: () -> Unit,
     onHealth: () -> Unit,
     onBackup: () -> Unit,
+    dailyGoal: Int,
+    onDailyGoalChanged: (Int) -> Unit,
+    stepCounterAvailable: Boolean,
     selectedTheme: String,
     onThemeSelected: (String) -> Unit,
     fontScale: Float,
@@ -58,9 +63,64 @@ fun SettingsScreen(
 
         Text("حساب و اطلاعات", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         SettingActionCard("👤", "اطلاعات بدنی و هدف", "نام، سن، قد، وزن، طول گام و هدف روزانه", onProfile)
-        SettingActionCard("📅", "تاریخچه فعالیت", "مشاهده قدم‌های ثبت‌شده در روزهای گذشته", onHistory)
         SettingActionCard("❤️", "اتصال قدمینو به داده‌های سلامت", "مدیریت اتصال و خواندن اطلاعات از Health Connect", onHealth)
         SettingActionCard("💾", "پشتیبان‌گیری و بازیابی", "ذخیره یا برگرداندن اطلاعات قدمینو از فایل", onBackup)
+
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(18.dp)) {
+                Text("هدف روزانه", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("هدف فعلی: $dailyGoal قدم")
+                Slider(
+                    value = dailyGoal.toFloat(),
+                    onValueChange = {
+                        onDailyGoalChanged(((it / 1000f).roundToInt() * 1000).coerceIn(1000, 30000))
+                    },
+                    valueRange = 1000f..30000f,
+                    steps = 28
+                )
+                Text("هدف را بین ۱۰۰۰ تا ۳۰٬۰۰۰ قدم تنظیم کن.", style = MaterialTheme.typography.bodySmall)
+            }
+        }
+
+        Divider()
+        Text("تقویم و تاریخ", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("نوع تقویم", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(
+                    "قالب تاریخ‌ها در تقویم فعالیت و گزارش‌های آماری با این انتخاب تغییر می‌کند.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    FilterChip(
+                        selected = settings.useSolarCalendar,
+                        onClick = {
+                            settings = settings.copy(useSolarCalendar = true)
+                            SettingsRepository.save(context, settings)
+                        },
+                        label = { Text("خورشیدی (شمسی)") },
+                        leadingIcon = if (settings.useSolarCalendar) ({ Icon(Icons.Default.Check, contentDescription = "انتخاب‌شده") }) else null,
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilterChip(
+                        selected = !settings.useSolarCalendar,
+                        onClick = {
+                            settings = settings.copy(useSolarCalendar = false)
+                            SettingsRepository.save(context, settings)
+                        },
+                        label = { Text("میلادی") },
+                        leadingIcon = if (!settings.useSolarCalendar) ({ Icon(Icons.Default.Check, contentDescription = "انتخاب‌شده") }) else null,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                Text(
+                    if (settings.useSolarCalendar) "تقویم فعلی: خورشیدی" else "تقویم فعلی: میلادی",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
 
         Divider()
         Text("رنگ و تم برنامه", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -133,6 +193,24 @@ fun SettingsScreen(
         }
 
         Divider()
+        Text("قدم‌شمار و عملکرد", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(18.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Speed, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("وضعیت قدم‌شمار", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                }
+                Text(
+                    if (stepCounterAvailable)
+                        "✓ حسگر قدم‌شمار فعال است"
+                    else
+                        "⚠ حسگر قدم‌شمار روی این گوشی پیدا نشد"
+                )
+                Text("شمارش قدم‌ها در پس‌زمینه ادامه پیدا می‌کند.")
+            }
+        }
+
         Text("یادآوری‌ها و عملکرد", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(18.dp)) {
@@ -209,21 +287,11 @@ fun SettingsScreen(
                 }, modifier = Modifier.fillMaxWidth()) { Text("باز کردن تنظیمات باتری") }
             }
         }
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(18.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Speed, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("دقت سرعت", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                }
-                Text("برای سرعت دقیق‌تر، GPS روشن و مجوز موقعیت مکانی فعال باشد.")
-            }
-        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(18.dp)) {
                     Text("مجوزها", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text("مجوز فعالیت بدنی و در صورت استفاده از سرعت/تمرین، موقعیت مکانی باید توسط کاربر تأیید شود.")
+                    Text("مجوز فعالیت بدنی و در صورت استفاده از قابلیت سرعت، مجوز موقعیت مکانی باید توسط کاربر تأیید شود.")
                 }
             }
         }

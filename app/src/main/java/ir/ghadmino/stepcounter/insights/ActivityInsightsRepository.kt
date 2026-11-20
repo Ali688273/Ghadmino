@@ -17,8 +17,6 @@ data class ActivityInsights(
     val peakSteps: Int,
     val goalProgress: Int,
     val etaMinutes: Int?,
-    val bestDaySteps: Int,
-    val bestStreak: Int,
     val message: String
 )
 
@@ -61,15 +59,15 @@ object ActivityInsightsRepository {
                 (if (steps >= 10000) 10f else steps / 1000f) +
                 (if (recentAverage >= goal) 10f else 0f)
             ).roundToInt().coerceIn(0, 100)
-        val bestDay = recent.maxOfOrNull { it.second } ?: 0
-        val bestStreak = StepHistory.currentStreak(context, goal)
         val message = when {
             score >= 90 -> "امروز عالی پیش رفتی؛ فقط ادامه بده."
             score >= 70 -> "عملکرد امروز خیلی خوب است."
             score >= 40 -> "در مسیر خوبی هستی؛ چند حرکت دیگر امتیازت را بالاتر می‌برد."
             else -> "با چند دقیقه پیاده‌روی می‌توانی امتیازت را بهتر کنی."
         }
-        return ActivityInsights(score, activeHours, peakHour, peakSteps, goalProgress, eta, bestDay, bestStreak, message)
+        return ActivityInsights(
+            score, activeHours, peakHour, peakSteps, goalProgress, eta, message
+        )
     }
 
     fun formatHour(hour: Int): String = String.format(Locale.US, "%02d:00", hour)
