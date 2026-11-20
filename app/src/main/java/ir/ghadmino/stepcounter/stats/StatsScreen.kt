@@ -307,84 +307,92 @@ private fun ActivityChart(data: List<Point>, line: Boolean, goal: Int) {
     val chartColor = scheme.primary
 
     Column {
-        Canvas(Modifier.fillMaxWidth().height(270.dp)) {
-            val left = 14f
-            val right = size.width - 10f
-            val top = 12f
-            val bottom = size.height - 18f
-            val w = right - left
-            val h = bottom - top
-
-            for (i in 0..4) {
-                val y = top + h * i / 4f
-                drawLine(outlineColor, Offset(left, y), Offset(right, y), 1f)
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // مقیاس عددی محور عمودی؛ پنج مقدار دقیقاً متناظر با خطوط راهنمای نمودار
+            Column(
+                Modifier.width(58.dp).height(270.dp).padding(vertical = 5.dp),
+                verticalArrangement = Arrangement.SpaceBetween,
+                horizontalAlignment = Alignment.End
+            ) {
+                for (step in 4 downTo 0) {
+                    val tickValue = (maxValue.toLong() * step / 4L).toInt()
+                    Text(
+                        text = formatChartNumber(tickValue),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = scheme.onSurfaceVariant,
+                        maxLines = 1
+                    )
+                }
             }
+            Canvas(Modifier.weight(1f).height(270.dp)) {
+                val left = 4f
+                val right = size.width - 6f
+                val top = 12f
+                val bottom = size.height - 18f
+                val w = right - left
+                val h = bottom - top
 
-            val gy = bottom - h * (goal.toFloat() / maxValue).coerceIn(0f, 1f)
-            drawLine(goalColor, Offset(left, gy), Offset(right, gy), 2f)
-
-            if (line) {
-                val points = data.mapIndexed { index, point ->
-                    val x = if (data.size == 1) left else left + w * index / (data.size - 1)
-                    val y = bottom - h * point.value.toFloat() / maxValue
-                    Offset(x, y)
+                for (i in 0..4) {
+                    val y = top + h * i / 4f
+                    drawLine(outlineColor, Offset(left, y), Offset(right, y), 1f)
                 }
-                val curve = Path()
-                if (points.isNotEmpty()) {
-                    curve.moveTo(points.first().x, points.first().y)
-                    for (index in 0 until points.lastIndex) {
-                        val start = points[index]
-                        val end = points[index + 1]
-                        val previous = points[(index - 1).coerceAtLeast(0)]
-                        val next = points[(index + 2).coerceAtMost(points.lastIndex)]
-                        val dx = end.x - start.x
-                        val minY = minOf(start.y, end.y)
-                        val maxY = maxOf(start.y, end.y)
 
-                        // منحنی نرم Catmull-Rom با کنترل نقاط برای جلوگیری از جهش و نوسان اضافی
-                        val control1 = Offset(
-                            start.x + dx / 3f,
-                            (start.y + (end.y - previous.y) / 6f).coerceIn(minY, maxY)
-                        )
-                        val control2 = Offset(
-                            end.x - dx / 3f,
-                            (end.y - (next.y - start.y) / 6f).coerceIn(minY, maxY)
-                        )
-                        curve.cubicTo(
-                            control1.x, control1.y,
-                            control2.x, control2.y,
-                            end.x, end.y
+                val gy = bottom - h * (goal.toFloat() / maxValue).coerceIn(0f, 1f)
+                drawLine(goalColor, Offset(left, gy), Offset(right, gy), 2f)
+
+                if (line) {
+                    val points = data.mapIndexed { index, point ->
+                        val x = if (data.size == 1) left else left + w * index / (data.size - 1)
+                        val y = bottom - h * point.value.toFloat() / maxValue
+                        Offset(x, y)
+                    }
+                    val curve = Path()
+                    if (points.isNotEmpty()) {
+                        curve.moveTo(points.first().x, points.first().y)
+                        for (index in 0 until points.lastIndex) {
+                            val start = points[index]
+                            val end = points[index + 1]
+                            val previous = points[(index - 1).coerceAtLeast(0)]
+                            val next = points[(index + 2).coerceAtMost(points.lastIndex)]
+                            val dx = end.x - start.x
+                            val minY = minOf(start.y, end.y)
+                            val maxY = maxOf(start.y, end.y)
+                            val control1 = Offset(
+                                start.x + dx / 3f,
+                                (start.y + (end.y - previous.y) / 6f).coerceIn(minY, maxY)
+                            )
+                            val control2 = Offset(
+                                end.x - dx / 3f,
+                                (end.y - (next.y - start.y) / 6f).coerceIn(minY, maxY)
+                            )
+                            curve.cubicTo(control1.x, control1.y, control2.x, control2.y, end.x, end.y)
+                        }
+                        drawPath(curve, chartColor, style = Stroke(width = 5f, cap = StrokeCap.Round))
+                        points.forEach { point -> drawCircle(chartColor, 5f, point) }
+                    }
+                } else {
+                    val slotWidth = w / data.size
+                    val bw = (slotWidth * 0.62f).coerceIn(3f, 30f)
+                    data.forEachIndexed { index, point ->
+                        val x = left + index * slotWidth + (slotWidth - bw) / 2f
+                        val bh = h * point.value.toFloat() / maxValue
+                        drawRoundRect(
+                            color = chartColor,
+                            topLeft = Offset(x, bottom - bh),
+                            size = androidx.compose.ui.geometry.Size(bw, bh),
+                            cornerRadius = CornerRadius(bw / 2f, bw / 2f)
                         )
                     }
-                    drawPath(
-                        path = curve,
-                        color = chartColor,
-                        style = Stroke(width = 5f, cap = StrokeCap.Round)
-                    )
-                    points.forEach { point ->
-                        drawCircle(chartColor, 5f, point)
-                    }
-                }
-            } else {
-                // هر میله داخل یک خانه مساوی از عرض نمودار قرار می‌گیرد؛
-                // بنابراین در نمودار هفتگی میله‌ها فقط سمت چپ جمع نمی‌شوند.
-                val slotWidth = w / data.size
-                val bw = (slotWidth * 0.62f).coerceIn(3f, 30f)
-                data.forEachIndexed { index, point ->
-                    val x = left + index * slotWidth + (slotWidth - bw) / 2f
-                    val bh = h * point.value.toFloat() / maxValue
-                    drawRoundRect(
-                        color = chartColor,
-                        topLeft = Offset(x, bottom - bh),
-                        size = androidx.compose.ui.geometry.Size(bw, bh),
-                        cornerRadius = CornerRadius(bw / 2f, bw / 2f)
-                    )
                 }
             }
         }
+        // برچسب‌های محور افقی (تاریخ هر روز یا ماه)
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
             Row(
-                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(start = 58.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 data.forEach {
@@ -456,6 +464,9 @@ private fun gregorianToJalali(gy: Int, gm: Int, gd: Int): Triple<Int, Int, Int> 
     val jd = 1 + if (days < 186) days % 31 else (days - 186) % 30
     return Triple(jy, jm, jd)
 }
+private fun formatChartNumber(value: Int): String =
+    java.text.NumberFormat.getIntegerInstance(Locale("fa", "IR")).format(value)
+
 @Composable
 private fun Metric(modifier: Modifier, title: String, value: String, unit: String) {
     Card(modifier) {
