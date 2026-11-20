@@ -3,6 +3,7 @@ package ir.ghadmino.stepcounter.free
 import android.content.Context
 import android.content.Intent
 import ir.ghadmino.stepcounter.step.StepHistory
+import org.json.JSONArray
 import org.json.JSONObject
 import java.util.regex.Pattern
 
@@ -16,32 +17,42 @@ object FreeExportRepository {
     }
 
     fun json(c: Context): String {
-        val body = StepHistory.recent(c, 365).joinToString(",") { row ->
-            JSONObject()
-                .put("date", row.first)
-                .put("steps", row.second.coerceAtLeast(0))
-                .toString()
+        val days = JSONArray()
+        StepHistory.recent(c, 365).forEach { row ->
+            days.put(JSONObject().put("date", row.first).put("steps", row.second.coerceAtLeast(0)))
         }
-        return JSONObject()
-            .put("version", 1)
-            .put("days", org.json.JSONArray("[$body]"))
-            .toString(2)
+        return JSONObject().put("version", 1).put("days", days).toString(2)
     }
 
-    fun isValidJson(json: String): Boolean {\n        return try {
-        val root = JSONObject(json)
-        if (root.optInt("version", -1) != 1) return false
-        val days = root.optJSONArray("days") ?: return false
-        val datePattern = Pattern.compile("\\d{4}-\\d{2}-\\d{2}")
-        for (index in 0 until days.length()) {
-            val day = days.optJSONObject(index) ?: return false
-            val date = day.optString("date")
-            if (!datePattern.matcher(date).matches()) return false
-            if (!day.has("steps") || day.optLong("steps", -1L) < 0L) return false
+    fun isValidJson(json: String): Boolean {
+        return try {
+            val root = JSONObject(json)
+            if (root.optInt("version", -1) != 1) {
+                false
+            } else {
+                val days = root.optJSONArray("days")
+                if (days == null) {
+                    false
+                } else {
+                    val datePattern = Pattern.compile("\\d{4}-\\d{2}-\\d{2}")
+                    var valid = true
+                    for (index in 0 until days.length()) {
+                        val day = days.optJSONObject(index)
+                        if (day == null ||
+                            !datePattern.matcher(day.optString("date")).matches() ||
+                            !day.has("steps") ||
+                            day.optLong("steps", -1L) < 0L
+                        ) {
+                            valid = false
+                            break
+                        }
+                    }
+                    valid
+                }
+            }
+        } catch (_: Exception) {
+            false
         }
-        true
-    } catch (_: Exception) {
-        false
     }
 
     fun share(c: Context, text: String, mime: String) {
