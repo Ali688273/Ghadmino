@@ -91,9 +91,23 @@ object StatsRepository {
 
     fun label(date: String): String {
         return try {
-            val d = SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(date)
+            val parsed = SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(date)
                 ?: return date
-            SimpleDateFormat("MM/dd", Locale.US).format(d)
+            val calendar = android.icu.util.PersianCalendar().apply { time = parsed }
+            val value = String.format(
+                Locale.US,
+                "%04d/%02d/%02d",
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH) + 1,
+                calendar.get(Calendar.DAY_OF_MONTH)
+            )
+            value.map { digit ->
+                when (digit) {
+                    '0' -> '۰'; '1' -> '۱'; '2' -> '۲'; '3' -> '۳'; '4' -> '۴'
+                    '5' -> '۵'; '6' -> '۶'; '7' -> '۷'; '8' -> '۸'; '9' -> '۹'
+                    else -> digit
+                }
+            }.joinToString("")
         } catch (_: Exception) {
             date
         }
