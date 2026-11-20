@@ -67,7 +67,6 @@ object GhadminoAdsManager {
     /** Compatibility entry point for ad slots created after Activity startup. */
     fun initialize(context: Context) {
         if (sessionStartedAt == 0L) sessionStartedAt = System.currentTimeMillis()
-        (context as? Activity)?.let { prepare(it) }
     }
 
     fun onUserNavigation(activity: Activity) {
