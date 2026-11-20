@@ -364,7 +364,10 @@ private fun ActivityChart(data: List<Point>, line: Boolean, goal: Int, annual: B
         return
     }
 
-    val maxValue = max(1, max(data.maxOfOrNull { it.value } ?: 0, goal))
+    // محور نمودار از ۲۰ هزار قدم شروع می‌شود و در صورت نیاز، هر ۴ هزار قدم ادامه پیدا می‌کند.
+    val highestValue = max(data.maxOfOrNull { it.value } ?: 0, goal).coerceAtLeast(20_000)
+    val maxValue = ((highestValue + 3_999) / 4_000) * 4_000
+    val axisSteps = (maxValue / 4_000)
     val scheme = MaterialTheme.colorScheme
     val outlineColor = scheme.outline.copy(alpha = 0.16f)
     val goalColor = scheme.error.copy(alpha = 0.55f)
@@ -388,7 +391,7 @@ private fun ActivityChart(data: List<Point>, line: Boolean, goal: Int, annual: B
                 verticalArrangement = Arrangement.SpaceBetween,
                 horizontalAlignment = Alignment.End
             ) {
-                // در نمودار سالانه فقط پنج درجه‌بندی متناسب با مجموع ماه‌ها نمایش داده می‌شود.
+                // نمودار سالانه پنج درجه‌بندی دارد؛ نمودار روزانه/ماهانه هر ۴ هزار قدم یک درجه.
                 if (annual) {
                     for (step in 4 downTo 0) {
                         val tickValue = maxValue * step / 4
@@ -400,10 +403,9 @@ private fun ActivityChart(data: List<Point>, line: Boolean, goal: Int, annual: B
                         )
                     }
                 } else {
-                    val tickCount = (maxValue / 3000).coerceAtLeast(1)
-                    for (step in tickCount downTo 0) {
+                    for (step in axisSteps downTo 0) {
                         Text(
-                            text = formatChartNumber(step * 3000),
+                            text = formatChartNumber(step * 4_000),
                             style = MaterialTheme.typography.labelSmall,
                             color = scheme.onSurfaceVariant,
                             maxLines = 1
@@ -419,8 +421,9 @@ private fun ActivityChart(data: List<Point>, line: Boolean, goal: Int, annual: B
                 val w = right - left
                 val h = bottom - top
 
-                for (i in 0..4) {
-                    val y = top + h * i / 4f
+                val gridLineCount = if (annual) 4 else axisSteps
+                for (i in 0..gridLineCount) {
+                    val y = top + h * i / gridLineCount.toFloat()
                     drawLine(outlineColor, Offset(left, y), Offset(right, y), 1f)
                 }
 
