@@ -50,12 +50,28 @@ fun StatsScreen(stats: GhadminoStats, goal: Int) {
     val context = LocalContext.current
     val useSolarCalendar = SettingsRepository.load(context).useSolarCalendar
     var period by remember { mutableIntStateOf(7) }
+    var selectedMonthOffset by remember { mutableIntStateOf(0) }
     var type by remember { mutableStateOf("line") }
     var trendExpanded by remember { mutableStateOf(false) }
     var recordsExpanded by remember { mutableStateOf(false) }
     var recentExpanded by remember { mutableStateOf(false) }
-    val data = remember(period, useSolarCalendar) { chartData(context, period, useSolarCalendar) }
-    val report = remember(period, goal) { StatsRepository.period(context, goal, period) }
+    val data = remember(period, useSolarCalendar, selectedMonthOffset) {
+        chartData(context, period, useSolarCalendar, selectedMonthOffset)
+    }
+    val report = remember(period, goal, data) {
+        if (period == 30) {
+            val total = data.sumOf { it.value }
+            val successfulDays = data.count { it.value >= goal }
+            PeriodReport(
+                days = data.size,
+                totalSteps = total,
+                averageSteps = if (data.isEmpty()) 0 else total / data.size,
+                bestDay = "" to (data.maxOfOrNull { it.value } ?: 0),
+                goalDays = successfulDays,
+                goalRate = if (data.isEmpty()) 0 else successfulDays * 100 / data.size
+            )
+        } else StatsRepository.period(context, goal, period)
+    }
 
     Box(
         Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
@@ -95,6 +111,15 @@ fun StatsScreen(stats: GhadminoStats, goal: Int) {
                             Icon(Icons.Default.BarChart, null)
                             Spacer(Modifier.width(8.dp))
                             Text("نمودار فعالیت", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        }
+                        if (period == 30) {
+                            Spacer(Modifier.height(10.dp))
+                            MonthNavigator(
+                                monthOffset = selectedMonthOffset,
+                                useSolarCalendar = useSolarCalendar,
+                                onPrevious = { selectedMonthOffset = (selectedMonthOffset - 1).coerceAtLeast(-120) },
+                                onNext = { selectedMonthOffset = (selectedMonthOffset + 1).coerceAtMost(0) }
+                            )
                         }
                         Spacer(Modifier.height(8.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -292,6 +317,44 @@ private fun PeriodSelector(current: Int, onSelected: (Int) -> Unit) {
 }
 
 @Composable
+private fun MonthNavigator(
+    monthOffset: Int,
+    useSolarCalendar: Boolean,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit
+) {
+    val monthCalendar = Calendar.getInstance(
+        if (useSolarCalendar) Locale.forLanguageTag("fa-IR-u-ca-persian") else Locale.US
+    ).apply {
+        add(Calendar.MONTH, monthOffset)
+    }
+    val monthTitle = if (useSolarCalendar) {
+        val monthNames = listOf(
+            "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
+            "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"
+        )
+        monthNames[monthCalendar.get(Calendar.MONTH)] + " " +
+            toPersianDigits(monthCalendar.get(Calendar.YEAR).toString())
+    } else {
+        SimpleDateFormat("MMMM yyyy", Locale.US).format(monthCalendar.time)
+    }
+
+    Row(
+        Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        TextButton(onClick = onPrevious, enabled = monthOffset > -120) {
+            Text("ماه قبل")
+        }
+        Text(monthTitle, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        TextButton(onClick = onNext, enabled = monthOffset < 0) {
+            Text("ماه بعد")
+        }
+    }
+}
+
+@Composable
 private fun ActivityChart(data: List<Point>, line: Boolean, goal: Int) {
     if (data.isEmpty()) {
         Box(Modifier.fillMaxWidth().height(220.dp), contentAlignment = Alignment.Center) {
@@ -404,20 +467,42 @@ private fun ActivityChart(data: List<Point>, line: Boolean, goal: Int) {
     }
 }
 
-private fun chartData(context: Context, period: Int, useSolarCalendar: Boolean): List<Point> {
+private fun chartData(
+    context: Context,
+    period: Int,
+    useSolarCalendar: Boolean,
+    monthOffset: Int = 0
+): List<Point> {
+    val key = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+    if (period == 30) {
+        val monthCalendar = Calendar.getInstance(
+            if (useSolarCalendar) Locale.forLanguageTag("fa-IR-u-ca-persian") else Locale.US
+        ).apply {
+            add(Calendar.MONTH, monthOffset)
+            set(Calendar.DAY_OF_MONTH, 1)
+        }
+        val dayCount = monthCalendar.getActualMaximum(Calendar.DAY_OF_MONTH)
+        return (1..dayCount).map { day ->
+            val dateCalendar = (monthCalendar.clone() as Calendar).apply {
+                set(Calendar.DAY_OF_MONTH, day)
+            }
+            val date = dateCalendar.time
+            val label = if (useSolarCalendar) {
+                toPersianDigits(day.toString().padStart(2, '0'))
+            } else {
+                day.toString().padStart(2, '0')
+            }
+            Point(label, StepHistory.get(context, key.format(date)))
+        }
+    }
+
     val rows = StepHistory.recent(context, period).associate { it.first to it.second }
     return if (period < 365) {
-        val key = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-        val label = SimpleDateFormat("MM/dd", Locale.US)
         (period - 1 downTo 0).map { offset ->
             val date = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -offset) }.time
             val calendar = Calendar.getInstance().apply { time = date }
-            val label = when {
-                period == 30 && useSolarCalendar -> jalaliDayNumber(calendar)
-                period == 30 -> SimpleDateFormat("dd", Locale.US).format(date)
-                useSolarCalendar -> jalaliDayLabel(calendar)
-                else -> SimpleDateFormat("MM/dd", Locale.US).format(date)
-            }
+            val label = if (useSolarCalendar) jalaliDayLabel(calendar)
+                else SimpleDateFormat("MM/dd", Locale.US).format(date)
             Point(label, rows[key.format(date)] ?: 0)
         }
     } else {
