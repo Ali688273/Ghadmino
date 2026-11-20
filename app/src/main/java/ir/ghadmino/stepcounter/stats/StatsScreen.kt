@@ -140,9 +140,24 @@ fun StatsScreen(stats: GhadminoStats, goal: Int) {
                     expanded = recordsExpanded,
                     onToggle = { recordsExpanded = !recordsExpanded }
                 ) {
-                    DetailPill(Modifier.fillMaxWidth(), "بهترین روز", StatsRepository.label(stats.bestDay.first) + " — " + stats.bestDay.second + " قدم")
+                    DetailPill(
+                        Modifier.fillMaxWidth(),
+                        "بهترین روز",
+                        StatsRepository.label(stats.bestDay.first) + " — " + stats.bestDay.second + " قدم"
+                    )
                     Spacer(Modifier.height(8.dp))
-                    DetailPill(Modifier.fillMaxWidth(), "رکورد زنجیره", stats.longestStreak.value.toString() + " روز")
+                    DetailPill(
+                        Modifier.fillMaxWidth(),
+                        "رکورد زنجیره",
+                        stats.longestStreak.value.toString() + " روز"
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    DetailPill(
+                        Modifier.fillMaxWidth(),
+                        "بازه ثبت رکورد زنجیره",
+                        StatsRepository.label(stats.longestStreak.startDate) + " تا " +
+                            StatsRepository.label(stats.longestStreak.endDate)
+                    )
                 }
             }
             item {
