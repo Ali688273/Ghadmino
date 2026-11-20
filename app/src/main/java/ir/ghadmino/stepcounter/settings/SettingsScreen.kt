@@ -81,6 +81,44 @@ fun SettingsScreen(
         }
 
         Divider()
+        Text("تقویم و تاریخ", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("نوع تقویم", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(
+                    "قالب تاریخ‌ها در تقویم فعالیت و گزارش‌های آماری با این انتخاب تغییر می‌کند.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    FilterChip(
+                        selected = settings.useSolarCalendar,
+                        onClick = {
+                            settings = settings.copy(useSolarCalendar = true)
+                            SettingsRepository.save(context, settings)
+                        },
+                        label = { Text("خورشیدی (شمسی)") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilterChip(
+                        selected = !settings.useSolarCalendar,
+                        onClick = {
+                            settings = settings.copy(useSolarCalendar = false)
+                            SettingsRepository.save(context, settings)
+                        },
+                        label = { Text("میلادی") },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                Text(
+                    if (settings.useSolarCalendar) "تقویم فعلی: خورشیدی" else "تقویم فعلی: میلادی",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+
+        Divider()
         Text("رنگ و تم برنامه", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         Text("با انتخاب هر تم، رنگ پس‌زمینه و کارت‌های رنگی برنامه هم تغییر می‌کند.")
         themes.chunked(2).forEach { row ->
