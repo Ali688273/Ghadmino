@@ -514,10 +514,12 @@ private fun chartData(
             set(Calendar.DAY_OF_MONTH, 1)
         }
         val dayCount = monthCalendar.getActualMaximum(Calendar.DAY_OF_MONTH)
+        // روز جاری را پیش از تنظیم تقویم روی روز اول ماه می‌خوانیم.
+        val currentDay = Calendar.getInstance(
+            if (useSolarCalendar) Locale.forLanguageTag("fa-IR-u-ca-persian") else Locale.US
+        ).get(Calendar.DAY_OF_MONTH)
         // در ماه جاری روزهای آینده وارد محاسبه کمترین مقدار نشوند.
-        val visibleDayCount = if (monthOffset == 0) {
-            minOf(dayCount, monthCalendar.get(Calendar.DAY_OF_MONTH))
-        } else dayCount
+        val visibleDayCount = if (monthOffset == 0) minOf(dayCount, currentDay) else dayCount
         return (1..visibleDayCount).map { day ->
             val dateCalendar = (monthCalendar.clone() as Calendar).apply {
                 set(Calendar.DAY_OF_MONTH, day)
