@@ -368,8 +368,8 @@ private fun ActivityChart(data: List<Point>, line: Boolean, goal: Int, annual: B
     val scheme = MaterialTheme.colorScheme
     val outlineColor = scheme.outline.copy(alpha = 0.16f)
     val goalColor = scheme.error.copy(alpha = 0.55f)
-    // رنگ پایه آرام و ملایم؛ سبز برای بهترین روز و قرمز برای کمترین روز
-    val chartColor = Color(0xFF5B9B95)
+    // آبی برای داده‌های عادی؛ سبز برای بهترین روز و قرمز برای کمترین روز
+    val chartColor = Color(0xFF5277C3)
     val bestColor = Color(0xFF2E9B65)
     val lowestColor = Color(0xFFD66B6B)
     val highlightExtremes = !annual && data.size > 1 &&
