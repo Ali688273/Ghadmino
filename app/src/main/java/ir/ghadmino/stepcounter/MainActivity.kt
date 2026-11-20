@@ -31,8 +31,6 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import ir.ghadmino.stepcounter.reward.CoinWallet
-import ir.ghadmino.stepcounter.reward.RewardCenter
 import ir.ghadmino.stepcounter.analytics.ActivityAnalyticsRepository
 import ir.ghadmino.stepcounter.analytics.ActivityIntelligenceScreen
 import ir.ghadmino.stepcounter.notification.InactivityScheduler
@@ -77,7 +75,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         requestPermissions()
         setContent {
-            var themeId by remember { mutableStateOf(CoinWallet.selectedTheme(this@MainActivity)) }
+            var themeId by remember { mutableStateOf(getSharedPreferences("ghadmino_ui", Context.MODE_PRIVATE).getString("selected_theme", "default") ?: "default") }
             GhadminoTheme(themeId = themeId) {
                 var fontScale by remember {
                     mutableFloatStateOf(
@@ -93,7 +91,7 @@ class MainActivity : ComponentActivity() {
                 ) {
                     GhadminoApp(
                         onThemeChanged = { newTheme ->
-                            CoinWallet.setSelectedTheme(this@MainActivity, newTheme)
+                            getSharedPreferences("ghadmino_ui", Context.MODE_PRIVATE).edit().putString("selected_theme", newTheme).apply()
                             themeId = newTheme
                         },
                         onFontScaleChanged = { scale ->
@@ -146,8 +144,7 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit, onFontScaleChanged: (Float) ->
     var stepSource by remember { mutableStateOf(StepSourceRepository.get(context)) }
     var walkingMinutes by remember { mutableIntStateOf(ActivityTimeRepository.todayActiveMinutes(context)) }
     var showInitialProfile by remember { mutableStateOf(!ProfileRepository.isComplete(context)) }
-    var coins by remember { mutableIntStateOf(CoinWallet.balance(context)) }
-    var selectedTheme by remember { mutableStateOf(CoinWallet.selectedTheme(context)) }
+    var selectedTheme by remember { mutableStateOf(prefs.getString("selected_theme", "default") ?: "default") }
     var tab by remember { mutableIntStateOf(0) }
     var morePage by remember { mutableStateOf<String?>(null) }
     var info by remember { mutableStateOf<String?>(null) }
@@ -178,14 +175,8 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit, onFontScaleChanged: (Float) ->
             }
             if (steps != lastSavedSteps) {
                 StepHistory.saveToday(context, steps)
-                CoinWallet.syncStepReward(context, steps)
-                if (steps >= goal) CoinWallet.claimGoalReward(context)
                 lastSavedSteps = steps
             }
-            // Small one-time rewards are checked every cycle so they are not
-            // missed when the step value changed before the UI was ready.
-            CoinWallet.claimDailyLoginReward(context)
-            coins = CoinWallet.balance(context)
             walkingMinutes = ActivityTimeRepository.todayActiveMinutes(context)
             if (now - lastInsightRefresh >= 10000L) {
                 insights = ActivityInsightsRepository.calculate(context, goal)
@@ -319,16 +310,16 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit, onFontScaleChanged: (Float) ->
             }
         }
         "achievements" -> FullPageDialog("دستاوردها", onClose = { morePage = null }) {
-            AchievementsScreen { coins = CoinWallet.balance(context) }
+            AchievementsScreen()
         }
         "level" -> FullPageDialog("سطح و XP", onClose = { morePage = null }) {
             LevelScreen()
         }
         "extras" -> FullPageDialog("شخصی‌سازی", onClose = { morePage = null }) {
-            ProfileExtrasScreen { coins = CoinWallet.balance(context) }
+            ProfileExtrasScreen()
         }
         "smart" -> FullPageDialog("گزارش هوشمند", onClose = { morePage = null }) {
-            ActivityIntelligenceScreen { coins = CoinWallet.balance(context) }
+            ActivityIntelligenceScreen()
         }
         "insights" -> FullPageDialog("تحلیل فعالیت", onClose = { morePage = null }) {
             ActivityInsightsScreen(insights, ActivityInsightsRepository.hourly(context))
@@ -352,7 +343,7 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit, onFontScaleChanged: (Float) ->
                 }
             }
         }
-        "challenges" -> FullPageDialog("چالش‌ها", onClose = { morePage = null }) { ChallengesScreen { coins = CoinWallet.balance(context) } }
+        "challenges" -> FullPageDialog("چالش‌ها", onClose = { morePage = null }) { ChallengesScreen() }
         "health" -> FullPageDialog("Health Connect", onClose = { morePage = null }) {
             HealthConnectScreen()
         }
@@ -366,21 +357,9 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit, onFontScaleChanged: (Float) ->
             BackupScreen()
         }
         "free" -> FullPageDialog("۲۰ قابلیت رایگان", onClose = { morePage = null }) {
-            FreeFeaturesScreen { coins = CoinWallet.balance(context) }
+            FreeFeaturesScreen()
         }
-        "rewards" -> FullPageDialog("پاداش و امکانات رایگان", onClose = { morePage = null }) {
-            RewardCenter(
-                coins = coins,
-                selectedTheme = selectedTheme,
-                onBuyFreeze = { info = "این بخش در نسخه رایگان فعال است." },
-                onBuyTheme = { id, _ ->
-                    CoinWallet.setSelectedTheme(context, id)
-                    selectedTheme = id
-                    onThemeChanged(id)
-                },
-                onCoinsChanged = { coins = CoinWallet.balance(context) }
-            )
-        }
+
         "goal" -> FullPageDialog("تنظیم هدف", onClose = { morePage = null }) {
             Column(
                 Modifier.fillMaxWidth(),
