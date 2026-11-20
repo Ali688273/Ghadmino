@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.dp
 import java.util.Locale
 
 @Composable
-fun ActivityIntelligenceScreen(onCoinsChanged: () -> Unit = {}) {
+fun ActivityIntelligenceScreen() {
     val context = LocalContext.current
     var report by remember { mutableStateOf(ActivityAnalyticsRepository.report(context)) }
 
@@ -69,7 +69,6 @@ fun ActivityIntelligenceScreen(onCoinsChanged: () -> Unit = {}) {
             Column(Modifier.padding(18.dp)) {
                 Text("وضعیت امکانات", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Text("تمام قابلیت‌های این گزارش برای همه کاربران آزاد است.")
-                Text("برای استفاده از گزارش نیازی به خرید یا پرداخت نیست.")
             }
         }
 
