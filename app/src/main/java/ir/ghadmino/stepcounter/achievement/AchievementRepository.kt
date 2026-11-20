@@ -1,7 +1,6 @@
 package ir.ghadmino.stepcounter.achievement
 
 import android.content.Context
-import ir.ghadmino.stepcounter.reward.CoinWallet
 import ir.ghadmino.stepcounter.step.StepHistory
 import ir.ghadmino.stepcounter.step.StepCounterService
 
@@ -10,26 +9,25 @@ data class Achievement(
     val title: String,
     val description: String,
     val icon: String,
-    val reward: Int,
     val unlocked: Boolean
 )
 
 object AchievementRepository {
     private val definitions = listOf(
-        Achievement("first_1000", "اولین هزار قدم", "در یک روز به ۱۰۰۰ قدم برس.", "🥉", 10, false),
-        Achievement("five_k_day", "نیمه‌راه", "در یک روز به ۵۰۰۰ قدم برس.", "🥈", 20, false),
-        Achievement("ten_k_day", "ده‌هزاری", "در یک روز به ۱۰۰۰۰ قدم برس.", "🏅", 40, false),
-        Achievement("twenty_five_k_day", "ابرپیاده‌رو", "در یک روز به ۲۵۰۰۰ قدم برس.", "🚀", 100, false),
-        Achievement("seven_day_streak", "هفته طلایی", "هفت روز پشت‌سرهم حداقل ۳۰۰۰ قدم ثبت کن.", "🔥", 75, false),
-        Achievement("thirty_day_streak", "ماه پرتلاش", "۳۰ روز پشت‌سرهم حداقل ۳۰۰۰ قدم ثبت کن.", "📅", 250, false),
-        Achievement("lifetime_100k", "صد هزار قدم", "در مجموع ۱۰۰۰۰۰ قدم ثبت کن.", "🏆", 150, false),
-        Achievement("lifetime_250k", "یک‌ربع میلیون", "در مجموع ۲۵۰۰۰۰ قدم ثبت کن.", "💎", 300, false),
-        Achievement("lifetime_500k", "نیم میلیون", "در مجموع ۵۰۰۰۰۰ قدم ثبت کن.", "👑", 600, false),
-        Achievement("lifetime_1m", "یک میلیون قدم", "در مجموع ۱۰۰۰۰۰۰ قدم ثبت کن.", "🌟", 1200, false),
-        Achievement("fifty_k_day", "ماراتن روزانه", "در یک روز به ۵۰۰۰۰ قدم برس.", "🏃", 2000, false),
-        Achievement("ninety_day_streak", "سه ماه مداوم", "۹۰ روز پشت‌سرهم حداقل ۳۰۰۰ قدم ثبت کن.", "🔥", 1500, false),
-        Achievement("lifetime_2m", "دو میلیون قدم", "در مجموع ۲۰۰۰۰۰۰ قدم ثبت کن.", "💠", 2500, false),
-        Achievement("lifetime_5m", "پنج میلیون قدم", "در مجموع ۵۰۰۰۰۰۰ قدم ثبت کن.", "🏆", 5000, false)
+        Achievement("first_1000", "اولین هزار قدم", "در یک روز به ۱۰۰۰ قدم برس.", "🥉", false),
+        Achievement("five_k_day", "نیمه‌راه", "در یک روز به ۵۰۰۰ قدم برس.", "🥈", false),
+        Achievement("ten_k_day", "ده‌هزاری", "در یک روز به ۱۰۰۰۰ قدم برس.", "🏅", false),
+        Achievement("twenty_five_k_day", "ابرپیاده‌رو", "در یک روز به ۲۵۰۰۰ قدم برس.", "🚀", false),
+        Achievement("seven_day_streak", "هفته طلایی", "هفت روز پشت‌سرهم حداقل ۳۰۰۰ قدم ثبت کن.", "🔥", false),
+        Achievement("thirty_day_streak", "ماه پرتلاش", "۳۰ روز پشت‌سرهم حداقل ۳۰۰۰ قدم ثبت کن.", "📅", false),
+        Achievement("lifetime_100k", "صد هزار قدم", "در مجموع ۱۰۰۰۰۰ قدم ثبت کن.", "🏆", false),
+        Achievement("lifetime_250k", "یک‌ربع میلیون", "در مجموع ۲۵۰۰۰۰ قدم ثبت کن.", "💎", false),
+        Achievement("lifetime_500k", "نیم میلیون", "در مجموع ۵۰۰۰۰۰ قدم ثبت کن.", "👑", false),
+        Achievement("lifetime_1m", "یک میلیون قدم", "در مجموع ۱۰۰۰۰۰۰ قدم ثبت کن.", "🌟", false),
+        Achievement("fifty_k_day", "ماراتن روزانه", "در یک روز به ۵۰۰۰۰ قدم برس.", "🏃", false),
+        Achievement("ninety_day_streak", "سه ماه مداوم", "۹۰ روز پشت‌سرهم حداقل ۳۰۰۰ قدم ثبت کن.", "🔥", false),
+        Achievement("lifetime_2m", "دو میلیون قدم", "در مجموع ۲۰۰۰۰۰۰ قدم ثبت کن.", "💠", false),
+        Achievement("lifetime_5m", "پنج میلیون قدم", "در مجموع ۵۰۰۰۰۰۰ قدم ثبت کن.", "🏆", false)
     )
 
     fun evaluate(context: Context): List<Achievement> {
@@ -59,14 +57,6 @@ object AchievementRepository {
                 "lifetime_2m" -> lifetime >= 2000000
                 "lifetime_5m" -> lifetime >= 5000000
                 else -> false
-            }
-
-            if (reached) {
-                CoinWallet.claimRewardOnce(
-                    context,
-                    "achievement_claimed_" + item.id,
-                    item.reward
-                )
             }
 
             item.copy(unlocked = reached)
