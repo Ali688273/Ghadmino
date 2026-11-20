@@ -236,13 +236,11 @@ object GhadminoAdsManager {
             onFinished()
             return
         }
-        showInterstitialInternal(activity, null, {}, { onFinished() })
+        showInterstitialInternal(activity) { onFinished() }
     }
 
     private fun showInterstitialInternal(
         activity: Activity,
-        grantCoins: Int?,
-        onReward: (Int) -> Unit,
         onFinished: (String) -> Unit
     ) {
         initialize(activity)
