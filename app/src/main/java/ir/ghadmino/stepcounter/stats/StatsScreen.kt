@@ -127,7 +127,7 @@ fun StatsScreen(stats: GhadminoStats, goal: Int) {
                             FilterChip(selected = type == "bar", onClick = { type = "bar" }, label = { Text("میله‌ای") })
                         }
                         Spacer(Modifier.height(10.dp))
-                        ActivityChart(data, type == "line", goal)
+                        ActivityChart(data, type == "line", goal, period == 365)
                     }
                 }
             }
@@ -355,7 +355,7 @@ private fun MonthNavigator(
 }
 
 @Composable
-private fun ActivityChart(data: List<Point>, line: Boolean, goal: Int) {
+private fun ActivityChart(data: List<Point>, line: Boolean, goal: Int, annual: Boolean) {
     if (data.isEmpty()) {
         Box(Modifier.fillMaxWidth().height(220.dp), contentAlignment = Alignment.Center) {
             Text("هنوز داده‌ای ثبت نشده است.")
@@ -380,15 +380,27 @@ private fun ActivityChart(data: List<Point>, line: Boolean, goal: Int) {
                 verticalArrangement = Arrangement.SpaceBetween,
                 horizontalAlignment = Alignment.End
             ) {
-                // مقیاس محور عمودی با فاصله ثابت ۳۰۰۰ قدم
-                val tickCount = (maxValue / 3000).coerceAtLeast(1)
-                for (step in tickCount downTo 0) {
-                    Text(
-                        text = formatChartNumber(step * 3000),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = scheme.onSurfaceVariant,
-                        maxLines = 1
-                    )
+                // در نمودار سالانه فقط پنج درجه‌بندی متناسب با مجموع ماه‌ها نمایش داده می‌شود.
+                if (annual) {
+                    for (step in 4 downTo 0) {
+                        val tickValue = maxValue * step / 4
+                        Text(
+                            text = formatAnnualChartNumber(tickValue),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = scheme.onSurfaceVariant,
+                            maxLines = 1
+                        )
+                    }
+                } else {
+                    val tickCount = (maxValue / 3000).coerceAtLeast(1)
+                    for (step in tickCount downTo 0) {
+                        Text(
+                            text = formatChartNumber(step * 3000),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = scheme.onSurfaceVariant,
+                            maxLines = 1
+                        )
+                    }
                 }
             }
             Canvas(Modifier.weight(1f).height(270.dp)) {
@@ -566,6 +578,18 @@ private fun gregorianToJalali(gy: Int, gm: Int, gd: Int): Triple<Int, Int, Int> 
 }
 private fun formatChartNumber(value: Int): String =
     java.text.NumberFormat.getIntegerInstance(Locale.US).format(value)
+
+private fun formatAnnualChartNumber(value: Int): String {
+    val compact = when {
+        value >= 1_000_000 -> {
+            val amount = value / 1_000_000.0
+            String.format(Locale.US, if (amount % 1.0 == 0.0) "%.0f" else "%.1f", amount) + " میلیون"
+        }
+        value >= 1_000 -> String.format(Locale.US, "%.0f", value / 1_000.0) + " هزار"
+        else -> value.toString()
+    }
+    return toPersianDigits(compact)
+}
 
 @Composable
 private fun Metric(modifier: Modifier, title: String, value: String, unit: String) {
