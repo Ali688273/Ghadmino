@@ -17,7 +17,6 @@ import ir.ghadmino.stepcounter.activity.ManualActivityRepository
 import ir.ghadmino.stepcounter.profile.ProfileRepository
 import ir.ghadmino.stepcounter.step.StepCounterService
 import ir.ghadmino.stepcounter.step.StepHistory
-import ir.ghadmino.stepcounter.workout.WorkoutRepository
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -47,9 +46,6 @@ fun ActivityCalendarScreen(goal: Int) {
     val manualSteps = ManualActivityRepository.stepsForDate(context, selectedDate)
     val manualMinutes = ManualActivityRepository.minutesForDate(context, selectedDate)
     val manualCalories = ManualActivityRepository.caloriesForDate(context, selectedDate)
-    val workouts = WorkoutRepository.load(context).filter { dateOf(it.startedAt) == selectedDate }
-    val totalWorkoutDistance = workouts.sumOf { it.distanceMeters }
-    val totalWorkoutCalories = workouts.sumOf { it.calories }
     val estimatedDistanceKm = selectedSteps * profile.strideCm.coerceIn(30, 150) / 100000.0
     val estimatedCalories = estimateWalkingCalories(selectedSteps, profile.weightKg)
 
@@ -114,9 +110,6 @@ fun ActivityCalendarScreen(goal: Int) {
                 ReportCard("برآورد بر اساس پروفایل", String.format(Locale.US, "%.2f km • %d kcal", estimatedDistanceKm, estimatedCalories))
             }
             item { Text("فاصله بر اساس طول گام ثبت‌شده در پروفایل محاسبه شده و کالری یک برآورد است.", style = MaterialTheme.typography.bodySmall) }
-            item {
-                ReportCard("تمرین‌های ثبت‌شده", workouts.size.toString() + " جلسه • " + String.format(Locale.US, "%.2f km • %d kcal", totalWorkoutDistance / 1000.0, totalWorkoutCalories))
-            }
             item {
                 val goalState = if (selectedSteps + manualSteps >= goal) "هدف روزانه تکمیل شده" else "هدف روزانه تکمیل نشده"
                 ReportCard("هدف " + goal, goalState)
@@ -193,9 +186,6 @@ private fun formatDate(date: String, solar: Boolean): String {
 
 private fun parseDate(date: String): Date? =
     try { SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(date) } catch (_: Exception) { null }
-
-private fun dateOf(timestamp: Long): String =
-    SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(timestamp))
 
 private fun today(): String =
     SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
