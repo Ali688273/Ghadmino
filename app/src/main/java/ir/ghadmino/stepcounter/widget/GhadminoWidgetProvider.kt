@@ -40,7 +40,7 @@ class GhadminoWidgetProvider : AppWidgetProvider() {
             val steps = ActivityAnalyticsRepository.today(context)
             val goal = ProfileRepository.load(context).dailyGoal.coerceAtLeast(1)
             val progress = ((steps * 100L) / goal).coerceIn(0L, 100L)
-            val selected = ProfileExtrasRepository.selected(context)
+            val selectedTheme = ProfileExtrasRepository.selectedWidgetTheme(context)
 
             ids.forEach { id ->
                 val views = RemoteViews(context.packageName, R.layout.widget_ghadmino)
@@ -48,8 +48,11 @@ class GhadminoWidgetProvider : AppWidgetProvider() {
                 views.setTextViewText(R.id.widget_goal, "هدف $goal قدم")
                 views.setTextViewText(R.id.widget_progress, "$progress٪")
 
-                val background = when (selected) {
-                    "widget_theme" -> R.drawable.widget_background_special
+                val background = when (selectedTheme) {
+                    "ocean" -> R.drawable.widget_background_ocean
+                    "violet" -> R.drawable.widget_background_violet
+                    "sunset" -> R.drawable.widget_background_sunset
+                    "midnight" -> R.drawable.widget_background_midnight
                     else -> R.drawable.widget_background
                 }
                 views.setInt(R.id.widget_root, "setBackgroundResource", background)
