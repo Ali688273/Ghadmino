@@ -368,6 +368,8 @@ object GhadminoAdsManager {
                 override fun onAdClicked() = Unit
                 override fun onError(reason: String) {
                     Log.w(TAG, "Adivery banner unavailable: $reason")
+                    container.removeView(this@apply)
+                    onFailed()
                 }
             })
         }
@@ -390,49 +392,39 @@ object GhadminoAdsManager {
     fun loadNativeBanner(activity: Activity, container: ViewGroup) {
         initialize(activity)
         if (container.childCount > 0) return
-        if (!tapsellInitialized) {
-            loadAdiveryBanner(activity, container)
-            return
-        }
-
-        TapsellPlus.requestNativeAd(
-            activity,
-            AdsConfig.TAPSELL_NATIVE_BANNER,
-            object : AdRequestCallback() {
-                override fun response(ad: TapsellPlusAdModel) {
-                    val responseId = ad.responseId
-                    if (responseId.isNullOrBlank() || isFinishingOrDestroyed(activity)) {
-                        if (!isFinishingOrDestroyed(activity)) loadAdiveryBanner(activity, container)
-                        return
-                    }
-
-                    val holder = TapsellPlus.createAdHolder(
-                        activity,
-                        container,
-                        ir.tapsell.plus.R.layout.native_banner
-                    )
-
-                    TapsellPlus.showNativeAd(
-                        activity,
-                        responseId,
-                        holder,
-                        object : AdShowListener() {
-                            override fun onOpened(ad: TapsellPlusAdModel) = Unit
-                            override fun onError(error: TapsellPlusErrorModel) {
-                                Log.w(TAG, "Tapsell native banner unavailable: " + error.errorMessage)
-                                container.removeAllViews()
-                                loadAdiveryBanner(activity, container)
+        loadAdiveryBanner(activity, container) {
+            if (!tapsellInitialized || isFinishingOrDestroyed(activity) || container.childCount > 0) return@loadAdiveryBanner
+            TapsellPlus.requestNativeAd(
+                activity,
+                AdsConfig.TAPSELL_NATIVE_BANNER,
+                object : AdRequestCallback() {
+                    override fun response(ad: TapsellPlusAdModel) {
+                        val id = ad.responseId
+                        if (id.isNullOrBlank() || isFinishingOrDestroyed(activity) || container.childCount > 0) return
+                        val holder = TapsellPlus.createAdHolder(
+                            activity,
+                            container,
+                            ir.tapsell.plus.R.layout.native_banner
+                        )
+                        TapsellPlus.showNativeAd(
+                            activity,
+                            id,
+                            holder,
+                            object : AdShowListener() {
+                                override fun onOpened(ad: TapsellPlusAdModel) = Unit
+                                override fun onError(error: TapsellPlusErrorModel) {
+                                    Log.w(TAG, "Tapsell native banner unavailable: ${error.errorMessage}")
+                                    container.removeAllViews()
+                                }
                             }
-                        }
-                    )
+                        )
+                    }
+                    override fun error(message: String) {
+                        Log.w(TAG, "Tapsell native banner request failed: $message")
+                    }
                 }
-
-                override fun error(message: String) {
-                    Log.w(TAG, "Tapsell native banner request failed: " + message)
-                    loadAdiveryBanner(activity, container)
-                }
-            }
-        )
+            )
+        }
     }
 
     fun loadNativeVideo(activity: Activity, container: ViewGroup) {
