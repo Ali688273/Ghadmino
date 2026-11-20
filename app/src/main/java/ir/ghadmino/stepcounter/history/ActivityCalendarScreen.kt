@@ -35,8 +35,8 @@ fun ActivityCalendarScreen(goal: Int) {
     var selectedDate by remember { mutableStateOf(today()) }
     val useSolarCalendar = SettingsRepository.load(context).useSolarCalendar
 
-    val month = remember(monthOffset, useSolarCalendar) { monthCalendar(monthOffset, useSolarCalendar) }
-    val days = remember(monthOffset, useSolarCalendar) { monthDays(month, useSolarCalendar) }
+    val month = remember(monthOffset, useSolarCalendar) { buildCalendarMonth(monthOffset, useSolarCalendar) }
+    val days = month.days
     val profile = remember { ProfileRepository.load(context) }
     val liveTodaySteps = remember { mutableIntStateOf(currentTodaySteps(context)) }
 
@@ -62,7 +62,7 @@ fun ActivityCalendarScreen(goal: Int) {
                 Text("‹ ماه قبل", maxLines = 1, softWrap = false)
             }
             Text(
-                monthLabel(month, useSolarCalendar),
+                month.label,
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
@@ -158,10 +158,32 @@ private fun estimateWalkingCalories(steps: Int, weightKg: Float): Int {
     return (steps.coerceAtLeast(0) * perStep).toInt().coerceAtLeast(0)
 }
 
-private fun persianCalendar(): Calendar = Calendar.getInstance(Locale.forLanguageTag("fa-IR-u-ca-persian"))
+private data class CalendarMonth(val label: String, val days: List<String?>)
 
-private fun monthCalendar(offset: Int, solar: Boolean): Calendar {
-    val calendar: Calendar = if (solar) persianCalendar() else Calendar.getInstance()
+private fun buildCalendarMonth(offset: Int, solar: Boolean): CalendarMonth {
+    if (solar) {
+        // ICU guarantees a real Persian calendar; java.util.Calendar can fall back to Gregorian.
+        val calendar = android.icu.util.PersianCalendar(java.util.TimeZone.getDefault(), android.icu.util.ULocale("fa_IR@calendar=persian"))
+        calendar.time = Date()
+        calendar.add(android.icu.util.Calendar.MONTH, offset)
+        calendar.set(android.icu.util.Calendar.DAY_OF_MONTH, 1)
+        calendar.set(android.icu.util.Calendar.HOUR_OF_DAY, 12)
+        calendar.set(android.icu.util.Calendar.MINUTE, 0)
+        calendar.set(android.icu.util.Calendar.SECOND, 0)
+        calendar.set(android.icu.util.Calendar.MILLISECOND, 0)
+        val year = calendar.get(android.icu.util.Calendar.YEAR)
+        val monthIndex = calendar.get(android.icu.util.Calendar.MONTH)
+        val maxDays = calendar.getActualMaximum(android.icu.util.Calendar.DAY_OF_MONTH)
+        // Persian week starts Saturday; ICU DAY_OF_WEEK is Sunday=1 ... Saturday=7.
+        val firstDay = (calendar.get(android.icu.util.Calendar.DAY_OF_WEEK) + 1) % 7
+        val result = MutableList<String?>(firstDay) { null }
+        for (day in 1..maxDays) {
+            calendar.set(android.icu.util.Calendar.DAY_OF_MONTH, day)
+            result.add(SimpleDateFormat("yyyy-MM-dd", Locale.US).format(calendar.time))
+        }
+        return CalendarMonth(persianMonthNames[monthIndex.coerceIn(0, 11)] + " " + year, result)
+    }
+    val calendar = Calendar.getInstance()
     calendar.time = Date()
     calendar.add(Calendar.MONTH, offset)
     calendar.set(Calendar.DAY_OF_MONTH, 1)
@@ -169,51 +191,42 @@ private fun monthCalendar(offset: Int, solar: Boolean): Calendar {
     calendar.set(Calendar.MINUTE, 0)
     calendar.set(Calendar.SECOND, 0)
     calendar.set(Calendar.MILLISECOND, 0)
-    return calendar
-}
-
-private fun monthDays(month: Calendar, solar: Boolean): List<String?> {
-    val dayOfWeek = month.get(Calendar.DAY_OF_WEEK)
-    val firstDay = if (solar) dayOfWeek % 7 else dayOfWeek - 1
-    val maxDays = month.getActualMaximum(Calendar.DAY_OF_MONTH)
+    val firstDay = calendar.get(Calendar.DAY_OF_WEEK) - 1
+    val maxDays = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
     val result = MutableList<String?>(firstDay) { null }
     for (day in 1..maxDays) {
-        val calendar = month.clone() as Calendar
         calendar.set(Calendar.DAY_OF_MONTH, day)
         result.add(SimpleDateFormat("yyyy-MM-dd", Locale.US).format(calendar.time))
     }
-    return result
+    return CalendarMonth(SimpleDateFormat("MMMM yyyy", Locale.US).format(calendar.time), result)
 }
-
-private fun monthLabel(calendar: Calendar, solar: Boolean): String =
-    if (solar) "${persianMonthNames[calendar.get(Calendar.MONTH).coerceIn(0, 11)]} ${calendar.get(Calendar.YEAR)}"
-    else SimpleDateFormat("MMMM yyyy", Locale.US).format(calendar.time)
 
 private fun dayNumber(date: String, solar: Boolean): String {
     val parsed = parseDate(date) ?: return date.substringAfterLast("-")
-    val calendar: Calendar = if (solar) persianCalendar() else Calendar.getInstance()
+    if (solar) {
+        val calendar = android.icu.util.PersianCalendar(java.util.TimeZone.getDefault(), android.icu.util.ULocale("fa_IR@calendar=persian"))
+        calendar.time = parsed
+        return calendar.get(android.icu.util.Calendar.DAY_OF_MONTH).toString()
+    }
+    val calendar = Calendar.getInstance()
     calendar.time = parsed
     return calendar.get(Calendar.DAY_OF_MONTH).toString()
 }
 
 private fun formatDate(date: String, solar: Boolean): String {
     val parsed = parseDate(date) ?: return date
-    val calendar: Calendar = if (solar) persianCalendar() else Calendar.getInstance()
+    if (!solar) return SimpleDateFormat("yyyy/MM/dd", Locale.US).format(parsed)
+    val calendar = android.icu.util.PersianCalendar(java.util.TimeZone.getDefault(), android.icu.util.ULocale("fa_IR@calendar=persian"))
     calendar.time = parsed
-    return if (solar) {
-        String.format(Locale.US, "%04d/%02d/%02d", calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH) + 1, calendar.get(Calendar.DAY_OF_MONTH))
-            .map { digit ->
-                when (digit) {
-                    '0' -> '۰'; '1' -> '۱'; '2' -> '۲'; '3' -> '۳'; '4' -> '۴'
-                    '5' -> '۵'; '6' -> '۶'; '7' -> '۷'; '8' -> '۸'; '9' -> '۹'
-                    else -> digit
-                }
-            }.joinToString("")
-    } else {
-        SimpleDateFormat("yyyy/MM/dd", Locale.US).format(parsed)
-    }
+    val value = String.format(Locale.US, "%04d/%02d/%02d", calendar.get(android.icu.util.Calendar.YEAR), calendar.get(android.icu.util.Calendar.MONTH) + 1, calendar.get(android.icu.util.Calendar.DAY_OF_MONTH))
+    return value.map { digit ->
+        when (digit) {
+            '0' -> '۰'; '1' -> '۱'; '2' -> '۲'; '3' -> '۳'; '4' -> '۴'
+            '5' -> '۵'; '6' -> '۶'; '7' -> '۷'; '8' -> '۸'; '9' -> '۹'
+            else -> digit
+        }
+    }.joinToString("")
 }
-
 private fun parseDate(date: String): Date? =
     try { SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(date) } catch (_: Exception) { null }
 
