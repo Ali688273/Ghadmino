@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -249,7 +250,7 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit, onFontScaleChanged: (Float) ->
                 NavigationBarItem(
                     selected = tab == 2,
                     onClick = { tab = 2 },
-                    icon = { Icon(Icons.Default.Settings, null) },
+                    icon = { Icon(Icons.Default.MoreVert, null) },
                     label = { Text("بیشتر") }
                 )
                 NavigationBarItem(
