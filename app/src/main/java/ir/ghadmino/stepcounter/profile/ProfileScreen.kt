@@ -57,7 +57,7 @@ fun ProfileScreen(onSaved: () -> Unit) {
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
-                                selectedExtra?.emoji ?: "👤",
+                                "👤",
                                 style = MaterialTheme.typography.headlineMedium
                             )
                         }
