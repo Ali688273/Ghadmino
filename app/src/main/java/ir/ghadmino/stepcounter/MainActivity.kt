@@ -35,7 +35,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import ir.ghadmino.stepcounter.analytics.ActivityAnalyticsRepository
-import ir.ghadmino.stepcounter.analytics.ActivityIntelligenceScreen
 import ir.ghadmino.stepcounter.notification.InactivityScheduler
 import ir.ghadmino.stepcounter.backup.BackupScreen
 import ir.ghadmino.stepcounter.insights.ActivityInsightsRepository
@@ -342,9 +341,6 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit, onFontScaleChanged: (Float) ->
         "extras" -> FullPageDialog("شخصی‌سازی", onClose = { morePage = null }) {
             ProfileExtrasScreen()
         }
-        "smart" -> FullPageDialog("گزارش هوشمند", onClose = { morePage = null }) {
-            ActivityIntelligenceScreen()
-        }
         "insights" -> FullPageDialog("تحلیل فعالیت", onClose = { morePage = null }) {
             ActivityInsightsScreen(insights, ActivityInsightsRepository.hourly(context))
         }
@@ -545,7 +541,6 @@ private fun MorePage(
         MoreItem("⭐", "سطح و XP", "سطح فعلی و امتیاز تجربه‌ای را که کسب کرده‌ای ببین.") { onOpen("level") }
         MoreItem("🎨", "شخصی‌سازی رایگان", "قاب و نشان پروفایل، پنج تم ویجت و آمار تکمیلی فعالیت؛ همه رایگان.") { onOpen("extras") }
         MoreItem("📅", "تقویم فعالیت", "فعالیت روزهای گذشته را انتخاب کن و گزارش هر روز را ببین.") { onOpen("calendar") }
-        MoreItem("📊", "گزارش هوشمند", "روند فعالیت، رکوردها و پیش‌بینی پیشرفتت را بررسی کن.") { onOpen("smart") }
         MoreItem("📈", "تحلیل فعالیت", "امتیاز فعالیت، زمان‌های پرتحرک و وضعیت رسیدن به هدف را ببین.") { onOpen("insights") }
         MoreItem("🏃", "تمرین پیاده‌روی", "یک جلسه پیاده‌روی را شروع کن، متوقف کن و ثبت کن.") { onOpen("workout") }
         MoreItem("📆", "برنامه افزایش قدم", "برای افزایش تدریجی قدم‌ها برنامه بساز و پیشرفتت را دنبال کن.") { onOpen("plan") }
