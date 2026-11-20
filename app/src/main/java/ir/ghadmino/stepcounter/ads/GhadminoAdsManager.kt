@@ -27,14 +27,9 @@ object GhadminoAdsManager {
     private const val FULLSCREEN_COOLDOWN_MS = 15 * 60 * 1000L
     private const val MIN_SESSION_MS = 5 * 60 * 1000L
     private const val MIN_NAVIGATIONS = 6
-    private const val REWARD_COOLDOWN_MS = 60 * 1000L
-    private const val MAX_REWARD_ADS_PER_DAY = 5
 
     private const val PREFS = "ghadmino_ads"
     private const val LAST_FULLSCREEN = "last_fullscreen"
-    private const val LAST_REWARD = "last_reward"
-    private const val REWARD_DAY = "reward_day"
-    private const val REWARD_COUNT = "reward_count"
 
     @Volatile private var initialized = false
     @Volatile private var tapsellInitializationStarted = false
@@ -82,108 +77,6 @@ object GhadminoAdsManager {
                 }
             }
         }
-    }
-
-    /** Adivery first; fallback to Tapsell. Reward only on explicit completion callback. */
-    fun showCoinReward(
-        activity: Activity,
-        rewardCoins: Int = 25,
-        fallbackCoins: Int = 10,
-        onReward: (coins: Int) -> Unit,
-        onFinished: (message: String) -> Unit = {}
-    ) {
-        initialize(activity)
-        if (isFinishingOrDestroyed(activity)) {
-            onFinished("نمایش تبلیغ ممکن نیست.")
-            return
-        }
-        if (!canGrantReward(activity)) {
-            onFinished("سهمیه تبلیغ جایزه‌ای فعلاً تمام شده یا کمی بعد دوباره امتحان کن.")
-            return
-        }
-        var finished = false
-        fun finish(message: String) {
-            if (finished) return
-            finished = true
-            onFinished(message)
-        }
-        fun grant() {
-            if (finished) return
-            finished = true
-            markRewardGranted(activity)
-            onReward(rewardCoins)
-            onFinished("پاداش شما اضافه شد.")
-        }
-        fun tapsellFallback() {
-            if (finished || isFinishingOrDestroyed(activity) || !tapsellInitialized) {
-                finish("فعلاً تبلیغ جایزه‌ای در دسترس نیست.")
-                return
-            }
-            TapsellPlus.requestRewardedVideoAd(activity, AdsConfig.TAPSELL_REWARDED,
-                object : AdRequestCallback() {
-                    override fun response(ad: TapsellPlusAdModel) {
-                        val id = ad.responseId
-                        if (id.isNullOrBlank() || finished || isFinishingOrDestroyed(activity)) {
-                            finish("فعلاً تبلیغ جایزه‌ای در دسترس نیست.")
-                            return
-                        }
-                        TapsellPlus.showRewardedVideoAd(activity, id, object : AdShowListener() {
-                            override fun onOpened(ad: TapsellPlusAdModel) { markFullscreenShown(activity) }
-                            override fun onRewarded(ad: TapsellPlusAdModel) { grant() }
-                            override fun onClosed(ad: TapsellPlusAdModel) {
-                                if (!finished) finish("برای دریافت جایزه باید تماشای تبلیغ کامل شود.")
-                            }
-                            override fun onError(error: TapsellPlusErrorModel) {
-                                if (!finished) finish("نمایش تبلیغ با خطا روبه‌رو شد.")
-                            }
-                        })
-                    }
-                    override fun error(message: String) {
-                        Log.w(TAG, "Tapsell rewarded unavailable: $message")
-                        finish("فعلاً تبلیغ جایزه‌ای در دسترس نیست.")
-                    }
-                })
-        }
-        val placement = AdsConfig.ADIVERY_REWARDED
-        val listener = object : AdiveryListener() {
-            override fun onRewardedAdLoaded(placementId: String) {
-                if (!finished && placementId == placement && Adivery.isLoaded(placement)) Adivery.showAd(placement)
-            }
-            override fun onRewardedAdShown(placementId: String) {
-                if (placementId == placement) markFullscreenShown(activity)
-            }
-            override fun onRewardedAdClicked(placementId: String) = Unit
-            override fun onRewardedAdClosed(placementId: String, isRewarded: Boolean) {
-                if (placementId != placement) return
-                Adivery.removePlacementListener(placement)
-                if (isRewarded) grant()
-                else finish("برای دریافت جایزه باید تماشای تبلیغ کامل شود.")
-            }
-            override fun log(placementId: String, message: String) { Log.d(TAG, "Adivery rewarded: $message") }
-        }
-        Adivery.addPlacementListener(placement, listener)
-        Adivery.prepareRewardedAd(activity, placement)
-        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-            if (!finished && !Adivery.isLoaded(placement)) {
-                Adivery.removePlacementListener(placement)
-                tapsellFallback()
-            }
-        }, 3000L)
-    }
-
-    /** Backward-compatible wrapper used by existing UI. */
-    fun showRewarded(
-        activity: Activity,
-        onReward: () -> Unit,
-        onFinished: (message: String) -> Unit = {}
-    ) {
-        showCoinReward(
-            activity = activity,
-            rewardCoins = 25,
-            fallbackCoins = 10,
-            onReward = { onReward() },
-            onFinished = onFinished
-        )
     }
 
     /** Safe App-Open placement; never blocks startup. */
@@ -477,30 +370,6 @@ object GhadminoAdsManager {
     private fun markFullscreenShown(context: Context) {
         prefs(context).edit()
             .putLong(LAST_FULLSCREEN, System.currentTimeMillis())
-            .apply()
-    }
-
-    private fun canGrantReward(context: Context): Boolean {
-        val p = prefs(context)
-        val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
-            .format(java.util.Date())
-
-        if (p.getString(REWARD_DAY, null) != today) {
-            p.edit().putString(REWARD_DAY, today).putInt(REWARD_COUNT, 0).apply()
-        }
-
-        val count = p.getInt(REWARD_COUNT, 0)
-        val last = p.getLong(LAST_REWARD, 0L)
-
-        return count < MAX_REWARD_ADS_PER_DAY &&
-            System.currentTimeMillis() - last >= REWARD_COOLDOWN_MS
-    }
-
-    private fun markRewardGranted(context: Context) {
-        val p = prefs(context)
-        p.edit()
-            .putLong(LAST_REWARD, System.currentTimeMillis())
-            .putInt(REWARD_COUNT, p.getInt(REWARD_COUNT, 0) + 1)
             .apply()
     }
 
