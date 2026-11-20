@@ -227,9 +227,12 @@ private fun ActivityChart(data: List<Point>, line: Boolean, goal: Int) {
                     drawCircle(chartColor, 5f, Offset(x, y))
                 }
             } else {
-                val bw = ((w - 4f * (data.size - 1)) / data.size).coerceIn(3f, 30f)
+                // هر میله داخل یک خانه مساوی از عرض نمودار قرار می‌گیرد؛
+                // بنابراین در نمودار هفتگی میله‌ها فقط سمت چپ جمع نمی‌شوند.
+                val slotWidth = w / data.size
+                val bw = (slotWidth * 0.62f).coerceIn(3f, 30f)
                 data.forEachIndexed { index, point ->
-                    val x = left + index * (bw + 4f)
+                    val x = left + index * slotWidth + (slotWidth - bw) / 2f
                     val bh = h * point.value.toFloat() / maxValue
                     drawRoundRect(
                         color = chartColor,
