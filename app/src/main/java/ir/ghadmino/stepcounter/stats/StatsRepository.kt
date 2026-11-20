@@ -96,7 +96,7 @@ object StatsRepository {
             if (!useSolarCalendar) {
                 SimpleDateFormat("yyyy/MM/dd", Locale.US).format(parsed)
             } else {
-                val calendar = android.icu.util.PersianCalendar().apply { time = parsed }
+                val calendar = Calendar.getInstance(Locale.forLanguageTag("fa-IR-u-ca-persian")).apply { time = parsed }
                 val value = String.format(
                     Locale.US,
                     "%04d/%02d/%02d",
