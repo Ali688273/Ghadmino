@@ -267,7 +267,6 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit, onFontScaleChanged: (Float) ->
                 onManualActivityChanged = {
                     steps = ActivityAnalyticsRepository.today(context)
                     StepHistory.saveToday(context, steps)
-                    CoinWallet.syncStepReward(context, steps)
                     walkingMinutes = ActivityTimeRepository.todayActiveMinutes(context) +
                         ir.ghadmino.stepcounter.activity.ManualActivityRepository.minutesForDate(
                             context,
