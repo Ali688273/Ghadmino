@@ -172,17 +172,16 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit, onFontScaleChanged: (Float) ->
             stepSource = StepSourceRepository.get(context)
             val phoneSteps = ActivityAnalyticsRepository.today(context)
             val now = System.currentTimeMillis()
+            val manualSteps = ir.ghadmino.stepcounter.activity.ManualActivityRepository.stepsForDate(
+                context,
+                java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+            )
             if (stepSource == StepSource.PHONE || (stepSource == StepSource.AUTO && StepCounterService.sensorAvailable)) {
-                steps = phoneSteps
+                steps = (phoneSteps.toLong() + manualSteps).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
             } else if (now - lastHealthRefresh >= 60000L) {
                 val hc = try { HealthConnectRepository.todaySteps(context) } catch (_: Exception) { null }
-                val manualSteps = ir.ghadmino.stepcounter.activity.ManualActivityRepository.stepsForDate(
-                    context,
-                    java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
-                )
-                steps = if (hc != null) {
-                    (hc + manualSteps.toLong()).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
-                } else phoneSteps
+                val baseSteps = hc ?: phoneSteps.toLong()
+                steps = (baseSteps + manualSteps).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
                 lastHealthRefresh = now
             }
             if (steps != lastSavedSteps) {
@@ -278,13 +277,22 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit, onFontScaleChanged: (Float) ->
                     prefs.edit().putInt("daily_goal", it).apply()
                 },
                 onManualActivityChanged = {
-                    steps = ActivityAnalyticsRepository.today(context)
+                    val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+                    val phoneStepsNow = ActivityAnalyticsRepository.today(context)
+                    val manualStepsNow = ir.ghadmino.stepcounter.activity.ManualActivityRepository.stepsForDate(context, today)
+                    val baseStepsNow = if (
+                        stepSource == StepSource.PHONE ||
+                        (stepSource == StepSource.AUTO && StepCounterService.sensorAvailable)
+                    ) {
+                        phoneStepsNow.toLong()
+                    } else {
+                        (try { HealthConnectRepository.todaySteps(context) } catch (_: Exception) { null })
+                            ?: phoneStepsNow.toLong()
+                    }
+                    steps = (baseStepsNow + manualStepsNow).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
                     StepHistory.saveToday(context, steps)
                     walkingMinutes = ActivityTimeRepository.todayActiveMinutes(context) +
-                        ir.ghadmino.stepcounter.activity.ManualActivityRepository.minutesForDate(
-                            context,
-                            java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
-                        )
+                        ir.ghadmino.stepcounter.activity.ManualActivityRepository.minutesForDate(context, today)
                     insights = ActivityInsightsRepository.calculate(context, goal)
                 }
             )
