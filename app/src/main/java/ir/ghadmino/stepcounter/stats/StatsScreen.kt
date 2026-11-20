@@ -412,8 +412,12 @@ private fun chartData(context: Context, period: Int, useSolarCalendar: Boolean):
         (period - 1 downTo 0).map { offset ->
             val date = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -offset) }.time
             val calendar = Calendar.getInstance().apply { time = date }
-            val label = if (useSolarCalendar) jalaliDayLabel(calendar)
-                else SimpleDateFormat("MM/dd", Locale.US).format(date)
+            val label = when {
+                period == 30 && useSolarCalendar -> jalaliDayNumber(calendar)
+                period == 30 -> SimpleDateFormat("dd", Locale.US).format(date)
+                useSolarCalendar -> jalaliDayLabel(calendar)
+                else -> SimpleDateFormat("MM/dd", Locale.US).format(date)
+            }
             Point(label, rows[key.format(date)] ?: 0)
         }
     } else {
@@ -435,8 +439,13 @@ private fun chartData(context: Context, period: Int, useSolarCalendar: Boolean):
 
 
 private fun jalaliDayLabel(calendar: Calendar): String {
-    val (year, month, day) = gregorianToJalali(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH) + 1, calendar.get(Calendar.DAY_OF_MONTH))
+    val (_, month, day) = gregorianToJalali(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH) + 1, calendar.get(Calendar.DAY_OF_MONTH))
     return toPersianDigits(day.toString() + "/" + month)
+}
+
+private fun jalaliDayNumber(calendar: Calendar): String {
+    val (_, _, day) = gregorianToJalali(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH) + 1, calendar.get(Calendar.DAY_OF_MONTH))
+    return toPersianDigits(day.toString().padStart(2, '0'))
 }
 
 private fun jalaliMonthLabel(calendar: Calendar): String {
