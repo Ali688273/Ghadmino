@@ -1,6 +1,5 @@
 package ir.ghadmino.stepcounter.history
 
-import android.icu.util.PersianCalendar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -37,7 +36,7 @@ fun ActivityCalendarScreen(goal: Int) {
     val useSolarCalendar = SettingsRepository.load(context).useSolarCalendar
 
     val month = remember(monthOffset, useSolarCalendar) { monthCalendar(monthOffset, useSolarCalendar) }
-    val days = remember(monthOffset, useSolarCalendar) { monthDays(month) }
+    val days = remember(monthOffset, useSolarCalendar) { monthDays(month, useSolarCalendar) }
     val profile = remember { ProfileRepository.load(context) }
     val liveTodaySteps = remember { mutableIntStateOf(currentTodaySteps(context)) }
 
@@ -136,8 +135,10 @@ private fun estimateWalkingCalories(steps: Int, weightKg: Float): Int {
     return (steps.coerceAtLeast(0) * perStep).toInt().coerceAtLeast(0)
 }
 
+private fun persianCalendar(): Calendar = Calendar.getInstance(Locale.forLanguageTag("fa-IR-u-ca-persian"))
+
 private fun monthCalendar(offset: Int, solar: Boolean): Calendar {
-    val calendar: Calendar = if (solar) PersianCalendar() else Calendar.getInstance()
+    val calendar: Calendar = if (solar) persianCalendar() else Calendar.getInstance()
     calendar.time = Date()
     calendar.add(Calendar.MONTH, offset)
     calendar.set(Calendar.DAY_OF_MONTH, 1)
@@ -148,9 +149,9 @@ private fun monthCalendar(offset: Int, solar: Boolean): Calendar {
     return calendar
 }
 
-private fun monthDays(month: Calendar): List<String?> {
-    val firstDay = if (month is PersianCalendar) month.get(Calendar.DAY_OF_WEEK) % 7
-    else month.get(Calendar.DAY_OF_WEEK) - 1
+private fun monthDays(month: Calendar, solar: Boolean): List<String?> {
+    val dayOfWeek = month.get(Calendar.DAY_OF_WEEK)
+    val firstDay = if (solar) dayOfWeek % 7 else dayOfWeek - 1
     val maxDays = month.getActualMaximum(Calendar.DAY_OF_MONTH)
     val result = MutableList<String?>(firstDay) { null }
     for (day in 1..maxDays) {
@@ -167,14 +168,14 @@ private fun monthLabel(calendar: Calendar, solar: Boolean): String =
 
 private fun dayNumber(date: String, solar: Boolean): String {
     val parsed = parseDate(date) ?: return date.substringAfterLast("-")
-    val calendar: Calendar = if (solar) PersianCalendar() else Calendar.getInstance()
+    val calendar: Calendar = if (solar) persianCalendar() else Calendar.getInstance()
     calendar.time = parsed
     return calendar.get(Calendar.DAY_OF_MONTH).toString()
 }
 
 private fun formatDate(date: String, solar: Boolean): String {
     val parsed = parseDate(date) ?: return date
-    val calendar: Calendar = if (solar) PersianCalendar() else Calendar.getInstance()
+    val calendar: Calendar = if (solar) persianCalendar() else Calendar.getInstance()
     calendar.time = parsed
     return if (solar) {
         String.format(Locale.US, "%04d/%02d/%02d", calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH) + 1, calendar.get(Calendar.DAY_OF_MONTH))
