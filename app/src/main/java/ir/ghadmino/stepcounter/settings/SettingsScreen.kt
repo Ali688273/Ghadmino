@@ -24,7 +24,6 @@ import kotlin.math.roundToInt
 @Composable
 fun SettingsScreen(
     onProfile: () -> Unit,
-    onHistory: () -> Unit,
     onHealth: () -> Unit,
     onBackup: () -> Unit,
     dailyGoal: Int,
@@ -62,7 +61,6 @@ fun SettingsScreen(
 
         Text("حساب و اطلاعات", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         SettingActionCard("👤", "اطلاعات بدنی و هدف", "نام، سن، قد، وزن، طول گام و هدف روزانه", onProfile)
-        SettingActionCard("📅", "تاریخچه فعالیت", "مشاهده قدم‌های ثبت‌شده در روزهای گذشته", onHistory)
         SettingActionCard("❤️", "اتصال قدمینو به داده‌های سلامت", "مدیریت اتصال و خواندن اطلاعات از Health Connect", onHealth)
         SettingActionCard("💾", "پشتیبان‌گیری و بازیابی", "ذخیره یا برگرداندن اطلاعات قدمینو از فایل", onBackup)
 
