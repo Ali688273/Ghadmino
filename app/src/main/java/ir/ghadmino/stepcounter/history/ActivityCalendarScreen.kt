@@ -17,6 +17,7 @@ import ir.ghadmino.stepcounter.activity.ManualActivityRepository
 import ir.ghadmino.stepcounter.profile.ProfileRepository
 import ir.ghadmino.stepcounter.step.StepCounterService
 import ir.ghadmino.stepcounter.step.StepHistory
+import ir.ghadmino.stepcounter.settings.SettingsRepository
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -33,7 +34,7 @@ fun ActivityCalendarScreen(goal: Int) {
     val context = LocalContext.current
     var monthOffset by remember { mutableIntStateOf(0) }
     var selectedDate by remember { mutableStateOf(today()) }
-    var useSolarCalendar by remember { mutableStateOf(true) }
+    val useSolarCalendar = SettingsRepository.load(context).useSolarCalendar
 
     val month = remember(monthOffset, useSolarCalendar) { monthCalendar(monthOffset, useSolarCalendar) }
     val days = remember(monthOffset, useSolarCalendar) { monthDays(month) }
@@ -50,12 +51,6 @@ fun ActivityCalendarScreen(goal: Int) {
     val estimatedCalories = estimateWalkingCalories(selectedSteps, profile.weightKg)
 
     Column(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-            FilterChip(selected = useSolarCalendar, onClick = { useSolarCalendar = true; monthOffset = 0 }, label = { Text("شمسی") })
-            Spacer(Modifier.width(8.dp))
-            FilterChip(selected = !useSolarCalendar, onClick = { useSolarCalendar = false; monthOffset = 0 }, label = { Text("میلادی") })
-        }
-
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
             TextButton(onClick = { monthOffset-- }) { Text("‹ ماه قبل") }
             Text(monthLabel(month, useSolarCalendar), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -63,7 +58,7 @@ fun ActivityCalendarScreen(goal: Int) {
         }
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            listOf("ش", "ی", "د", "س", "چ", "پ", "ج").forEach {
+            (if (useSolarCalendar) listOf("ش", "ی", "د", "س", "چ", "پ", "ج") else listOf("S", "M", "T", "W", "T", "F", "S")).forEach {
                 Text(it, Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
@@ -154,7 +149,8 @@ private fun monthCalendar(offset: Int, solar: Boolean): Calendar {
 }
 
 private fun monthDays(month: Calendar): List<String?> {
-    val firstDay = month.get(Calendar.DAY_OF_WEEK) % 7
+    val firstDay = if (month is PersianCalendar) month.get(Calendar.DAY_OF_WEEK) % 7
+    else month.get(Calendar.DAY_OF_WEEK) - 1
     val maxDays = month.getActualMaximum(Calendar.DAY_OF_MONTH)
     val result = MutableList<String?>(firstDay) { null }
     for (day in 1..maxDays) {
@@ -180,8 +176,18 @@ private fun formatDate(date: String, solar: Boolean): String {
     val parsed = parseDate(date) ?: return date
     val calendar: Calendar = if (solar) PersianCalendar() else Calendar.getInstance()
     calendar.time = parsed
-    return if (solar) String.format(Locale.US, "%04d/%02d/%02d", calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH) + 1, calendar.get(Calendar.DAY_OF_MONTH))
-    else SimpleDateFormat("yyyy/MM/dd", Locale.US).format(parsed)
+    return if (solar) {
+        String.format(Locale.US, "%04d/%02d/%02d", calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH) + 1, calendar.get(Calendar.DAY_OF_MONTH))
+            .map { digit ->
+                when (digit) {
+                    '0' -> '۰'; '1' -> '۱'; '2' -> '۲'; '3' -> '۳'; '4' -> '۴'
+                    '5' -> '۵'; '6' -> '۶'; '7' -> '۷'; '8' -> '۸'; '9' -> '۹'
+                    else -> digit
+                }
+            }.joinToString("")
+    } else {
+        SimpleDateFormat("yyyy/MM/dd", Locale.US).format(parsed)
+    }
 }
 
 private fun parseDate(date: String): Date? =
