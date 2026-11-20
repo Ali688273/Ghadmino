@@ -12,6 +12,7 @@ import com.adivery.sdk.AdiveryBannerAdView
 import com.adivery.sdk.AdiveryListener
 import com.adivery.sdk.BannerSize
 import ir.ghadmino.stepcounter.BuildConfig
+import ir.ghadmino.stepcounter.AdsRuntime
 import ir.tapsell.plus.AdRequestCallback
 import ir.tapsell.plus.AdShowListener
 import ir.tapsell.plus.TapsellPlus
