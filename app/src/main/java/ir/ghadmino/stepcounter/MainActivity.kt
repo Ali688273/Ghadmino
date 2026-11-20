@@ -475,24 +475,24 @@ private fun HomePage(
                 Icons.Default.Route,
                 "مسافت",
                 String.format(java.util.Locale.US, "%.2f km", distanceKm),
-                containerColor = Color(0xFFE6F0FF),
-                contentColor = Color(0xFF244A78)
+                containerColor = Color(0xFFE8EEF5),
+                contentColor = Color(0xFF34465A)
             )
             StatCard(
                 Modifier.weight(1f),
                 Icons.Default.LocalFireDepartment,
                 "کالری",
                 calories.toInt().toString() + " kcal",
-                containerColor = Color(0xFFFFF0DF),
-                contentColor = Color(0xFF80501F)
+                containerColor = Color(0xFFE8EEF5),
+                contentColor = Color(0xFF34465A)
             )
             StatCard(
                 Modifier.weight(1f),
                 Icons.Default.DirectionsWalk,
                 "زمان راه‌رفتن",
                 walkingMinutes.toString() + " دقیقه",
-                containerColor = Color(0xFFE3F4EF),
-                contentColor = Color(0xFF245D50)
+                containerColor = Color(0xFFE8EEF5),
+                contentColor = Color(0xFF34465A)
             )
         }
 
