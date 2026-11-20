@@ -24,7 +24,9 @@ import ir.tapsell.plus.model.TapsellPlusErrorModel
 object GhadminoAdsManager {
 
     private const val TAG = "GhadminoAds"
-    private const val FULLSCREEN_COOLDOWN_MS = 5 * 60 * 1000L
+    private const val FULLSCREEN_COOLDOWN_MS = 15 * 60 * 1000L
+    private const val MIN_SESSION_MS = 5 * 60 * 1000L
+    private const val MIN_NAVIGATIONS = 6
     private const val REWARD_COOLDOWN_MS = 60 * 1000L
     private const val MAX_REWARD_ADS_PER_DAY = 5
 
@@ -37,11 +39,14 @@ object GhadminoAdsManager {
     @Volatile private var initialized = false
     @Volatile private var tapsellInitializationStarted = false
     @Volatile private var tapsellInitialized = false
+    private var sessionStartedAt = 0L
+    private var navigationCount = 0
 
     private fun prefs(context: Context) =
         context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
     fun initialize(context: Context) {
+        if (sessionStartedAt == 0L) sessionStartedAt = System.currentTimeMillis()
         if (!initialized) {
             synchronized(this) {
                 if (!initialized) {
@@ -79,20 +84,7 @@ object GhadminoAdsManager {
         }
     }
 
-    /**
-     * User-initiated coin reward.
-     *
-     * Primary:
-     * 1) Tapsell rewarded
-     * 2) Adivery rewarded
-     *
-     * Backup reward:
-     * 3) Tapsell interstitial
-     * 4) Adivery interstitial
-     *
-     * The backup path is explicitly a smaller fallback reward and is never
-     * described as a rewarded-ad event.
-     */
+    /** Adivery first; fallback to Tapsell. Reward only on explicit completion callback. */
     fun showCoinReward(
         activity: Activity,
         rewardCoins: Int = 25,
@@ -101,126 +93,82 @@ object GhadminoAdsManager {
         onFinished: (message: String) -> Unit = {}
     ) {
         initialize(activity)
-
         if (isFinishingOrDestroyed(activity)) {
             onFinished("نمایش تبلیغ ممکن نیست.")
             return
         }
-
         if (!canGrantReward(activity)) {
             onFinished("سهمیه تبلیغ جایزه‌ای فعلاً تمام شده یا کمی بعد دوباره امتحان کن.")
             return
         }
-
-        var completed = false
-
-        fun rewardOnce(coins: Int, message: String) {
-            if (completed) return
-            completed = true
-            markRewardGranted(activity)
-            onReward(coins)
+        var finished = false
+        fun finish(message: String) {
+            if (finished) return
+            finished = true
             onFinished(message)
         }
-
-        fun fallbackInterstitial() {
-            showInterstitialInternal(
-                activity = activity,
-                grantCoins = fallbackCoins,
-                onReward = { coins ->
-                    rewardOnce(coins, "تبلیغ جایزه‌ای موجود نبود؛ از تبلیغ جایگزین استفاده شد و +$coins سکه اضافه شد.")
-                },
-                onFinished = { message ->
-                    if (!completed) onFinished(message)
-                }
-            )
+        fun grant() {
+            if (finished) return
+            finished = true
+            markRewardGranted(activity)
+            onReward(rewardCoins)
+            onFinished("پاداش شما اضافه شد.")
         }
-
-        fun adiveryRewarded() {
-            val placement = AdsConfig.ADIVERY_REWARDED
-            val listener = object : AdiveryListener() {
-                override fun onRewardedAdLoaded(placementId: String) {
-                    if (placementId == placement && Adivery.isLoaded(placement)) {
-                        Adivery.showAd(placement)
-                    }
-                }
-
-                override fun onRewardedAdShown(placementId: String) {
-                    if (placementId == placement) markFullscreenShown(activity)
-                }
-
-                override fun onRewardedAdClicked(placementId: String) = Unit
-
-                override fun onRewardedAdClosed(placementId: String, isRewarded: Boolean) {
-                    if (placementId != placement) return
-                    Adivery.removePlacementListener(placement)
-                    if (isRewarded) {
-                        rewardOnce(rewardCoins, "پاداش شما اضافه شد.")
-                    } else if (!completed) {
-                        fallbackInterstitial()
-                    }
-                }
-
-                override fun log(placementId: String, message: String) {
-                    Log.d(TAG, "Adivery rewarded: $message")
-                }
+        fun tapsellFallback() {
+            if (finished || isFinishingOrDestroyed(activity) || !tapsellInitialized) {
+                finish("فعلاً تبلیغ جایزه‌ای در دسترس نیست.")
+                return
             }
-
-            Adivery.addPlacementListener(placement, listener)
-            Adivery.prepareRewardedAd(activity, placement)
-
-            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                if (!completed && !Adivery.isLoaded(placement)) {
-                    Adivery.removePlacementListener(placement)
-                    fallbackInterstitial()
-                }
-            }, 2500L)
-        }
-
-        if (!tapsellInitialized) {
-            adiveryRewarded()
-            return
-        }
-
-        TapsellPlus.requestRewardedVideoAd(
-            activity,
-            AdsConfig.TAPSELL_REWARDED,
-            object : AdRequestCallback() {
-                override fun response(ad: TapsellPlusAdModel) {
-                    val responseId = ad.responseId
-                    if (responseId.isNullOrBlank()) {
-                        adiveryRewarded()
-                        return
-                    }
-
-                    TapsellPlus.showRewardedVideoAd(
-                        activity,
-                        responseId,
-                        object : AdShowListener() {
-                            override fun onOpened(ad: TapsellPlusAdModel) {
-                                markFullscreenShown(activity)
-                            }
-
-                            override fun onRewarded(ad: TapsellPlusAdModel) {
-                                rewardOnce(rewardCoins, "پاداش شما اضافه شد.")
-                            }
-
-                            override fun onClosed(ad: TapsellPlusAdModel) {
-                                if (!completed) adiveryRewarded()
-                            }
-
-                            override fun onError(error: TapsellPlusErrorModel) {
-                                if (!completed) adiveryRewarded()
-                            }
+            TapsellPlus.requestRewardedVideoAd(activity, AdsConfig.TAPSELL_REWARDED,
+                object : AdRequestCallback() {
+                    override fun response(ad: TapsellPlusAdModel) {
+                        val id = ad.responseId
+                        if (id.isNullOrBlank() || finished || isFinishingOrDestroyed(activity)) {
+                            finish("فعلاً تبلیغ جایزه‌ای در دسترس نیست.")
+                            return
                         }
-                    )
-                }
-
-                override fun error(message: String) {
-                    Log.w(TAG, "Tapsell rewarded unavailable: $message")
-                    adiveryRewarded()
-                }
+                        TapsellPlus.showRewardedVideoAd(activity, id, object : AdShowListener() {
+                            override fun onOpened(ad: TapsellPlusAdModel) { markFullscreenShown(activity) }
+                            override fun onRewarded(ad: TapsellPlusAdModel) { grant() }
+                            override fun onClosed(ad: TapsellPlusAdModel) {
+                                if (!finished) finish("برای دریافت جایزه باید تماشای تبلیغ کامل شود.")
+                            }
+                            override fun onError(error: TapsellPlusErrorModel) {
+                                if (!finished) finish("نمایش تبلیغ با خطا روبه‌رو شد.")
+                            }
+                        })
+                    }
+                    override fun error(message: String) {
+                        Log.w(TAG, "Tapsell rewarded unavailable: $message")
+                        finish("فعلاً تبلیغ جایزه‌ای در دسترس نیست.")
+                    }
+                })
+        }
+        val placement = AdsConfig.ADIVERY_REWARDED
+        val listener = object : AdiveryListener() {
+            override fun onRewardedAdLoaded(placementId: String) {
+                if (!finished && placementId == placement && Adivery.isLoaded(placement)) Adivery.showAd(placement)
             }
-        )
+            override fun onRewardedAdShown(placementId: String) {
+                if (placementId == placement) markFullscreenShown(activity)
+            }
+            override fun onRewardedAdClicked(placementId: String) = Unit
+            override fun onRewardedAdClosed(placementId: String, isRewarded: Boolean) {
+                if (placementId != placement) return
+                Adivery.removePlacementListener(placement)
+                if (isRewarded) grant()
+                else finish("برای دریافت جایزه باید تماشای تبلیغ کامل شود.")
+            }
+            override fun log(placementId: String, message: String) { Log.d(TAG, "Adivery rewarded: $message") }
+        }
+        Adivery.addPlacementListener(placement, listener)
+        Adivery.prepareRewardedAd(activity, placement)
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            if (!finished && !Adivery.isLoaded(placement)) {
+                Adivery.removePlacementListener(placement)
+                tapsellFallback()
+            }
+        }, 3000L)
     }
 
     /** Backward-compatible wrapper used by existing UI. */
@@ -281,16 +229,14 @@ object GhadminoAdsManager {
         }, 2500L)
     }
 
-    fun showInterstitial(
-        activity: Activity,
-        onFinished: () -> Unit = {}
-    ) {
-        showInterstitialInternal(
-            activity = activity,
-            grantCoins = null,
-            onReward = {},
-            onFinished = { onFinished() }
-        )
+    fun showInterstitial(activity: Activity, onFinished: () -> Unit = {}) {
+        navigationCount++
+        val now = System.currentTimeMillis()
+        if (navigationCount < MIN_NAVIGATIONS || now - sessionStartedAt < MIN_SESSION_MS) {
+            onFinished()
+            return
+        }
+        showInterstitialInternal(activity, null, {}, { onFinished() })
     }
 
     private fun showInterstitialInternal(
@@ -300,191 +246,113 @@ object GhadminoAdsManager {
         onFinished: (String) -> Unit
     ) {
         initialize(activity)
-
-        if (!canShowFullscreen(activity)) {
+        if (isFinishingOrDestroyed(activity) || !canShowFullscreen(activity)) {
             onFinished("برای جلوگیری از مزاحمت، تبلیغ تمام‌صفحه فعلاً نمایش داده نشد.")
             return
         }
-
-        lateinit var showAdiveryPlacement: (String) -> Unit
-        showAdiveryPlacement = { placement: String ->
-            var shown = false
-            val listener = object : AdiveryListener() {
-                override fun onInterstitialAdLoaded(placementId: String) {
-                    if (placementId == placement && Adivery.isLoaded(placement)) {
-                        Adivery.showAd(placement)
-                    }
-                }
-
-                override fun onInterstitialAdShown(placementId: String) {
-                    if (placementId == placement) {
-                        shown = true
-                        markFullscreenShown(activity)
-                    }
-                }
-
-                override fun onInterstitialAdClicked(placementId: String) = Unit
-
-                override fun onInterstitialAdClosed(placementId: String) {
-                    if (placementId != placement) return
-                    Adivery.removePlacementListener(placement)
-                    if (grantCoins != null && shown) onReward(grantCoins)
-                    onFinished(if (grantCoins != null && shown) "تبلیغ جایگزین کامل شد." else "تبلیغ تمام شد.")
-                }
-
-                override fun log(placementId: String, message: String) {
-                    Log.d(TAG, "Adivery interstitial: $message")
-                }
-            }
-
-            Adivery.addPlacementListener(placement, listener)
-            Adivery.prepareInterstitialAd(activity, placement)
-
-            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                if (!shown && !Adivery.isLoaded(placement)) {
-                    Adivery.removePlacementListener(placement)
-                    if (placement == AdsConfig.ADIVERY_INTERSTITIAL) {
-                        showAdiveryPlacement(AdsConfig.ADIVERY_PRE_ROLL)
-                    } else {
-                        onFinished("فعلاً تبلیغی در دسترس نیست.")
-                    }
-                }
-            }, 2500L)
+        var finished = false
+        fun finish(message: String) {
+            if (finished) return
+            finished = true
+            onFinished(message)
         }
-
-        fun showAdivery() {
-            showAdiveryPlacement(AdsConfig.ADIVERY_INTERSTITIAL)
-        }
-
-        if (!tapsellInitialized) {
-            showAdivery()
-            return
-        }
-
-        var shown = false
-        var previewTried = false
-
-        fun tryPreviewVideo() {
-            if (previewTried) {
-                showAdivery()
+        fun tapsellFallback(index: Int = 0) {
+            val zones = listOf(AdsConfig.TAPSELL_INSTANT_VIDEO, AdsConfig.TAPSELL_INTERSTITIAL, AdsConfig.TAPSELL_PREVIEW_VIDEO)
+            if (finished || isFinishingOrDestroyed(activity)) return
+            if (!tapsellInitialized || index >= zones.size) {
+                finish("فعلاً تبلیغی در دسترس نیست.")
                 return
             }
-            previewTried = true
-            TapsellPlus.requestInterstitialAd(
-                activity,
-                AdsConfig.TAPSELL_PREVIEW_VIDEO,
-                object : AdRequestCallback() {
-                    override fun response(ad: TapsellPlusAdModel) {
-                        val id = ad.responseId
-                        if (id.isNullOrBlank()) {
-                            showAdivery()
-                            return
-                        }
-                        TapsellPlus.showInterstitialAd(
-                            activity,
-                            id,
-                            object : AdShowListener() {
-                                override fun onOpened(ad: TapsellPlusAdModel) {
-                                    markFullscreenShown(activity)
-                                }
-                                override fun onClosed(ad: TapsellPlusAdModel) {
-                                    onFinished("تبلیغ تمام شد.")
-                                }
-                                override fun onError(error: TapsellPlusErrorModel) {
-                                    showAdivery()
-                                }
-                            }
-                        )
-                    }
-                    override fun error(message: String) {
-                        showAdivery()
-                    }
-                }
-            )
-        }
-
-        TapsellPlus.requestInterstitialAd(
-            activity,
-            AdsConfig.TAPSELL_INTERSTITIAL,
-            object : AdRequestCallback() {
+            val zone = zones[index]
+            TapsellPlus.requestInterstitialAd(activity, zone, object : AdRequestCallback() {
                 override fun response(ad: TapsellPlusAdModel) {
-                    val responseId = ad.responseId
-                    if (responseId.isNullOrBlank()) {
-                        showAdivery()
+                    val id = ad.responseId
+                    if (id.isNullOrBlank() || finished || isFinishingOrDestroyed(activity)) {
+                        tapsellFallback(index + 1)
                         return
                     }
-
-                    TapsellPlus.showInterstitialAd(
-                        activity,
-                        responseId,
-                        object : AdShowListener() {
-                            override fun onOpened(ad: TapsellPlusAdModel) {
-                                shown = true
-                                markFullscreenShown(activity)
-                            }
-
-                            override fun onClosed(ad: TapsellPlusAdModel) {
-                                if (grantCoins != null && shown) onReward(grantCoins)
-                                onFinished(if (grantCoins != null && shown) "تبلیغ جایگزین کامل شد." else "تبلیغ تمام شد.")
-                            }
-
-                            override fun onError(error: TapsellPlusErrorModel) {
-                                tryPreviewVideo()
-                            }
+                    TapsellPlus.showInterstitialAd(activity, id, object : AdShowListener() {
+                        override fun onOpened(ad: TapsellPlusAdModel) { markFullscreenShown(activity) }
+                        override fun onClosed(ad: TapsellPlusAdModel) { finish("تبلیغ تمام شد.") }
+                        override fun onError(error: TapsellPlusErrorModel) {
+                            Log.w(TAG, "Tapsell fullscreen failed: ${error.errorMessage}")
+                            tapsellFallback(index + 1)
                         }
-                    )
+                    })
                 }
-
                 override fun error(message: String) {
-                    tryPreviewVideo()
+                    Log.w(TAG, "Tapsell zone $zone unavailable: $message")
+                    tapsellFallback(index + 1)
+                }
+            })
+        }
+        val placement = AdsConfig.ADIVERY_INTERSTITIAL
+        var shown = false
+        val listener = object : AdiveryListener() {
+            override fun onInterstitialAdLoaded(placementId: String) {
+                if (!finished && placementId == placement && Adivery.isLoaded(placement)) Adivery.showAd(placement)
+            }
+            override fun onInterstitialAdShown(placementId: String) {
+                if (placementId == placement) {
+                    shown = true
+                    markFullscreenShown(activity)
                 }
             }
-        )
+            override fun onInterstitialAdClicked(placementId: String) = Unit
+            override fun onInterstitialAdClosed(placementId: String) {
+                if (placementId != placement) return
+                Adivery.removePlacementListener(placement)
+                finish("تبلیغ تمام شد.")
+            }
+            override fun log(placementId: String, message: String) { Log.d(TAG, "Adivery interstitial: $message") }
+        }
+        Adivery.addPlacementListener(placement, listener)
+        if (runCatching { Adivery.isLoaded(placement) }.getOrDefault(false)) {
+            runCatching { Adivery.showAd(placement) }.onFailure {
+                Adivery.removePlacementListener(placement)
+                tapsellFallback()
+            }
+        } else {
+            Adivery.prepareInterstitialAd(activity, placement)
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                if (!finished && !shown && !Adivery.isLoaded(placement)) {
+                    Adivery.removePlacementListener(placement)
+                    tapsellFallback()
+                }
+            }, 3000L)
+        }
     }
 
     fun loadBanner(activity: Activity, container: ViewGroup) {
         initialize(activity)
         if (container.childCount > 0) return
-
-        if (!tapsellInitialized) {
-            loadAdiveryBanner(activity, container)
-            return
-        }
-
-        TapsellPlus.requestStandardBannerAd(
-            activity,
-            AdsConfig.TAPSELL_STANDARD_BANNER,
-            TapsellPlusBannerType.BANNER_320x50,
-            object : AdRequestCallback() {
-                override fun response(ad: TapsellPlusAdModel) {
-                    val responseId = ad.responseId
-                    if (responseId.isNullOrBlank()) {
-                        loadAdiveryBanner(activity, container)
-                        return
-                    }
-
-                    TapsellPlus.showStandardBannerAd(
-                        activity,
-                        responseId,
-                        container,
-                        object : AdShowListener() {
-                            override fun onOpened(ad: TapsellPlusAdModel) = Unit
-                            override fun onError(error: TapsellPlusErrorModel) {
-                                container.removeAllViews()
-                                loadAdiveryBanner(activity, container)
-                            }
-                        }
-                    )
-                }
-
-                override fun error(message: String) {
-                    loadAdiveryBanner(activity, container)
-                }
+        loadAdiveryBanner(activity, container) {
+            if (tapsellInitialized && !isFinishingOrDestroyed(activity)) {
+                requestTapsellBanner(activity, container, AdsConfig.TAPSELL_STANDARD_BANNER)
             }
-        )
+        }
     }
 
-    private fun loadAdiveryBanner(activity: Activity, container: ViewGroup) {
+    private fun requestTapsellBanner(activity: Activity, container: ViewGroup, zone: String) {
+        if (container.childCount > 0 || isFinishingOrDestroyed(activity)) return
+        TapsellPlus.requestStandardBannerAd(activity, zone, TapsellPlusBannerType.BANNER_320x50,
+            object : AdRequestCallback() {
+                override fun response(ad: TapsellPlusAdModel) {
+                    val id = ad.responseId
+                    if (id.isNullOrBlank() || container.childCount > 0 || isFinishingOrDestroyed(activity)) return
+                    TapsellPlus.showStandardBannerAd(activity, id, container, object : AdShowListener() {
+                        override fun onOpened(ad: TapsellPlusAdModel) = Unit
+                        override fun onError(error: TapsellPlusErrorModel) {
+                            container.removeAllViews()
+                            Log.w(TAG, "Tapsell banner show failed: ${error.errorMessage}")
+                        }
+                    })
+                }
+                override fun error(message: String) { Log.w(TAG, "Tapsell banner unavailable: $message") }
+            })
+    }
+
+    private fun loadAdiveryBanner(activity: Activity, container: ViewGroup, onFailed: () -> Unit = {}) {
         if (container.childCount > 0) return
 
         val banner = AdiveryBannerAdView(activity).apply {
@@ -512,39 +380,11 @@ object GhadminoAdsManager {
     fun loadInstantBanner(activity: Activity, container: ViewGroup) {
         initialize(activity)
         if (container.childCount > 0) return
-        if (!tapsellInitialized) {
-            loadAdiveryBanner(activity, container)
-            return
-        }
-        TapsellPlus.requestStandardBannerAd(
-            activity,
-            AdsConfig.TAPSELL_INSTANT_BANNER,
-            TapsellPlusBannerType.BANNER_320x50,
-            object : AdRequestCallback() {
-                override fun response(ad: TapsellPlusAdModel) {
-                    val responseId = ad.responseId
-                    if (responseId.isNullOrBlank()) {
-                        loadAdiveryBanner(activity, container)
-                        return
-                    }
-                    TapsellPlus.showStandardBannerAd(
-                        activity,
-                        responseId,
-                        container,
-                        object : AdShowListener() {
-                            override fun onOpened(ad: TapsellPlusAdModel) = Unit
-                            override fun onError(error: TapsellPlusErrorModel) {
-                                container.removeAllViews()
-                                loadAdiveryBanner(activity, container)
-                            }
-                        }
-                    )
-                }
-                override fun error(message: String) {
-                    loadAdiveryBanner(activity, container)
-                }
+        loadAdiveryBanner(activity, container) {
+            if (tapsellInitialized && !isFinishingOrDestroyed(activity)) {
+                requestTapsellBanner(activity, container, AdsConfig.TAPSELL_INSTANT_BANNER)
             }
-        )
+        }
     }
 
     fun loadNativeBanner(activity: Activity, container: ViewGroup) {
