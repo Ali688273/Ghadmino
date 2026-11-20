@@ -175,7 +175,7 @@ private fun buildCalendarMonth(offset: Int, solar: Boolean): CalendarMonth {
         val monthIndex = calendar.get(android.icu.util.Calendar.MONTH)
         val maxDays = calendar.getActualMaximum(android.icu.util.Calendar.DAY_OF_MONTH)
         // Persian week starts Saturday; ICU DAY_OF_WEEK is Sunday=1 ... Saturday=7.
-        val firstDay = (calendar.get(android.icu.util.Calendar.DAY_OF_WEEK) + 1) % 7
+        val firstDay = calendar.get(android.icu.util.Calendar.DAY_OF_WEEK) % 7
         val result = MutableList<String?>(firstDay) { null }
         for (day in 1..maxDays) {
             calendar.set(android.icu.util.Calendar.DAY_OF_MONTH, day)
