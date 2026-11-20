@@ -155,8 +155,12 @@ fun StatsScreen(stats: GhadminoStats, goal: Int) {
                     DetailPill(
                         Modifier.fillMaxWidth(),
                         "بازه ثبت رکورد زنجیره",
-                        StatsRepository.label(stats.longestStreak.startDate) + " تا " +
-                            StatsRepository.label(stats.longestStreak.endDate)
+                        if (stats.longestStreak.value > 0) {
+                            StatsRepository.label(stats.longestStreak.startDate) + " تا " +
+                                StatsRepository.label(stats.longestStreak.endDate)
+                        } else {
+                            "هنوز رکوردی ثبت نشده است"
+                        }
                     )
                 }
             }
