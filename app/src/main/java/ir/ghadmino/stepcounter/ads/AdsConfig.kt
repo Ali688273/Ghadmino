@@ -11,8 +11,12 @@ object AdsConfig {
     const val TAPSELL_APP_KEY =
         "hfmftdctrtdblgddobrkecorgahjgtbdkopofapghnlhfsqgthaggoqlkgbrertdosblad"
 
-    const val TAPSELL_INTERSTITIAL =
+    // Ghadmino panel placement used for Tapsell Instant Video.
+    const val TAPSELL_INSTANT_VIDEO =
         "6ab8ba8d3df3c67e7db5713c"
+
+    @Deprecated("Use TAPSELL_INSTANT_VIDEO")
+    const val TAPSELL_INTERSTITIAL = TAPSELL_INSTANT_VIDEO
 
     const val TAPSELL_PREVIEW_VIDEO =
         "6ab8bab53df3c67e7db5713d"
