@@ -1,11 +1,12 @@
 package ir.ghadmino.stepcounter.profile
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.Paid
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -13,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
 
 @Composable
 fun ProfileScreen(onSaved: () -> Unit) {
@@ -24,9 +26,16 @@ fun ProfileScreen(onSaved: () -> Unit) {
     var weight by remember { mutableStateOf(profile.weightKg.toString()) }
     var stride by remember { mutableStateOf(profile.strideCm.toString()) }
     var goal by remember { mutableStateOf(profile.dailyGoal.toString()) }
-    var selected by remember { mutableStateOf(ProfileExtrasRepository.selected(context)) }
-
-    val selectedExtra = ProfileExtrasRepository.items.firstOrNull { it.id == selected }
+    var selectedFrame by remember { mutableStateOf(ProfileExtrasRepository.selectedFrame(context)) }
+    var selectedBadge by remember { mutableStateOf(ProfileExtrasRepository.selectedBadge(context)) }
+    val selectedBadgeItem = ProfileExtrasRepository.badges.firstOrNull { it.id == selectedBadge }
+    val frameColor = when (selectedFrame) {
+        "frame_blue" -> Color(0xFF2687D8)
+        "frame_gold" -> Color(0xFFD6A52D)
+        "frame_violet" -> Color(0xFF8657C8)
+        "frame_green" -> Color(0xFF29966A)
+        else -> Color.Transparent
+    }
 
     Column(
         Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
@@ -41,9 +50,10 @@ fun ProfileScreen(onSaved: () -> Unit) {
             Column(Modifier.padding(18.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Surface(
-                        modifier = Modifier.size(64.dp),
-                        shape = MaterialTheme.shapes.large,
-                        tonalElevation = 4.dp
+                        modifier = Modifier.size(68.dp),
+                        shape = RoundedCornerShape(18.dp),
+                        tonalElevation = 4.dp,
+                        border = if (frameColor == Color.Transparent) null else BorderStroke(3.dp, frameColor)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
@@ -59,17 +69,18 @@ fun ProfileScreen(onSaved: () -> Unit) {
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
-                        Text(
-                            if (selectedExtra == null) "پروفایل پایه"
-                            else "آیتم فعال: " + selectedExtra.title
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                            Text(if (selectedFrame == "none") "پروفایل پایه" else "قاب شخصی")
+                            if (selectedBadgeItem != null && selectedBadge != "none") {
+                                Text(selectedBadgeItem.emoji)
+                                Text(selectedBadgeItem.title, style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
                     }
                     Icon(Icons.Default.EmojiEvents, null)
                 }
                 Spacer(Modifier.height(10.dp))
-                Text(
-                    "شخصی‌سازی‌ها از فروشگاه پروفایل روی این کارت نمایش داده می‌شوند."
-                )
+                Text("قاب و نشان انتخابی از بخش شخصی‌سازی رایگان در این پروفایل نمایش داده می‌شوند.")
             }
         }
 
@@ -94,18 +105,6 @@ fun ProfileScreen(onSaved: () -> Unit) {
                 Text("خلاصه سلامت", style = MaterialTheme.typography.titleMedium)
                 Text(String.format("BMI: %.1f", current.bmi))
                 Text("این عدد فقط یک شاخص تقریبی است.")
-            }
-        }
-
-        Card(Modifier.fillMaxWidth()) {
-            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Paid, null)
-                Spacer(Modifier.width(10.dp))
-                Column {
-                    Text("شخصی‌سازی فعال", style = MaterialTheme.typography.labelMedium)
-                    Text(selectedExtra?.title ?: "هنوز آیتمی انتخاب نشده", fontWeight = FontWeight.Bold)
-                    if (selectedExtra != null) Text(selectedExtra.emoji)
-                }
             }
         }
 
