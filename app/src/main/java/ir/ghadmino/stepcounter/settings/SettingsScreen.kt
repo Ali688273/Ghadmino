@@ -283,16 +283,6 @@ fun SettingsScreen(
                 }, modifier = Modifier.fillMaxWidth()) { Text("باز کردن تنظیمات باتری") }
             }
         }
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(18.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Speed, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("دقت سرعت", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                }
-                Text("برای سرعت دقیق‌تر، GPS روشن و مجوز موقعیت مکانی فعال باشد.")
-            }
-        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(18.dp)) {
