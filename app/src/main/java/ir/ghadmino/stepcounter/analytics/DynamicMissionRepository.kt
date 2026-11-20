@@ -2,24 +2,23 @@ package ir.ghadmino.stepcounter.analytics
 
 import android.content.Context
 import ir.ghadmino.stepcounter.level.LevelRepository
-import ir.ghadmino.stepcounter.reward.CoinWallet
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-data class DynamicMission(val id:String,val title:String,val reward:Int)
+data class DynamicMission(val id:String,val title:String)
 
 object DynamicMissionRepository{
     private const val PREFS="ghadmino_dynamic_missions"
     private val missions=listOf(
-        DynamicMission("3000","۳۰۰۰ قدم امروز",10),
-        DynamicMission("7000","۷۰۰۰ قدم امروز",20),
-        DynamicMission("10000","۱۰٬۰۰۰ قدم امروز",35),
-        DynamicMission("15000","۱۵٬۰۰۰ قدم امروز",60),
-        DynamicMission("60","رسیدن به ۶۰٪ هدف امروز",15),
-        DynamicMission("100","رسیدن به هدف کامل امروز",30),
-        DynamicMission("extra","۲۰۰۰ قدم بیشتر از هدف",50),
-        DynamicMission("streak","حفظ زنجیره ۳ روزه",75)
+        DynamicMission("3000","۳۰۰۰ قدم امروز"),
+        DynamicMission("7000","۷۰۰۰ قدم امروز"),
+        DynamicMission("10000","۱۰٬۰۰۰ قدم امروز"),
+        DynamicMission("15000","۱۵٬۰۰۰ قدم امروز"),
+        DynamicMission("60","رسیدن به ۶۰٪ هدف امروز"),
+        DynamicMission("100","رسیدن به هدف کامل امروز"),
+        DynamicMission("extra","۲۰۰۰ قدم بیشتر از هدف"),
+        DynamicMission("streak","حفظ زنجیره ۳ روزه")
     )
 
     private fun today()=SimpleDateFormat("yyyy-MM-dd",Locale.US).format(Date())
@@ -52,8 +51,6 @@ object DynamicMissionRepository{
         val p=c.getSharedPreferences(PREFS,0)
         val key="claimed_"+m.id
         if(p.getBoolean(key,false)||!ready(c,m)) return false
-        val claimed=CoinWallet.claimRewardOnce(c,"dynamic_mission_"+today()+"_"+m.id,m.reward)
-        if(!claimed) return false
         p.edit().putBoolean(key,true).apply()
         LevelRepository.recordMission(c)
         return true
