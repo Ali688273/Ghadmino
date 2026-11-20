@@ -9,7 +9,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Analytics
-import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Schedule
@@ -26,7 +25,6 @@ import kotlin.math.max
 fun ActivityInsightsScreen(insights: ActivityInsights, hourly: List<Int>) {
     var hourlyExpanded by remember { mutableStateOf(false) }
     var predictionExpanded by remember { mutableStateOf(false) }
-    var recordsExpanded by remember { mutableStateOf(false) }
 
     LazyColumn(
         Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
@@ -122,20 +120,6 @@ fun ActivityInsightsScreen(insights: ActivityInsights, hourly: List<Int>) {
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            }
-        }
-
-        item {
-            ExpandableInsightCard(
-                title = "رکوردهای فعالیت",
-                subtitle = "بهترین روز و زنجیره رسیدن به هدف",
-                icon = { Icon(Icons.Default.EmojiEvents, null, tint = MaterialTheme.colorScheme.primary) },
-                expanded = recordsExpanded,
-                onToggle = { recordsExpanded = !recordsExpanded }
-            ) {
-                InsightValueRow("بهترین روز در ۷ روز اخیر", "${insights.bestDaySteps} قدم • ${insights.bestDayDate}")
-                Divider(color = MaterialTheme.colorScheme.outlineVariant)
-                InsightValueRow("زنجیره فعلی رسیدن به هدف", "${insights.bestStreak} روز")
             }
         }
 
