@@ -317,10 +317,11 @@ private fun ActivityChart(data: List<Point>, line: Boolean, goal: Int) {
                 verticalArrangement = Arrangement.SpaceBetween,
                 horizontalAlignment = Alignment.End
             ) {
-                for (step in 4 downTo 0) {
-                    val tickValue = (maxValue.toLong() * step / 4L).toInt()
+                // مقیاس محور عمودی با فاصله ثابت ۳۰۰۰ قدم
+                val tickCount = (maxValue / 3000).coerceAtLeast(1)
+                for (step in tickCount downTo 0) {
                     Text(
-                        text = formatChartNumber(tickValue),
+                        text = formatChartNumber(step * 3000),
                         style = MaterialTheme.typography.labelSmall,
                         color = scheme.onSurfaceVariant,
                         maxLines = 1
@@ -465,7 +466,7 @@ private fun gregorianToJalali(gy: Int, gm: Int, gd: Int): Triple<Int, Int, Int> 
     return Triple(jy, jm, jd)
 }
 private fun formatChartNumber(value: Int): String =
-    java.text.NumberFormat.getIntegerInstance(Locale("fa", "IR")).format(value)
+    java.text.NumberFormat.getIntegerInstance(Locale.US).format(value)
 
 @Composable
 private fun Metric(modifier: Modifier, title: String, value: String, unit: String) {
