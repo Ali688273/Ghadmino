@@ -47,7 +47,7 @@ fun ActivityInsightsScreen(insights: ActivityInsights, hourly: List<Int>) {
                     Text("${insights.score} از ۱۰۰", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
                     Text(insights.message, style = MaterialTheme.typography.bodyMedium)
                     LinearProgressIndicator(
-                        progress = { insights.score / 100f },
+                        progress = insights.score / 100f,
                         modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
                     )
                 }
@@ -134,7 +134,7 @@ fun ActivityInsightsScreen(insights: ActivityInsights, hourly: List<Int>) {
                 onToggle = { recordsExpanded = !recordsExpanded }
             ) {
                 InsightValueRow("بهترین روز در ۷ روز اخیر", "${insights.bestDaySteps} قدم")
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Divider(color = MaterialTheme.colorScheme.outlineVariant)
                 InsightValueRow("زنجیره فعلی رسیدن به هدف", "${insights.bestStreak} روز")
             }
         }
