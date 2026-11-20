@@ -133,7 +133,7 @@ fun ActivityInsightsScreen(insights: ActivityInsights, hourly: List<Int>) {
                 expanded = recordsExpanded,
                 onToggle = { recordsExpanded = !recordsExpanded }
             ) {
-                InsightValueRow("بهترین روز در ۷ روز اخیر", "${insights.bestDaySteps} قدم")
+                InsightValueRow("بهترین روز در ۷ روز اخیر", "${insights.bestDaySteps} قدم • ${insights.bestDayDate}")
                 Divider(color = MaterialTheme.colorScheme.outlineVariant)
                 InsightValueRow("زنجیره فعلی رسیدن به هدف", "${insights.bestStreak} روز")
             }
