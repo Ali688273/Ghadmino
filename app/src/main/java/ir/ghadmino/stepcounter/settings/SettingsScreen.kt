@@ -8,6 +8,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BatteryAlert
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.*
@@ -99,6 +100,7 @@ fun SettingsScreen(
                             SettingsRepository.save(context, settings)
                         },
                         label = { Text("خورشیدی (شمسی)") },
+                        leadingIcon = if (settings.useSolarCalendar) ({ Icon(Icons.Default.Check, contentDescription = "انتخاب‌شده") }) else null,
                         modifier = Modifier.weight(1f)
                     )
                     FilterChip(
@@ -108,6 +110,7 @@ fun SettingsScreen(
                             SettingsRepository.save(context, settings)
                         },
                         label = { Text("میلادی") },
+                        leadingIcon = if (!settings.useSolarCalendar) ({ Icon(Icons.Default.Check, contentDescription = "انتخاب‌شده") }) else null,
                         modifier = Modifier.weight(1f)
                     )
                 }
