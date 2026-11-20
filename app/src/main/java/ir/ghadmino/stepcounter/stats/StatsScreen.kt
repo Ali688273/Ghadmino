@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
@@ -367,7 +368,14 @@ private fun ActivityChart(data: List<Point>, line: Boolean, goal: Int, annual: B
     val scheme = MaterialTheme.colorScheme
     val outlineColor = scheme.outline.copy(alpha = 0.16f)
     val goalColor = scheme.error.copy(alpha = 0.55f)
-    val chartColor = scheme.primary
+    // رنگ پایه آرام و ملایم؛ سبز برای بهترین روز و قرمز برای کمترین روز
+    val chartColor = Color(0xFF5B9B95)
+    val bestColor = Color(0xFF2E9B65)
+    val lowestColor = Color(0xFFD66B6B)
+    val highlightExtremes = !annual && data.size > 1 &&
+        (data.maxOfOrNull { it.value } ?: 0) != (data.minOfOrNull { it.value } ?: 0)
+    val bestIndex = if (highlightExtremes) data.indices.maxByOrNull { data[it].value } else null
+    val lowestIndex = if (highlightExtremes) data.indices.minByOrNull { data[it].value } else null
 
     Column {
         Row(
@@ -447,7 +455,14 @@ private fun ActivityChart(data: List<Point>, line: Boolean, goal: Int, annual: B
                             curve.cubicTo(control1.x, control1.y, control2.x, control2.y, end.x, end.y)
                         }
                         drawPath(curve, chartColor, style = Stroke(width = 5f, cap = StrokeCap.Round))
-                        points.forEach { point -> drawCircle(chartColor, 5f, point) }
+                        points.forEachIndexed { index, point ->
+                            val pointColor = when (index) {
+                                bestIndex -> bestColor
+                                lowestIndex -> lowestColor
+                                else -> chartColor
+                            }
+                            drawCircle(pointColor, if (index == bestIndex || index == lowestIndex) 7f else 5f, point)
+                        }
                     }
                 } else {
                     val slotWidth = w / data.size
@@ -455,8 +470,13 @@ private fun ActivityChart(data: List<Point>, line: Boolean, goal: Int, annual: B
                     data.forEachIndexed { index, point ->
                         val x = left + index * slotWidth + (slotWidth - bw) / 2f
                         val bh = h * point.value.toFloat() / maxValue
+                        val barColor = when (index) {
+                            bestIndex -> bestColor
+                            lowestIndex -> lowestColor
+                            else -> chartColor
+                        }
                         drawRoundRect(
-                            color = chartColor,
+                            color = barColor,
                             topLeft = Offset(x, bottom - bh),
                             size = androidx.compose.ui.geometry.Size(bw, bh),
                             cornerRadius = CornerRadius(bw / 2f, bw / 2f)
@@ -494,7 +514,11 @@ private fun chartData(
             set(Calendar.DAY_OF_MONTH, 1)
         }
         val dayCount = monthCalendar.getActualMaximum(Calendar.DAY_OF_MONTH)
-        return (1..dayCount).map { day ->
+        // در ماه جاری روزهای آینده وارد محاسبه کمترین مقدار نشوند.
+        val visibleDayCount = if (monthOffset == 0) {
+            minOf(dayCount, monthCalendar.get(Calendar.DAY_OF_MONTH))
+        } else dayCount
+        return (1..visibleDayCount).map { day ->
             val dateCalendar = (monthCalendar.clone() as Calendar).apply {
                 set(Calendar.DAY_OF_MONTH, day)
             }
