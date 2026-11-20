@@ -311,7 +311,9 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit, onFontScaleChanged: (Float) ->
     when (morePage) {
         "profile" -> FullPageDialog("پروفایل", onClose = { morePage = null }) {
             ProfileScreen {
-                profileName = ProfileRepository.load(context).name
+                val updatedProfile = ProfileRepository.load(context)
+                profileName = updatedProfile.name
+                goal = updatedProfile.dailyGoal
                 morePage = null
             }
         }
