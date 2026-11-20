@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 
 @Composable
-fun GhadminoNativeAdCards() {
+fun GhadminoNativeAdCards(videoOnly: Boolean = false) {
     val context = LocalContext.current
     val activity = context as? Activity ?: return
 
@@ -24,19 +24,21 @@ fun GhadminoNativeAdCards() {
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(12.dp)) {
-                Text("پیشنهاد حمایت‌شده")
-                AndroidView(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(120.dp),
-                    factory = {
-                        FrameLayout(it).also { container ->
-                            GhadminoAdsManager.loadNativeBanner(activity, container)
+        if (!videoOnly) {
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(12.dp)) {
+                    Text("پیشنهاد حمایت‌شده")
+                    AndroidView(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp),
+                        factory = {
+                            FrameLayout(it).also { container ->
+                                GhadminoAdsManager.loadNativeBanner(activity, container)
+                            }
                         }
-                    }
-                )
+                    )
+                }
             }
         }
 
