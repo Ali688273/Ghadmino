@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import ir.ghadmino.stepcounter.notification.InactivityScheduler
 import ir.ghadmino.stepcounter.notification.ReminderScheduler
+import kotlin.math.roundToInt
 
 @Composable
 fun SettingsScreen(
@@ -26,6 +27,9 @@ fun SettingsScreen(
     onHistory: () -> Unit,
     onHealth: () -> Unit,
     onBackup: () -> Unit,
+    dailyGoal: Int,
+    onDailyGoalChanged: (Int) -> Unit,
+    stepCounterAvailable: Boolean,
     selectedTheme: String,
     onThemeSelected: (String) -> Unit,
     fontScale: Float,
@@ -61,6 +65,22 @@ fun SettingsScreen(
         SettingActionCard("📅", "تاریخچه فعالیت", "مشاهده قدم‌های ثبت‌شده در روزهای گذشته", onHistory)
         SettingActionCard("❤️", "اتصال قدمینو به داده‌های سلامت", "مدیریت اتصال و خواندن اطلاعات از Health Connect", onHealth)
         SettingActionCard("💾", "پشتیبان‌گیری و بازیابی", "ذخیره یا برگرداندن اطلاعات قدمینو از فایل", onBackup)
+
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(18.dp)) {
+                Text("هدف روزانه", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("هدف فعلی: $dailyGoal قدم")
+                Slider(
+                    value = dailyGoal.toFloat(),
+                    onValueChange = {
+                        onDailyGoalChanged(((it / 1000f).roundToInt() * 1000).coerceIn(1000, 30000))
+                    },
+                    valueRange = 1000f..30000f,
+                    steps = 28
+                )
+                Text("هدف را بین ۱۰۰۰ تا ۳۰٬۰۰۰ قدم تنظیم کن.", style = MaterialTheme.typography.bodySmall)
+            }
+        }
 
         Divider()
         Text("رنگ و تم برنامه", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -133,6 +153,24 @@ fun SettingsScreen(
         }
 
         Divider()
+        Text("قدم‌شمار و عملکرد", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(18.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Speed, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("وضعیت قدم‌شمار", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                }
+                Text(
+                    if (stepCounterAvailable)
+                        "✓ حسگر قدم‌شمار فعال است"
+                    else
+                        "⚠ حسگر قدم‌شمار روی این گوشی پیدا نشد"
+                )
+                Text("شمارش قدم‌ها در پس‌زمینه ادامه پیدا می‌کند.")
+            }
+        }
+
         Text("یادآوری‌ها و عملکرد", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(18.dp)) {
