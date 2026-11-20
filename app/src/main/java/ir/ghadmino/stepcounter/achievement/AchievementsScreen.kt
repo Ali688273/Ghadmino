@@ -6,7 +6,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Paid
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,14 +13,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import ir.ghadmino.stepcounter.reward.CoinWallet
 
 @Composable
 fun AchievementsScreen(onChanged: () -> Unit = {}) {
     val context = LocalContext.current
     var items by remember { mutableStateOf(AchievementRepository.evaluate(context)) }
     var medals by remember { mutableStateOf(MedalRepository.evaluate(context)) }
-    var coins by remember { mutableIntStateOf(CoinWallet.balance(context)) }
     var lifetimeSteps by remember { mutableIntStateOf(MedalRepository.lifetimeSteps(context)) }
 
     val unlockedCount = items.count { it.unlocked }
@@ -121,7 +118,7 @@ fun AchievementsScreen(onChanged: () -> Unit = {}) {
 
         item {
             Text(
-                "دستاوردهای قابل دریافت",
+                "دستاوردها",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -143,10 +140,6 @@ fun AchievementsScreen(onChanged: () -> Unit = {}) {
                         )
                         Text(item.description)
                         Spacer(Modifier.height(4.dp))
-                        Text(
-                            "پاداش: " + item.reward + " سکه",
-                            style = MaterialTheme.typography.labelMedium
-                        )
                     }
                     Icon(
                         if (item.unlocked) Icons.Default.EmojiEvents else Icons.Default.Lock,
@@ -156,39 +149,13 @@ fun AchievementsScreen(onChanged: () -> Unit = {}) {
             }
         }
 
-        item {
-            Card(
-                Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer
-                )
-            ) {
-                Row(
-                    Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.Paid, null)
-                    Spacer(Modifier.width(10.dp))
-                    Column {
-                        Text("موجودی سکه", style = MaterialTheme.typography.labelMedium)
-                        Text(
-                            coins.toString() + " سکه",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(Modifier.height(2.dp))
-                        Text("سکه‌ها برای تم، قاب، نشان و امکانات فروشگاه قابل استفاده‌اند.")
-                    }
-                }
-            }
-        }
+
     }
 
     LaunchedEffect(Unit) {
         val updated = AchievementRepository.evaluate(context)
         items = updated
         medals = MedalRepository.evaluate(context)
-        coins = CoinWallet.balance(context)
         lifetimeSteps = MedalRepository.lifetimeSteps(context)
         onChanged()
     }
