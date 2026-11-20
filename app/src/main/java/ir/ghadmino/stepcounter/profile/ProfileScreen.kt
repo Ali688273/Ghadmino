@@ -70,18 +70,11 @@ fun ProfileScreen(onSaved: () -> Unit) {
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                            Text(if (selectedFrame == "none") "پروفایل پایه" else "قاب شخصی")
-                            if (selectedBadgeItem != null && selectedBadge != "none") {
-                                Text(selectedBadgeItem.emoji)
-                                Text(selectedBadgeItem.title, style = MaterialTheme.typography.bodySmall)
-                            }
+                        if (selectedBadgeItem != null && selectedBadge != "none") {
+                            Text(selectedBadgeItem.emoji, style = MaterialTheme.typography.titleLarge)
                         }
                     }
-                    Icon(Icons.Default.EmojiEvents, null)
                 }
-                Spacer(Modifier.height(10.dp))
-                Text("قاب و نشان انتخابی از بخش شخصی‌سازی رایگان در این پروفایل نمایش داده می‌شوند.")
             }
         }
 
