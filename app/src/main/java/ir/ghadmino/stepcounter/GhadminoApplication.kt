@@ -12,5 +12,7 @@ import android.app.Application
 class GhadminoApplication : Application() {
     override fun onCreate() {
         super.onCreate()
+        // Clear legacy coin data from upgrades; the app no longer has a coin economy.
+        getSharedPreferences("ghadmino_coins", MODE_PRIVATE).edit().clear().apply()
     }
 }
