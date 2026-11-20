@@ -324,18 +324,22 @@ private fun MonthNavigator(
     onPrevious: () -> Unit,
     onNext: () -> Unit
 ) {
-    val monthCalendar = Calendar.getInstance(
-        if (useSolarCalendar) Locale.forLanguageTag("fa-IR-u-ca-persian") else Locale.US
-    ).apply {
-        add(Calendar.MONTH, monthOffset)
+    val monthCalendar = if (useSolarCalendar) {
+        jalaliMonthStartCalendar(monthOffset)
+    } else {
+        Calendar.getInstance().apply { add(Calendar.MONTH, monthOffset) }
     }
     val monthTitle = if (useSolarCalendar) {
+        val (year, month, _) = gregorianToJalali(
+            monthCalendar.get(Calendar.YEAR),
+            monthCalendar.get(Calendar.MONTH) + 1,
+            monthCalendar.get(Calendar.DAY_OF_MONTH)
+        )
         val monthNames = listOf(
             "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
             "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"
         )
-        monthNames[monthCalendar.get(Calendar.MONTH)] + " " +
-            toPersianDigits(monthCalendar.get(Calendar.YEAR).toString())
+        monthNames[month - 1] + " " + toPersianDigits(year.toString())
     } else {
         SimpleDateFormat("MMMM yyyy", Locale.US).format(monthCalendar.time)
     }
@@ -511,25 +515,40 @@ private fun chartData(
 ): List<Point> {
     val key = SimpleDateFormat("yyyy-MM-dd", Locale.US)
     if (period == 30) {
-        val monthCalendar = Calendar.getInstance(
-            if (useSolarCalendar) Locale.forLanguageTag("fa-IR-u-ca-persian") else Locale.US
-        ).apply {
-            add(Calendar.MONTH, monthOffset)
-            set(Calendar.DAY_OF_MONTH, 1)
+        val monthCalendar = if (useSolarCalendar) {
+            jalaliMonthStartCalendar(monthOffset)
+        } else {
+            Calendar.getInstance().apply {
+                add(Calendar.MONTH, monthOffset)
+                set(Calendar.DAY_OF_MONTH, 1)
+            }
         }
-        val dayCount = monthCalendar.getActualMaximum(Calendar.DAY_OF_MONTH)
-        // روز جاری را پیش از تنظیم تقویم روی روز اول ماه می‌خوانیم.
-        val currentDay = Calendar.getInstance(
-            if (useSolarCalendar) Locale.forLanguageTag("fa-IR-u-ca-persian") else Locale.US
-        ).get(Calendar.DAY_OF_MONTH)
-        // در ماه جاری روزهای آینده وارد محاسبه کمترین مقدار نشوند.
+        val currentJalali = gregorianToJalali(
+            Calendar.getInstance().get(Calendar.YEAR),
+            Calendar.getInstance().get(Calendar.MONTH) + 1,
+            Calendar.getInstance().get(Calendar.DAY_OF_MONTH)
+        )
+        val targetJalali = if (useSolarCalendar) {
+            gregorianToJalali(
+                monthCalendar.get(Calendar.YEAR),
+                monthCalendar.get(Calendar.MONTH) + 1,
+                monthCalendar.get(Calendar.DAY_OF_MONTH)
+            )
+        } else null
+        val dayCount = if (useSolarCalendar) {
+            val nextMonth = jalaliMonthStartCalendar(monthOffset + 1)
+            ((nextMonth.timeInMillis - monthCalendar.timeInMillis) / 86_400_000L).toInt()
+        } else {
+            monthCalendar.getActualMaximum(Calendar.DAY_OF_MONTH)
+        }
+        val currentDay = if (useSolarCalendar) currentJalali.third
+            else Calendar.getInstance().get(Calendar.DAY_OF_MONTH)
         val visibleDayCount = if (monthOffset == 0) minOf(dayCount, currentDay) else dayCount
         return (1..visibleDayCount).map { day ->
             val dateCalendar = (monthCalendar.clone() as Calendar).apply {
-                set(Calendar.DAY_OF_MONTH, day)
+                add(Calendar.DAY_OF_YEAR, day - 1)
             }
             val date = dateCalendar.time
-            // برچسب‌های ماهانه هم‌قالب هفتگی‌اند؛ برای جلوگیری از شلوغی فقط هر پنج روز و روز پایانی نمایش داده می‌شود.
             val showLabel = day == 1 || (day - 1) % 5 == 0 || day == dayCount
             val labelCalendar = Calendar.getInstance().apply { time = date }
             val label = if (!showLabel) {
@@ -542,7 +561,6 @@ private fun chartData(
             Point(label, StepHistory.get(context, key.format(date)))
         }
     }
-
     val rows = StepHistory.recent(context, period).associate { it.first to it.second }
     return if (period < 365) {
         (period - 1 downTo 0).map { offset ->
@@ -569,6 +587,41 @@ private fun chartData(
     }
 }
 
+
+/**
+ * Calendar.getInstance with a Persian locale can still return a Gregorian Calendar
+ * on some Android versions. Resolve the Jalali month boundary explicitly instead.
+ */
+private fun jalaliMonthStartCalendar(monthOffset: Int): Calendar {
+    val today = Calendar.getInstance()
+    val current = gregorianToJalali(
+        today.get(Calendar.YEAR),
+        today.get(Calendar.MONTH) + 1,
+        today.get(Calendar.DAY_OF_MONTH)
+    )
+    val targetIndex = current.first * 12 + (current.second - 1) + monthOffset
+    val targetYear = Math.floorDiv(targetIndex, 12)
+    val targetMonth = Math.floorMod(targetIndex, 12) + 1
+
+    val approximate = Calendar.getInstance().apply {
+        add(Calendar.MONTH, monthOffset)
+        set(Calendar.DAY_OF_MONTH, 1)
+        add(Calendar.DAY_OF_YEAR, -70)
+    }
+    repeat(141) {
+        val ymd = gregorianToJalali(
+            approximate.get(Calendar.YEAR),
+            approximate.get(Calendar.MONTH) + 1,
+            approximate.get(Calendar.DAY_OF_MONTH)
+        )
+        if (ymd.first == targetYear && ymd.second == targetMonth && ymd.third == 1) {
+            return approximate.clone() as Calendar
+        }
+        approximate.add(Calendar.DAY_OF_YEAR, 1)
+    }
+    // Defensive fallback; the scan covers the offset month even around leap-year boundaries.
+    return Calendar.getInstance().apply { add(Calendar.MONTH, monthOffset); set(Calendar.DAY_OF_MONTH, 1) }
+}
 
 private fun jalaliDayLabel(calendar: Calendar): String {
     val (_, month, day) = gregorianToJalali(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH) + 1, calendar.get(Calendar.DAY_OF_MONTH))
