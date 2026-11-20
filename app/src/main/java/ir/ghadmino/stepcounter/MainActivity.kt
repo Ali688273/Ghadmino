@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.window.Dialog
@@ -519,24 +520,38 @@ private fun MorePage(
     onOpen: (String) -> Unit
 ) {
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        Modifier.fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .navigationBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Text("امکانات قدمینو", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text("بخش‌های کاربردی برنامه در صفحه‌های جداگانه قرار گرفته‌اند.")
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                "امکانات قدمینو",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                "ابزارها و گزارش‌های برنامه را از این بخش باز کن.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 21.sp
+            )
+        }
         GhadminoBanner(modifier = Modifier.fillMaxWidth())
-        MoreItem("🏆", "دستاوردها", "مدال‌ها و نشان‌های پیشرفت") { onOpen("achievements") }
-        MoreItem("🎁", "امکانات رایگان", "ابزارها و قابلیت‌های در دسترس همه کاربران") { onOpen("free") }
-        MoreItem("⭐", "سطح و XP", "سطح کاربر و میزان پیشرفت") { onOpen("level") }
-        MoreItem("🎨", "شخصی‌سازی رایگان", "قاب‌ها، نشان‌ها و امکانات بدون پرداخت") { onOpen("extras") }
-        MoreItem("📅", "تقویم فعالیت", "انتخاب هر روز و مشاهده گزارش واقعی همان روز") { onOpen("calendar") }
-        MoreItem("📊", "گزارش هوشمند", "روند، رکورد و پیش‌بینی فعالیت") { onOpen("smart") }
-        MoreItem("📈", "تحلیل فعالیت", "امتیاز، فعالیت ساعتی و پیش‌بینی هدف") { onOpen("insights") }
-        MoreItem("🏃", "تمرین پیاده‌روی", "شروع، توقف و ثبت یک جلسه واقعی") { onOpen("workout") }
-        MoreItem("📆", "برنامه افزایش قدم", "هدف‌گذاری تدریجی و قابل پیگیری") { onOpen("plan") }
-        MoreItem("🧰", "۲۰ قابلیت رایگان", "۲۰ ابزار کاربردی برای منبع قدم، Health Connect، رکورد، هدف، خروجی و عیب‌یابی") { onOpen("free") }
+        MoreItem("🏆", "دستاوردها", "مدال‌ها و نشان‌هایی که با فعالیت و پیشرفت به دست می‌آوری.") { onOpen("achievements") }
+        MoreItem("🎁", "امکانات رایگان", "ابزارهای کاربردی قدمینو که بدون پرداخت در دسترس هستند.") { onOpen("free") }
+        MoreItem("⭐", "سطح و XP", "سطح فعلی و امتیاز تجربه‌ای را که کسب کرده‌ای ببین.") { onOpen("level") }
+        MoreItem("🎨", "شخصی‌سازی رایگان", "ظاهر برنامه را با قاب‌ها و نشان‌های رایگان تغییر بده.") { onOpen("extras") }
+        MoreItem("📅", "تقویم فعالیت", "فعالیت روزهای گذشته را انتخاب کن و گزارش هر روز را ببین.") { onOpen("calendar") }
+        MoreItem("📊", "گزارش هوشمند", "روند فعالیت، رکوردها و پیش‌بینی پیشرفتت را بررسی کن.") { onOpen("smart") }
+        MoreItem("📈", "تحلیل فعالیت", "امتیاز فعالیت، زمان‌های پرتحرک و وضعیت رسیدن به هدف را ببین.") { onOpen("insights") }
+        MoreItem("🏃", "تمرین پیاده‌روی", "یک جلسه پیاده‌روی را شروع کن، متوقف کن و ثبت کن.") { onOpen("workout") }
+        MoreItem("📆", "برنامه افزایش قدم", "برای افزایش تدریجی قدم‌ها برنامه بساز و پیشرفتت را دنبال کن.") { onOpen("plan") }
+        MoreItem("🧰", "۲۰ قابلیت رایگان", "ابزارهای منبع قدم، اتصال سلامت، رکوردها، هدف‌گذاری، خروجی و عیب‌یابی.") { onOpen("free") }
         GhadminoNativeAdCards(videoOnly = true)
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(24.dp))
     }
 }
 
@@ -556,19 +571,45 @@ private fun MoreItem(
     }
     Card(
         Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = container)
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = container),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
-            Modifier.fillMaxWidth().padding(16.dp),
+            Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(emoji, style = MaterialTheme.typography.headlineMedium)
-            Spacer(Modifier.width(14.dp))
-            Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text(description, style = MaterialTheme.typography.bodyMedium)
+            Box(
+                Modifier.size(46.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(emoji, style = MaterialTheme.typography.headlineSmall)
             }
-            TextButton(onClick = onClick) { Text("ورود") }
+            Spacer(Modifier.width(12.dp))
+            Column(
+                Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    lineHeight = 25.sp
+                )
+                Text(
+                    description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 21.sp
+                )
+            }
+            Spacer(Modifier.width(6.dp))
+            TextButton(
+                onClick = onClick,
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
+            ) {
+                Text("ورود", fontWeight = FontWeight.SemiBold)
+            }
         }
     }
 }
