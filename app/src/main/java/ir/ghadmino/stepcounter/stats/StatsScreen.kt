@@ -214,17 +214,46 @@ private fun ActivityChart(data: List<Point>, line: Boolean, goal: Int) {
             drawLine(goalColor, Offset(left, gy), Offset(right, gy), 2f)
 
             if (line) {
-                val path = Path()
-                data.forEachIndexed { index, point ->
+                val points = data.mapIndexed { index, point ->
                     val x = if (data.size == 1) left else left + w * index / (data.size - 1)
                     val y = bottom - h * point.value.toFloat() / maxValue
-                    if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
+                    Offset(x, y)
                 }
-                drawPath(path = path, color = chartColor, style = Stroke(width = 5f, cap = StrokeCap.Round))
-                data.forEachIndexed { index, point ->
-                    val x = if (data.size == 1) left else left + w * index / (data.size - 1)
-                    val y = bottom - h * point.value.toFloat() / maxValue
-                    drawCircle(chartColor, 5f, Offset(x, y))
+                val curve = Path()
+                if (points.isNotEmpty()) {
+                    curve.moveTo(points.first().x, points.first().y)
+                    for (index in 0 until points.lastIndex) {
+                        val start = points[index]
+                        val end = points[index + 1]
+                        val previous = points[(index - 1).coerceAtLeast(0)]
+                        val next = points[(index + 2).coerceAtMost(points.lastIndex)]
+                        val dx = end.x - start.x
+                        val minY = minOf(start.y, end.y)
+                        val maxY = maxOf(start.y, end.y)
+
+                        // منحنی نرم Catmull-Rom با کنترل نقاط برای جلوگیری از جهش و نوسان اضافی
+                        val control1 = Offset(
+                            start.x + dx / 3f,
+                            (start.y + (end.y - previous.y) / 6f).coerceIn(minY, maxY)
+                        )
+                        val control2 = Offset(
+                            end.x - dx / 3f,
+                            (end.y - (next.y - start.y) / 6f).coerceIn(minY, maxY)
+                        )
+                        curve.cubicTo(
+                            control1.x, control1.y,
+                            control2.x, control2.y,
+                            end.x, end.y
+                        )
+                    }
+                    drawPath(
+                        path = curve,
+                        color = chartColor,
+                        style = Stroke(width = 5f, cap = StrokeCap.Round)
+                    )
+                    points.forEach { point ->
+                        drawCircle(chartColor, 5f, point)
+                    }
                 }
             } else {
                 // هر میله داخل یک خانه مساوی از عرض نمودار قرار می‌گیرد؛
