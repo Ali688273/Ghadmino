@@ -533,8 +533,8 @@ private fun MorePage(
         Text("امکانات قدمینو", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Text("بخش‌های کاربردی برنامه در صفحه‌های جداگانه قرار گرفته‌اند.")
         GhadminoBanner(modifier = Modifier.fillMaxWidth())
-        MoreItem("🏆", "دستاوردها", "مدال‌ها و پاداش‌های پیشرفت") { onOpen("achievements") }
-        MoreItem("🎁", "پاداش و امکانات رایگان", "فعالیت‌ها و امکانات کاملاً رایگان") { onOpen("rewards") }
+        MoreItem("🏆", "دستاوردها", "مدال‌ها و نشان‌های پیشرفت") { onOpen("achievements") }
+        MoreItem("🎁", "امکانات رایگان", "ابزارها و قابلیت‌های در دسترس همه کاربران") { onOpen("free") }
         MoreItem("⭐", "سطح و XP", "سطح کاربر و میزان پیشرفت") { onOpen("level") }
         MoreItem("🎨", "شخصی‌سازی رایگان", "قاب‌ها، نشان‌ها و امکانات بدون پرداخت") { onOpen("extras") }
         MoreItem("📅", "تقویم فعالیت", "انتخاب هر روز و مشاهده گزارش واقعی همان روز") { onOpen("calendar") }
