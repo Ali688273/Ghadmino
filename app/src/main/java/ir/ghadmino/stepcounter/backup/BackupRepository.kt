@@ -11,7 +11,6 @@ object BackupRepository {
     private val prefsNames = listOf(
         "ghadmino_profile",
         "ghadmino_settings",
-        "ghadmino_coins",
         "ghadmino_steps",
         "ghadmino_history",
         "ghadmino_challenges",
@@ -38,7 +37,7 @@ object BackupRepository {
         val root = JSONObject()
         root.put("format", "ghadmino_backup")
         root.put("version", 4)
-        root.put("scope", "profile,settings,coins,steps,history,achievements,level,speed,speed_history,workouts,manual_activity,step_plan,hourly,ui,activity_intelligence,dynamic_missions,inactivity_notice,free_features,health_sync,diagnostics,periodic_goals")
+        root.put("scope", "profile,settings,steps,history,achievements,level,speed,speed_history,workouts,manual_activity,step_plan,hourly,ui,activity_intelligence,dynamic_missions,inactivity_notice,free_features,health_sync,diagnostics,periodic_goals")
         root.put(
             "created_at",
             SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
