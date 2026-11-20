@@ -129,7 +129,6 @@ fun StatsScreen(stats: GhadminoStats, goal: Int) {
                         DetailPill(Modifier.weight(1f), "زنجیره فعلی", stats.streak.toString() + " روز")
                     }
                     Spacer(Modifier.height(8.dp))
-                    Text("طولانی‌ترین زنجیره: " + stats.longestStreak.value + " روز", style = MaterialTheme.typography.bodyMedium)
                 }
             }
             item {
