@@ -456,7 +456,7 @@ private fun ActivityChart(data: List<Point>, line: Boolean, goal: Int) {
         // برچسب‌های محور افقی (تاریخ هر روز یا ماه)
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
             Row(
-                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(start = 58.dp),
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(end = 58.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 data.forEach {
