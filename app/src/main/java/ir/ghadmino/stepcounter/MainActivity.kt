@@ -350,7 +350,6 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit, onFontScaleChanged: (Float) ->
             }
         }
         "challenges" -> FullPageDialog("چالش‌ها", onClose = { morePage = null }) { ChallengesScreen { coins = CoinWallet.balance(context) } }
-        "settings" -> FullPageDialog("تنظیمات", onClose = { morePage = null }) { SettingsScreen() }
         "health" -> FullPageDialog("Health Connect", onClose = { morePage = null }) {
             HealthConnectScreen()
         }
