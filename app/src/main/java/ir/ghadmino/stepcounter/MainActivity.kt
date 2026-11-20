@@ -192,18 +192,7 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit) {
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 ),
                 title = {
-                    Column {
-                        Text("قدمینو", fontWeight = FontWeight.Bold)
-                        Text(
-                            when (tab) {
-                                0 -> "داشبورد فعالیت"
-                                1 -> "آمار و گزارش‌ها"
-                                2 -> "بیشتر"
-                                else -> "بیشتر"
-                            },
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                    }
+                    Text("قدمینو", fontWeight = FontWeight.Bold)
                 },
                 actions = { }
             )
