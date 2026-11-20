@@ -24,14 +24,6 @@ fun ProfileExtrasScreen(onChanged: () -> Unit = {}) {
     var frame by remember { mutableStateOf(ProfileExtrasRepository.selectedFrame(context)) }
     var badge by remember { mutableStateOf(ProfileExtrasRepository.selectedBadge(context)) }
     var widgetTheme by remember { mutableStateOf(ProfileExtrasRepository.selectedWidgetTheme(context)) }
-    val recent7 = remember { StepHistory.recent(context, 7) }
-    val recent30 = remember { StepHistory.recent(context, 30) }
-    val total7 = recent7.sumOf { it.second.toLong() }
-    val total30 = recent30.sumOf { it.second.toLong() }
-    val bestDay = recent30.maxOfOrNull { it.second } ?: 0
-    val activeDays = recent30.count { it.second > 0 }
-    val formatter = remember { NumberFormat.getIntegerInstance(Locale.US) }
-
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
