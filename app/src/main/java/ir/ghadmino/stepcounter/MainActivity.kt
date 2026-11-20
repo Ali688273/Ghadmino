@@ -27,6 +27,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import ir.ghadmino.stepcounter.reward.CoinWallet
@@ -76,9 +78,29 @@ class MainActivity : ComponentActivity() {
         setContent {
             var themeId by remember { mutableStateOf(CoinWallet.selectedTheme(this@MainActivity)) }
             GhadminoTheme(themeId = themeId) {
-                GhadminoApp { newTheme ->
-                    CoinWallet.setSelectedTheme(this@MainActivity, newTheme)
-                    themeId = newTheme
+                var fontScale by remember {
+                    mutableFloatStateOf(
+                        getSharedPreferences("ghadmino_ui", Context.MODE_PRIVATE)
+                            .getFloat("font_scale", 1f)
+                    )
+                }
+                CompositionLocalProvider(
+                    LocalDensity provides Density(
+                        density = LocalDensity.current.density,
+                        fontScale = LocalDensity.current.fontScale * fontScale
+                    )
+                ) {
+                    GhadminoApp(
+                        onThemeChanged = { newTheme ->
+                            CoinWallet.setSelectedTheme(this@MainActivity, newTheme)
+                            themeId = newTheme
+                        },
+                        onFontScaleChanged = { scale ->
+                            fontScale = scale
+                            getSharedPreferences("ghadmino_ui", Context.MODE_PRIVATE)
+                                .edit().putFloat("font_scale", scale).apply()
+                        }
+                    )
                 }
             }
         }
@@ -115,7 +137,7 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GhadminoApp(onThemeChanged: (String) -> Unit) {
+fun GhadminoApp(onThemeChanged: (String) -> Unit, onFontScaleChanged: (Float) -> Unit) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("ghadmino_ui", Context.MODE_PRIVATE) }
     var goal by remember { mutableIntStateOf(ProfileRepository.load(context).dailyGoal) }
@@ -226,6 +248,12 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit) {
                     icon = { Icon(Icons.Default.Settings, null) },
                     label = { Text("بیشتر") }
                 )
+                NavigationBarItem(
+                    selected = tab == 3,
+                    onClick = { tab = 3 },
+                    icon = { Icon(Icons.Default.Settings, null) },
+                    label = { Text("تنظیمات") }
+                )
             }
         }
     ) { padding ->
@@ -263,6 +291,19 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit) {
             2 -> MorePage(
                 profileName = profileName,
                 onOpen = { morePage = it }
+            )
+            3 -> SettingsScreen(
+                onProfile = { morePage = "profile" },
+                onHistory = { morePage = "history" },
+                onHealth = { morePage = "health" },
+                onBackup = { morePage = "backup" },
+                selectedTheme = selectedTheme,
+                onThemeSelected = { id ->
+                    selectedTheme = id
+                    onThemeChanged(id)
+                },
+                fontScale = context.getSharedPreferences("ghadmino_ui", Context.MODE_PRIVATE).getFloat("font_scale", 1f),
+                onFontScaleChanged = onFontScaleChanged
             )
         }
     }
@@ -512,20 +553,15 @@ private fun MorePage(
         Text("امکانات قدمینو", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Text("بخش‌های کاربردی برنامه در صفحه‌های جداگانه قرار گرفته‌اند.")
         GhadminoBanner(modifier = Modifier.fillMaxWidth())
-        MoreItem("👤", if (profileName.isBlank()) "پروفایل" else profileName, "اطلاعات بدنی و هدف‌ها") { onOpen("profile") }
         MoreItem("🏆", "دستاوردها", "مدال‌ها و پاداش‌های پیشرفت") { onOpen("achievements") }
         MoreItem("🎁", "پاداش و امکانات رایگان", "فعالیت‌ها و امکانات کاملاً رایگان") { onOpen("rewards") }
         MoreItem("⭐", "سطح و XP", "سطح کاربر و میزان پیشرفت") { onOpen("level") }
         MoreItem("🎨", "شخصی‌سازی رایگان", "قاب‌ها، نشان‌ها و امکانات بدون پرداخت") { onOpen("extras") }
         MoreItem("📅", "تقویم فعالیت", "انتخاب هر روز و مشاهده گزارش واقعی همان روز") { onOpen("calendar") }
-        MoreItem("📋", "تاریخچه", "مشاهده قدم‌های روزهای اخیر") { onOpen("history") }
         MoreItem("📊", "گزارش هوشمند", "روند، رکورد و پیش‌بینی فعالیت") { onOpen("smart") }
         MoreItem("📈", "تحلیل فعالیت", "امتیاز، فعالیت ساعتی و پیش‌بینی هدف") { onOpen("insights") }
-        MoreItem("🎯", "تنظیم هدف", "تغییر هدف روزانه قدم‌ها") { onOpen("goal") }
-        MoreItem("❤️", "Health Connect", "اتصال قدمینو به داده‌های سلامت اندروید") { onOpen("health") }
         MoreItem("🏃", "تمرین پیاده‌روی", "شروع، توقف و ثبت یک جلسه واقعی") { onOpen("workout") }
         MoreItem("📆", "برنامه افزایش قدم", "هدف‌گذاری تدریجی و قابل پیگیری") { onOpen("plan") }
-        MoreItem("💾", "پشتیبان‌گیری", "ذخیره و بازیابی رایگان اطلاعات روی فایل") { onOpen("backup") }
         MoreItem("🧰", "۲۰ قابلیت رایگان", "۲۰ ابزار کاربردی برای منبع قدم، Health Connect، رکورد، هدف، خروجی و عیب‌یابی") { onOpen("free") }
         Spacer(Modifier.height(32.dp))
     }
