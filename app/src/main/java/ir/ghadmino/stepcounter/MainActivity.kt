@@ -10,7 +10,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -300,7 +299,6 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit, onFontScaleChanged: (Float) ->
             )
             3 -> SettingsScreen(
                 onProfile = { morePage = "profile" },
-                onHistory = { morePage = "history" },
                 onHealth = { morePage = "health" },
                 onBackup = { morePage = "backup" },
                 dailyGoal = goal,
@@ -345,22 +343,6 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit, onFontScaleChanged: (Float) ->
         }
         "calendar" -> FullPageDialog("تقویم فعالیت و گزارش روزانه", onClose = { morePage = null }) {
             ActivityCalendarScreen(goal)
-        }
-        "history" -> FullPageDialog("تاریخچه ۳۰ روز اخیر", onClose = { morePage = null }) {
-            androidx.compose.foundation.lazy.LazyColumn(
-                Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(4.dp)
-            ) {
-                items(StepHistory.recent(context, 30)) { item ->
-                    Card(Modifier.fillMaxWidth()) {
-                        ListItem(
-                            headlineContent = { Text(item.first) },
-                            trailingContent = { Text(item.second.toString() + " قدم") }
-                        )
-                    }
-                }
-            }
         }
         "challenges" -> FullPageDialog("چالش‌ها", onClose = { morePage = null }) { ChallengesScreen() }
         "health" -> FullPageDialog("Health Connect", onClose = { morePage = null }) {
