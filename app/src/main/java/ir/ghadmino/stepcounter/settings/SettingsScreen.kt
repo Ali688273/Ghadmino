@@ -261,7 +261,7 @@ fun SettingsScreen(
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(18.dp)) {
                     Text("مجوزها", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text("مجوز فعالیت بدنی و در صورت استفاده از سرعت/تمرین، موقعیت مکانی باید توسط کاربر تأیید شود.")
+                    Text("مجوز فعالیت بدنی و در صورت استفاده از قابلیت سرعت، مجوز موقعیت مکانی باید توسط کاربر تأیید شود.")
                 }
             }
         }
