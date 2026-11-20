@@ -15,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import ir.ghadmino.stepcounter.health.HealthConnectRepository
 import ir.ghadmino.stepcounter.analytics.ActivityAnalyticsRepository
-import ir.ghadmino.stepcounter.reward.CoinWallet
 import ir.ghadmino.stepcounter.step.StepHistory
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -23,7 +22,7 @@ import java.util.*
 import kotlin.math.max
 
 @Composable
-fun FreeFeaturesScreen(onCoinsChanged: () -> Unit = {}) {
+fun FreeFeaturesScreen() {
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     var source by remember { mutableStateOf(StepSourceRepository.get(context)) }
@@ -36,7 +35,6 @@ fun FreeFeaturesScreen(onCoinsChanged: () -> Unit = {}) {
     var message by remember { mutableStateOf<String?>(null) }
     var diag by remember { mutableStateOf<Diagnostics?>(null) }
     var scenarios by remember { mutableStateOf<List<ScenarioResult>>(emptyList()) }
-    var login by remember { mutableStateOf(DailyLoginRepository.state(context)) }
     var syncState by remember { mutableStateOf(HealthSyncRepository.load(context)) }
     var endReport by remember { mutableStateOf(EndOfDayReportRepository.today(context)) }
     var selectedHeatmapDay by remember { mutableStateOf<Pair<String,Int>?>(null) }
@@ -125,32 +123,13 @@ fun FreeFeaturesScreen(onCoinsChanged: () -> Unit = {}) {
                     goals = PeriodicGoalRepository.load(context)
                     message = "اهداف هفتگی و ماهانه ذخیره شد."
                 }) { Text("ذخیره اهداف") }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = {
-                        message = if (goals.weeklyProgress >= goals.weeklyTarget && PeriodicGoalRepository.claimWeekly(context)) {
-                            onCoinsChanged(); "۵۰ سکه هدف هفتگی دریافت شد."
-                        } else "هدف هفتگی کامل نشده یا جایزه قبلاً دریافت شده است."
-                    }) { Text("جایزه هفتگی") }
-                    Button(onClick = {
-                        message = if (goals.monthlyProgress >= goals.monthlyTarget && PeriodicGoalRepository.claimMonthly(context)) {
-                            onCoinsChanged(); "۱۵۰ سکه هدف ماهانه دریافت شد."
-                        } else "هدف ماهانه کامل نشده یا جایزه قبلاً دریافت شده است."
-                    }) { Text("جایزه ماهانه") }
-                }
+                Text("با رسیدن به هدف‌های هفتگی و ماهانه، پیشرفتت در همین بخش قابل مشاهده است.")
             }
 
-            Section("۸ — پاداش ورود روزانه") {
-                Text("زنجیره ورود: " + login.streak + " روز — پاداش امروز: " + login.reward + " سکه")
-                Button(enabled = !login.claimed, onClick = {
-                    login = DailyLoginRepository.claim(context)
-                    if (login.claimed) { message = login.reward.toString() + " سکه دریافت شد."; onCoinsChanged() }
-                }) { Text("دریافت پاداش") }
-            }
-
-            Section("۹ و ۱۰ — سطح، XP و مأموریت‌های محلی") {
+            Section("۸ — سطح، XP و مأموریت‌های محلی") {
                 Text("سطح و XP از قدم‌های طولانی‌مدت، مأموریت‌ها و دستاوردها محاسبه می‌شود.")
                 Text("ماموریت‌های واقعی: ۶۰٪ هدف، ۱۰۰٪ هدف و ۲۰۰۰ قدم بیشتر از هدف.")
-                Text("پاداش‌ها با شناسه یکتا فقط یک‌بار قابل دریافت‌اند.")
+                Text("XP فقط شاخص پیشرفت فعالیت است و قابلیت یا محتوایی را قفل نمی‌کند.")
             }
 
             Section("۱۱ و ۱۲ — گزارش روزانه و هفتگی") {
@@ -210,7 +189,7 @@ fun FreeFeaturesScreen(onCoinsChanged: () -> Unit = {}) {
             }
 
             Section("۲۰ — کنترل پایداری") {
-                Text("پاداش‌ها اتمیک و یک‌بار مصرف‌اند؛ Health Connect خطا را به UI برمی‌گرداند.")
+                Text("ثبت داده‌ها محلی است؛ خطاهای Health Connect به رابط کاربری برگردانده می‌شوند.")
                 Button(onClick = { scenarios = InternalScenarioTests.run(); message = "بررسی‌های داخلی اجرا شد." }) { Text("اجرای تست‌های داخلی") }
                 scenarios.forEach { result -> Text(if(result.passed) "✓ " + result.name else "⚠ " + result.name) }
                 StabilityChecks.pure().forEach { result -> Text(if(result.passed) "✓ " + result.name else "⚠ " + result.name) }
