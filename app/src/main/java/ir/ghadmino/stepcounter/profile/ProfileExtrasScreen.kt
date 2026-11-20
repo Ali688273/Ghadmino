@@ -60,7 +60,7 @@ fun ProfileExtrasScreen(onChanged: () -> Unit = {}) {
 
         items(ProfileExtrasRepository.items.filter { !it.id.startsWith("frame_") && !it.id.startsWith("badge_") }, key = { it.id }) { item ->
             ExtraItemCard(item, selected == item.id) {
-                ProfileExtrasRepository.buyOrSelect(context, item.id, item.cost)
+                ProfileExtrasRepository.select(context, item.id)
                 selected = item.id
                 onChanged()
             }
