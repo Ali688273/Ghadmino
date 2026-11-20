@@ -13,7 +13,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import ir.ghadmino.stepcounter.analytics.ActivityAnalyticsRepository
 import ir.ghadmino.stepcounter.health.HealthConnectRepository
 import ir.ghadmino.stepcounter.step.StepHistory
 import kotlinx.coroutines.launch
@@ -23,8 +22,6 @@ fun FreeFeaturesScreen() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var source by remember { mutableStateOf(StepSourceRepository.get(context)) }
-    var phoneSteps by remember { mutableIntStateOf(ActivityAnalyticsRepository.today(context)) }
-    var healthSteps by remember { mutableStateOf<Long?>(null) }
     var message by remember { mutableStateOf<String?>(null) }
     var diagnosticsResult by remember { mutableStateOf<Diagnostics?>(null) }
     val snackbar = remember { SnackbarHostState() }
