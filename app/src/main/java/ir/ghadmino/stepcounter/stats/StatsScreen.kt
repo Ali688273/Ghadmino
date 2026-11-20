@@ -214,15 +214,6 @@ fun StatsScreen(stats: GhadminoStats, goal: Int) {
                 }
             }
             item {
-                Card(Modifier.fillMaxWidth()) {
-                    Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Route, null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("مسافت و کالری تخمینی‌اند و بر اساس پروفایل و فعالیت ثبت‌شده محاسبه می‌شوند.")
-                    }
-                }
-            }
-            item {
                 OutlinedButton(
                     onClick = {
                         val intent = Intent(Intent.ACTION_SEND).apply {
