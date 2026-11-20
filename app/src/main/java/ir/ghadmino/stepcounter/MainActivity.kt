@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -473,19 +474,25 @@ private fun HomePage(
                 Modifier.weight(1f),
                 Icons.Default.Route,
                 "مسافت",
-                String.format("%.2f km", distanceKm)
+                String.format(java.util.Locale.US, "%.2f km", distanceKm),
+                containerColor = Color(0xFFE6F0FF),
+                contentColor = Color(0xFF244A78)
             )
             StatCard(
                 Modifier.weight(1f),
                 Icons.Default.LocalFireDepartment,
                 "کالری",
-                calories.toInt().toString() + " kcal"
+                calories.toInt().toString() + " kcal",
+                containerColor = Color(0xFFFFF0DF),
+                contentColor = Color(0xFF80501F)
             )
             StatCard(
                 Modifier.weight(1f),
                 Icons.Default.DirectionsWalk,
                 "زمان راه‌رفتن",
-                walkingMinutes.toString() + " دقیقه"
+                walkingMinutes.toString() + " دقیقه",
+                containerColor = Color(0xFFE3F4EF),
+                contentColor = Color(0xFF245D50)
             )
         }
 
@@ -635,13 +642,15 @@ fun StatCard(
     modifier: Modifier,
     icon: ImageVector,
     title: String,
-    value: String
+    value: String,
+    containerColor: Color,
+    contentColor: Color
 ) {
     Card(
         modifier.heightIn(min = 112.dp),
         shape = androidx.compose.foundation.shape.RoundedCornerShape(50),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer
+            containerColor = containerColor
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -650,12 +659,12 @@ fun StatCard(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Icon(icon, null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+            Icon(icon, null, tint = contentColor)
             Spacer(Modifier.height(6.dp))
             Text(
                 title,
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                color = contentColor,
                 maxLines = 1
             )
             Text(
