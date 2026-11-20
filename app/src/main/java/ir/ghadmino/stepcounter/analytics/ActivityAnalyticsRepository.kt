@@ -18,7 +18,12 @@ object ActivityAnalyticsRepository {
  private const val PREFS="ghadmino_activity_intelligence"
  private const val LAST="last_activity_millis"
  private fun date(n:Int)=SimpleDateFormat("yyyy-MM-dd",Locale.US).format(Calendar.getInstance().apply{add(Calendar.DAY_OF_YEAR,-n)}.time)
- fun today(c:Context)=max(StepCounterService.todaySteps,StepCounterService.persistedTodaySteps(c))
+ fun today(c:Context)=(
+  max(StepCounterService.todaySteps,StepCounterService.persistedTodaySteps(c)).toLong() +
+   ir.ghadmino.stepcounter.activity.ManualActivityRepository.stepsForDate(
+    c, date(0)
+   ).toLong()
+  ).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
  fun markActivity(c:Context){c.getSharedPreferences(PREFS,0).edit().putLong(LAST,System.currentTimeMillis()).apply()}
  fun lastActivity(c:Context)=c.getSharedPreferences(PREFS,0).getLong(LAST,0L)
  fun report(c:Context):ActivityReport{
