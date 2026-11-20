@@ -63,6 +63,7 @@ import ir.ghadmino.stepcounter.free.WeeklyReportScheduler
 import ir.ghadmino.stepcounter.ui.theme.GhadminoTheme
 import ir.ghadmino.stepcounter.ads.GhadminoAdsManager
 import ir.ghadmino.stepcounter.ads.GhadminoBanner
+import ir.ghadmino.stepcounter.ads.GhadminoNativeAdCards
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 import ir.ghadmino.stepcounter.activity.ActivityTimeRepository
@@ -564,6 +565,7 @@ private fun MorePage(
         MoreItem("🏃", "تمرین پیاده‌روی", "شروع، توقف و ثبت یک جلسه واقعی") { onOpen("workout") }
         MoreItem("📆", "برنامه افزایش قدم", "هدف‌گذاری تدریجی و قابل پیگیری") { onOpen("plan") }
         MoreItem("🧰", "۲۰ قابلیت رایگان", "۲۰ ابزار کاربردی برای منبع قدم، Health Connect، رکورد، هدف، خروجی و عیب‌یابی") { onOpen("free") }
+        GhadminoNativeAdCards(videoOnly = true)
         Spacer(Modifier.height(32.dp))
     }
 }
