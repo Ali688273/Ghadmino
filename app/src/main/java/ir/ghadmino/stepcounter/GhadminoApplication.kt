@@ -47,6 +47,3 @@ class GhadminoApplication : Application() {
     }
 }
 
-object AdsRuntime {
-    @Volatile var tapsellReady: Boolean = false
-}
