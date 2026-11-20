@@ -148,7 +148,7 @@ object GhadminoAdsManager {
             onFinished(message)
         }
         fun tapsellFallback(index: Int = 0) {
-            val zones = listOf(AdsConfig.TAPSELL_INSTANT_VIDEO, AdsConfig.TAPSELL_INTERSTITIAL)
+            val zones = listOf(AdsConfig.TAPSELL_INTERSTITIAL)
             if (finished || isFinishingOrDestroyed(activity)) return
             if (!tapsellInitialized || index >= zones.size) {
                 finish("فعلاً تبلیغی در دسترس نیست.")
