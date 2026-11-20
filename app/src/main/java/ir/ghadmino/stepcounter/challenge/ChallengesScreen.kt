@@ -14,13 +14,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import ir.ghadmino.stepcounter.reward.CoinWallet
 
 @Composable
 fun ChallengesScreen(onChanged: () -> Unit = {}) {
     val context = LocalContext.current
     var refresh by remember { mutableIntStateOf(0) }
-    var coins by remember(refresh) { mutableIntStateOf(CoinWallet.balance(context)) }
     var message by remember { mutableStateOf<String?>(null) }
 
     LazyColumn(
@@ -47,9 +45,8 @@ fun ChallengesScreen(onChanged: () -> Unit = {}) {
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
-                        Text("با استمرار روزانه چالش‌ها را کامل کن و سکه بگیر.")
+                        Text("با استمرار روزانه چالش‌ها را کامل کن و رکورد فعالیتت را ارتقا بده.")
                     }
-                    Text(coins.toString() + " 🪙", fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -98,8 +95,6 @@ fun ChallengesScreen(onChanged: () -> Unit = {}) {
                     }
 
                     Spacer(Modifier.height(8.dp))
-                    Text("پاداش: " + challenge.reward + " سکه")
-
                     Spacer(Modifier.height(10.dp))
 
                     when {
@@ -115,14 +110,14 @@ fun ChallengesScreen(onChanged: () -> Unit = {}) {
                                 onClick = {
                                     if (ChallengeRepository.claim(context, challenge)) {
                                         refresh++
-                                        message = "پاداش «" + challenge.title + "» دریافت شد."
+                                        message = "چالش «" + challenge.title + "» با موفقیت ثبت شد."
                                         onChanged()
                                     } else {
-                                        message = "این پاداش قبلاً دریافت شده یا چالش کامل نیست."
+                                        message = "این چالش قبلاً ثبت شده یا هنوز کامل نیست."
                                     }
                                 }
                             ) {
-                                Text("دریافت " + challenge.reward + " سکه")
+                                Text("ثبت تکمیل چالش")
                             }
                         }
                         else -> {
