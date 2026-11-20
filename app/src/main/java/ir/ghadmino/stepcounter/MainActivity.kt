@@ -270,12 +270,6 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit, onFontScaleChanged: (Float) ->
                 distanceKm = distanceKm,
                 calories = calories,
                 walkingMinutes = walkingMinutes,
-                onGoalChanged = {
-                    goal = it
-                    val profile = ProfileRepository.load(context)
-                    ProfileRepository.save(context, profile.copy(dailyGoal = it))
-                    prefs.edit().putInt("daily_goal", it).apply()
-                },
                 onManualActivityChanged = {
                     val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
                     val phoneStepsNow = ActivityAnalyticsRepository.today(context)
@@ -309,6 +303,14 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit, onFontScaleChanged: (Float) ->
                 onHistory = { morePage = "history" },
                 onHealth = { morePage = "health" },
                 onBackup = { morePage = "backup" },
+                dailyGoal = goal,
+                onDailyGoalChanged = {
+                    goal = it
+                    val updatedProfile = ProfileRepository.load(context).copy(dailyGoal = it)
+                    ProfileRepository.save(context, updatedProfile)
+                    prefs.edit().putInt("daily_goal", it).apply()
+                },
+                stepCounterAvailable = StepCounterService.sensorAvailable,
                 selectedTheme = selectedTheme,
                 onThemeSelected = { id ->
                     selectedTheme = id
@@ -443,7 +445,6 @@ private fun HomePage(
     distanceKm: Double,
     calories: Double,
     walkingMinutes: Int,
-    onGoalChanged: (Int) -> Unit,
     onManualActivityChanged: () -> Unit
 ) {
     Column(
@@ -506,42 +507,8 @@ private fun HomePage(
 
         ManualActivityScreen(onChanged = onManualActivityChanged)
 
-        Card(
-            Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
-        ) {
-            Column(Modifier.padding(18.dp)) {
-                Text("هدف روزانه", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text(goal.toString() + " قدم", style = MaterialTheme.typography.titleLarge)
-                Slider(
-                    value = goal.toFloat(),
-                    onValueChange = {
-                        onGoalChanged(((it / 1000f).roundToInt() * 1000).coerceIn(1000, 30000))
-                    },
-                    valueRange = 1000f..30000f,
-                    steps = 28
-                )
-            }
-        }
-
         GhadminoBanner(modifier = Modifier.fillMaxWidth())
 
-        Card(
-            Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-        ) {
-            Column(Modifier.padding(18.dp)) {
-                Text("وضعیت قدم‌شمار", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    if (StepCounterService.sensorAvailable)
-                        "✓ حسگر قدم‌شمار فعال است"
-                    else
-                        "⚠ حسگر قدم‌شمار روی این گوشی پیدا نشد"
-                )
-                Text("شمارش قدم‌ها در پس‌زمینه ادامه پیدا می‌کند.")
-            }
-        }
     }
 }
 
