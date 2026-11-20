@@ -1,188 +1,156 @@
 package ir.ghadmino.stepcounter.free
 
-import android.content.Context
-import androidx.compose.foundation.background
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import ir.ghadmino.stepcounter.health.HealthConnectRepository
 import ir.ghadmino.stepcounter.analytics.ActivityAnalyticsRepository
+import ir.ghadmino.stepcounter.health.HealthConnectRepository
 import ir.ghadmino.stepcounter.step.StepHistory
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.*
-import kotlin.math.max
 
 @Composable
 fun FreeFeaturesScreen() {
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var source by remember { mutableStateOf(StepSourceRepository.get(context)) }
-    var goals by remember { mutableStateOf(PeriodicGoalRepository.load(context)) }
-    var weeklyTarget by remember { mutableIntStateOf(goals.weeklyTarget) }
-    var monthlyTarget by remember { mutableIntStateOf(goals.monthlyTarget) }
-    var healthSteps by remember { mutableStateOf<Long?>(null) }
     var phoneSteps by remember { mutableIntStateOf(ActivityAnalyticsRepository.today(context)) }
+    var healthSteps by remember { mutableStateOf<Long?>(null) }
     var message by remember { mutableStateOf<String?>(null) }
-    var diag by remember { mutableStateOf<Diagnostics?>(null) }
-    var scenarios by remember { mutableStateOf<List<ScenarioResult>>(emptyList()) }
-    var syncState by remember { mutableStateOf(HealthSyncRepository.load(context)) }
-    var endReport by remember { mutableStateOf(EndOfDayReportRepository.today(context)) }
-    var selectedHeatmapDay by remember { mutableStateOf<Pair<String,Int>?>(null) }
+    var diagnosticsResult by remember { mutableStateOf<Diagnostics?>(null) }
     val snackbar = remember { SnackbarHostState() }
 
     LaunchedEffect(message) {
-        message?.let { value -> snackbar.showSnackbar(value); message = null }
+        message?.let {
+            snackbar.showSnackbar(it)
+            message = null
+        }
     }
 
     Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { padding ->
         Column(
-            Modifier.fillMaxSize().padding(padding).padding(14.dp).verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            Modifier.fillMaxSize()
+                .padding(padding)
+                .padding(14.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("امکانات رایگان قدمینو", style = MaterialTheme.typography.headlineSmall)
-            Text("محلی، بدون حساب کاربری و بدون API پولی.")
+            Text("ابزارهای تکمیلی", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text(
+                "فقط ابزارهایی که در بخش‌های دیگر برنامه جایگزین ندارند.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
 
-            Section("۱ و ۲ — منبع قدم و Health Connect") {
-                Text("منبع فعلی: " + StepSourceRepository.label(source))
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    SourceButton("گوشی", StepSource.PHONE, source) { source = it; StepSourceRepository.set(context, it) }
-                    SourceButton("Health Connect", StepSource.HEALTH_CONNECT, source) { source = it; StepSourceRepository.set(context, it) }
-                    SourceButton("خودکار", StepSource.AUTO, source) { source = it; StepSourceRepository.set(context, it) }
-                }
-                Button(onClick = {
-                    phoneSteps = ActivityAnalyticsRepository.today(context)
-                    scope.launch { healthSteps = try { HealthConnectRepository.todaySteps(context) } catch (_: Exception) { null } }
-                }) { Text("نمایش هر دو منبع") }
-                Text("گوشی: " + phoneSteps + " قدم")
-                if (healthSteps != null) Text("Health Connect: " + healthSteps + " قدم")
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Sync فعال")
-                    Switch(checked = syncState.enabled, onCheckedChange = {
-                        HealthSyncRepository.setEnabled(context, it)
-                        syncState = HealthSyncRepository.load(context)
-                    })
-                }
-                Text("آخرین Sync: " + HealthSyncRepository.lastSyncText(context))
-                Button(enabled = syncState.enabled, onClick = {
-                    scope.launch {
-                        val local = StepHistory.get(context, todayKey())
-                        val ok = try { HealthConnectRepository.writeTodaySteps(context, local.toLong()) } catch (_: Exception) { false }
-                        if (ok) HealthSyncRepository.markSynced(context)
-                        syncState = HealthSyncRepository.load(context)
-                        message = if (ok) "همگام‌سازی امروز انجام شد." else "همگام‌سازی انجام نشد؛ مجوز Health Connect را بررسی کن."
-                    }
-                }) { Text("همگام‌سازی قدم امروز") }
-                Button(onClick = {
-                    scope.launch {
-                        val count = try { HealthConnectRepository.syncRecentDays(context, StepHistory.recent(context, 30)) } catch (_: Exception) { 0 }
-                        message = if (count > 0) count.toString() + " روز به Health Connect همگام شد." else "همگام‌سازی ۳۰ روزه انجام نشد."
-                    }
-                }) { Text("بازهمگام‌سازی ۳۰ روز اخیر") }
-                Text("دو منبع با هم جمع نمی‌شوند تا دوباره‌شماری رخ ندهد.")
-            }
-
-            Section("۳ — نمای سالانه فعالیت") { AnnualHeatmap(context) { selectedHeatmapDay = it } ; selectedHeatmapDay?.let { Text("روز ${it.first}: ${it.second} قدم") } }
-
-            Section("۴ و ۵ — هدف هفتگی و ماهانه") {
-                GoalRow("هفتگی", goals.weeklyProgress, weeklyTarget)
-                Slider(value = weeklyTarget.toFloat(), onValueChange = { weeklyTarget = it.toInt() }, valueRange = 10000f..150000f, steps = 27)
-                GoalRow("ماهانه", goals.monthlyProgress, monthlyTarget)
-                Slider(value = monthlyTarget.toFloat(), onValueChange = { monthlyTarget = it.toInt() }, valueRange = 50000f..500000f, steps = 17)
-                Button(onClick = {
-                    PeriodicGoalRepository.save(context, weeklyTarget, monthlyTarget)
-                    goals = PeriodicGoalRepository.load(context)
-                    message = "اهداف هفتگی و ماهانه ذخیره شد."
-                }) { Text("ذخیره اهداف") }
-                Text("با رسیدن به هدف‌های هفتگی و ماهانه، پیشرفتت در همین بخش قابل مشاهده است.")
-            }
-
-            Section("۶ — سطح، XP و مأموریت‌های محلی") {
-                Text("سطح و XP از قدم‌های طولانی‌مدت، مأموریت‌ها و دستاوردها محاسبه می‌شود.")
-                Text("ماموریت‌های واقعی: ۶۰٪ هدف، ۱۰۰٪ هدف و ۲۰۰۰ قدم بیشتر از هدف.")
-                Text("XP فقط شاخص پیشرفت فعالیت است و قابلیت یا محتوایی را قفل نمی‌کند.")
-            }
-
-            Section("۷ و ۸ — گزارش روزانه و هفتگی") {
-                endReport = EndOfDayReportRepository.today(context)
-                Text("امروز: " + endReport.steps + " قدم — " + endReport.progress + "% هدف")
-                Text("مسافت تقریبی: " + String.format(Locale.US, "%.2f", endReport.distanceKm) + " km")
-                Text("کالری تقریبی: " + endReport.calories.toInt() + " kcal")
-                Text("فعالیت در ۷ روز: " + endReport.activeDays7 + " روز")
-                Text("بهترین روز هفته: " + endReport.bestDay + " قدم")
-                Text("۷ روز: " + endReport.weeklyTotal + " قدم")
-                Text("گزارش هفتگی خودکار هر دوشنبه طبق زمان‌بندی سیستم ارسال می‌شود؛ محاسبات گزارش روی داده محلی انجام می‌شود.")
-            }
-
-            Section("۹ — شاخص تقریبی فعالیت") {
-                val active = StepHistory.recent(context, 7).count { row -> row.second >= 3000 }
-                Text("روزهای دارای فعالیت قابل‌توجه در ۷ روز: " + active)
-                Text("الگوی فعالیت: " + when { active >= 6 -> "فعال" ; active >= 3 -> "متوسط" ; else -> "کم‌فعال" })
-                Text("این شاخص فقط بر اساس داده قدم است و تشخیص قطعی نوع فعالیت یا وضعیت پزشکی نیست.")
-            }
-
-            Section("۱۰ و ۱۱ — خروجی و اعتبارسنجی") {
+            FeatureSection(
+                title = "منبع ثبت قدم",
+                description = "منبع مورد استفاده قدمینو را انتخاب کن. دو منبع با هم جمع نمی‌شوند."
+            ) {
+                Text("منبع انتخاب‌شده: ${StepSourceRepository.label(source)}")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = { FreeExportRepository.share(context, FreeExportRepository.csv(context), "text/csv") }) { Text("CSV") }
-                    Button(onClick = { FreeExportRepository.share(context, FreeExportRepository.json(context), "application/json") }) { Text("JSON") }
+                    SourceButton("گوشی", StepSource.PHONE, source) {
+                        source = it
+                        StepSourceRepository.set(context, it)
+                    }
+                    SourceButton("Health Connect", StepSource.HEALTH_CONNECT, source) {
+                        source = it
+                        StepSourceRepository.set(context, it)
+                    }
+                    SourceButton("خودکار", StepSource.AUTO, source) {
+                        source = it
+                        StepSourceRepository.set(context, it)
+                    }
                 }
-                Button(onClick = {
-                    val json = FreeExportRepository.json(context)
-                    message = if (json.contains("\"version\":1") && json.contains("\"days\":[")) "خروجی سالم است." else "خروجی نیاز به بررسی دارد."
-                }) { Text("اعتبارسنجی خروجی") }
+                Text(
+                    "برای اتصال، مجوزها و مشاهده اطلاعات Health Connect از بخش «اتصال سلامت» استفاده کن.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OutlinedButton(
+                    onClick = {
+                        scope.launch {
+                            val count = try {
+                                HealthConnectRepository.syncRecentDays(context, StepHistory.recent(context, 30))
+                            } catch (_: Exception) {
+                                0
+                            }
+                            message = if (count > 0) {
+                                "$count روز از تاریخچه به Health Connect ارسال شد."
+                            } else {
+                                "ارسال تاریخچه انجام نشد؛ اتصال و مجوز نوشتن را بررسی کن."
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("ارسال تاریخچه ۳۰ روز اخیر به Health Connect") }
             }
 
-            Section("۱۲ — ویجت") {
-                Text("ویجت اصلی حفظ شده و ویجت خلاصه ۷ روزه نیز اضافه می‌شود.")
-            }
-
-            Section("۱۳ — روشن و تیره") {
-                Text("تم برنامه از حالت روشن/تیره سیستم پشتیبانی می‌کند.")
-            }
-
-            Section("۱۴ — زبان") {
-                Text("داده‌ها مستقل از زبان ذخیره می‌شوند. ترجمه کامل رابط فعلی در مرحله جداگانه انجام می‌شود تا متن‌های سخت‌کدشده ناقص نشوند.")
-            }
-
-            Section("۱۵ — عیب‌یابی") {
-                Button(onClick = { scope.launch { diag = diagnostics(context) } }) { Text("اجرای عیب‌یابی") }
-                diag?.let {
-                    CheckRow("حسگر قدم", it.sensor)
-                    CheckRow("مجوز فعالیت", it.activityPermission)
-                    CheckRow("اعلان", it.notificationPermission)
-                    CheckRow("مکان برای سرعت/تمرین", it.locationPermission)
-                    Text("Health Connect: " + it.healthConnect)
-                    Text("سرویس قدم‌شمار: " + it.serviceState)
-                    Text("آخرین دریافت سنسور: " + DiagnosticsHistoryRepository.text(context,"sensor"))
-                    Text("آخرین ذخیره قدم: " + DiagnosticsHistoryRepository.text(context,"save"))
-                    Text("محدودیت باتری: بررسی تنظیمات بهینه‌سازی باتری گوشی توصیه می‌شود.")
+            FeatureSection(
+                title = "خروجی تاریخچه قدم‌ها",
+                description = "از سوابق قدم‌ها در قالب CSV یا JSON خروجی بگیر؛ این خروجی با فایل پشتیبان کامل برنامه فرق دارد."
+            ) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = { FreeExportRepository.share(context, FreeExportRepository.csv(context), "text/csv") },
+                        modifier = Modifier.weight(1f)
+                    ) { Text("خروجی CSV") }
+                    Button(
+                        onClick = { FreeExportRepository.share(context, FreeExportRepository.json(context), "application/json") },
+                        modifier = Modifier.weight(1f)
+                    ) { Text("خروجی JSON") }
                 }
+                OutlinedButton(
+                    onClick = {
+                        val valid = FreeExportRepository.isValidJson(FreeExportRepository.json(context))
+                        message = if (valid) "ساختار خروجی JSON سالم است." else "ساختار خروجی JSON معتبر نیست."
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("بررسی سلامت خروجی JSON") }
             }
 
-            Section("۱۶ — کنترل پایداری") {
-                Text("ثبت داده‌ها محلی است؛ خطاهای Health Connect به رابط کاربری برگردانده می‌شوند.")
-                Button(onClick = { scenarios = InternalScenarioTests.run(); message = "بررسی‌های داخلی اجرا شد." }) { Text("اجرای تست‌های داخلی") }
-                scenarios.forEach { result -> Text(if(result.passed) "✓ " + result.name else "⚠ " + result.name) }
-                StabilityChecks.pure().forEach { result -> Text(if(result.passed) "✓ " + result.name else "⚠ " + result.name) }
-                Button(onClick = {
-                    goals = PeriodicGoalRepository.load(context)
-                    message = "داده‌ها تازه‌سازی شد."
-                }) { Text("تازه‌سازی امن") }
+            FeatureSection(
+                title = "عیب‌یابی قدم‌شمار",
+                description = "وضعیت حسگر، مجوزها، سرویس و آخرین ثبت داده را بررسی کن."
+            ) {
+                Button(
+                    onClick = { scope.launch { diagnosticsResult = diagnostics(context) } },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("اجرای عیب‌یابی") }
+                diagnosticsResult?.let { result ->
+                    DiagnosticRow("حسگر قدم", result.sensor)
+                    DiagnosticRow("مجوز فعالیت بدنی", result.activityPermission)
+                    DiagnosticRow("مجوز اعلان", result.notificationPermission)
+                    DiagnosticRow("مجوز مکان برای قابلیت سرعت", result.locationPermission)
+                    DiagnosticText("Health Connect", result.healthConnect)
+                    DiagnosticText("وضعیت سرویس قدم‌شمار", result.serviceState)
+                    DiagnosticText("آخرین دریافت سنسور", DiagnosticsHistoryRepository.text(context, "sensor"))
+                    DiagnosticText("آخرین ذخیره قدم", DiagnosticsHistoryRepository.text(context, "save"))
+                    Text(
+                        "اگر شمارش در پس‌زمینه متوقف می‌شود، محدودیت بهینه‌سازی باتری گوشی را در تنظیمات بررسی کن.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
 }
 
-@Composable private fun Section(title: String, content: @Composable ColumnScope.() -> Unit) {
+@Composable
+private fun FeatureSection(
+    title: String,
+    description: String,
+    content: @Composable ColumnScope.() -> Unit
+) {
     var expanded by remember(title) { mutableStateOf(false) }
     Card(
         Modifier.fillMaxWidth().animateContentSize(),
@@ -192,88 +160,60 @@ fun FreeFeaturesScreen() {
     ) {
         Column(Modifier.fillMaxWidth()) {
             Row(
-                Modifier.fillMaxWidth()
-                    .clickable { expanded = !expanded }
-                    .padding(horizontal = 16.dp, vertical = 17.dp),
+                Modifier.fillMaxWidth().clickable { expanded = !expanded }
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
-                        lineHeight = MaterialTheme.typography.titleMedium.lineHeight
-                    )
-                    Text(
-                        if (expanded) "برای بستن لمس کن" else "برای مشاهده جزئیات لمس کن",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Spacer(Modifier.width(10.dp))
+                Spacer(Modifier.width(8.dp))
                 Icon(
-                    imageVector = if (expanded) androidx.compose.material.icons.Icons.Default.ExpandLess
+                    if (expanded) androidx.compose.material.icons.Icons.Default.ExpandLess
                     else androidx.compose.material.icons.Icons.Default.ExpandMore,
                     contentDescription = if (expanded) "بستن" else "باز کردن",
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
-            androidx.compose.animation.AnimatedVisibility(visible = expanded) {
+            AnimatedVisibility(visible = expanded) {
                 Column(
-                    Modifier.fillMaxWidth()
-                        .padding(start = 16.dp, end = 16.dp, bottom = 16.dp, top = 2.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                     content = content
                 )
             }
         }
     }
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
-@Composable private fun SourceButton(label: String, value: StepSource, current: StepSource, onClick: (StepSource) -> Unit) {
-    FilterChip(selected = current == value, onClick = { onClick(value) }, label = { Text(label) })
+@Composable
+private fun SourceButton(
+    label: String,
+    value: StepSource,
+    current: StepSource,
+    onClick: (StepSource) -> Unit
+) {
+    FilterChip(
+        selected = current == value,
+        onClick = { onClick(value) },
+        label = { Text(label) }
+    )
 }
-@Composable private fun RecordRow(a: String, b: String) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(a); Text(b) }
-}
-@Composable private fun GoalRow(label: String, current: Int, target: Int) {
-    val p = if (target <= 0) 0f else (current.toFloat() / target).coerceIn(0f, 1f)
-    Text(label + ": " + current + " / " + target)
-    LinearProgressIndicator(progress = p, modifier = Modifier.fillMaxWidth())
-}
-@Composable private fun CheckRow(label: String, ok: Boolean) { Text(if (ok) "✓ " + label else "⚠ " + label) }
-@Composable private fun TrendCard(context: Context, days: Int) {
-    val m = TrendMetricsRepository.calculate(context, days)
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(days.toString() + " روز", style = MaterialTheme.typography.titleSmall)
-            Text("مجموع: " + m.totalSteps + " قدم  |  میانگین: " + m.averageSteps)
-            Text("بهترین روز: " + m.bestDay + " قدم  |  تغییر نسبت به دوره قبل: " + m.changePercent + "%")
-            Text(String.format(Locale.US, "مسافت تقریبی: %.2f km  |  کالری: %d kcal", m.distanceKm, m.calories))
-            val rows = StepHistory.recent(context, days).reversed().takeLast(minOf(days, 30))
-            val maxValue = max(1, rows.maxOfOrNull { it.second } ?: 1)
-            rows.forEach { row ->
-                val width = (row.second.toFloat() / maxValue * 260f).coerceIn(2f, 260f)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(row.first.takeLast(2), Modifier.width(26.dp))
-                    Box(Modifier.width(width.dp).height(7.dp).background(MaterialTheme.colorScheme.primary, RoundedCornerShape(4.dp)))
-                    Spacer(Modifier.width(5.dp))
-                    Text(row.second.toString())
-                }
-            }
-        }
+
+@Composable
+private fun DiagnosticRow(label: String, ok: Boolean) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label)
+        Text(if (ok) "✓ فعال" else "⚠ بررسی شود", color = if (ok) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
     }
 }
 
-@Composable private fun AnnualHeatmap(context: Context, onDayClick: (Pair<String,Int>) -> Unit) {
-    val rows = StepHistory.recent(context, 365)
-    val maxValue = max(1, rows.maxOfOrNull { it.second } ?: 1)
-    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-        rows.take(365).reversed().forEach { row ->
-            val level = (row.second.toFloat() / maxValue * 4f).toInt().coerceIn(0, 4)
-            Box(Modifier.size(11.dp).clickable { onDayClick(row) }.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f + level * 0.2f), RoundedCornerShape(2.dp)))
-        }
+@Composable
+private fun DiagnosticText(label: String, value: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, fontWeight = FontWeight.Medium)
     }
 }
-private fun todayKey(): String = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
-private fun dayKey(): String = todayKey()
