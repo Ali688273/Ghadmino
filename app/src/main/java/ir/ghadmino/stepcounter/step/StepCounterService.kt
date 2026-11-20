@@ -87,7 +87,7 @@ class StepCounterService : Service(), SensorEventListener {
 
         loadToday()
         todaySteps = maxOf(todaySteps, persistedTodaySteps(this))
-        if (StepSourceRepository.get(this) != StepSource.HEALTH_CONNECT) StepHistory.saveToday(this, todaySteps)
+        if (StepSourceRepository.get(this) != StepSource.HEALTH_CONNECT) StepHistory.saveToday(this, ActivityAnalyticsRepository.today(this))
         DiagnosticsHistoryRepository.markSave(this)
         sendBroadcast(Intent(GhadminoWidgetProvider.ACTION_REFRESH).setPackage(packageName))
     }
