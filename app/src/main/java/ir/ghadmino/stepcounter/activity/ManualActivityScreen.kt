@@ -26,32 +26,54 @@ fun ManualActivityScreen(onChanged: () -> Unit = {}) {
 
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Card(
             modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded },
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+            shape = MaterialTheme.shapes.large,
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 50.dp)
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.DirectionsWalk, contentDescription = null)
-                Spacer(Modifier.width(10.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        "ثبت فعالیت دستی",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        if (expanded) "برای بستن فرم لمس کن" else "افزودن قدم یا فعالیت ثبت‌نشده",
-                        style = MaterialTheme.typography.bodySmall
+                Surface(
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.primaryContainer
+                ) {
+                    Icon(
+                        Icons.Default.DirectionsWalk,
+                        contentDescription = null,
+                        modifier = Modifier.padding(7.dp).size(18.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    "ثبت فعالیت دستی",
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    if (expanded) "بستن" else "افزودن",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.width(6.dp))
                 Icon(
-                    if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = if (expanded) "بستن" else "باز کردن"
+                    if (expanded) Icons.Default.ExpandLess else Icons.Default.Add,
+                    contentDescription = if (expanded) "بستن" else "افزودن",
+                    modifier = Modifier.size(19.dp),
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
         }
