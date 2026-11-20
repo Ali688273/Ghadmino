@@ -94,7 +94,6 @@ fun ChallengesScreen(onChanged: () -> Unit = {}) {
                         Text(progress.percent.toString() + "٪")
                     }
 
-                    Spacer(Modifier.height(8.dp))
                     Spacer(Modifier.height(10.dp))
 
                     when {
@@ -102,7 +101,7 @@ fun ChallengesScreen(onChanged: () -> Unit = {}) {
                             AssistChip(
                                 onClick = {},
                                 enabled = false,
-                                label = { Text("پاداش دریافت شده ✓") }
+                                label = { Text("تکمیل ثبت شده ✓") }
                             )
                         }
                         progress.completed -> {
