@@ -1,8 +1,9 @@
 package ir.ghadmino.stepcounter.ads
 
 import android.app.Activity
-import android.app.Application
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.ViewGroup
 import com.adivery.sdk.Adivery
@@ -15,228 +16,157 @@ import ir.tapsell.plus.AdRequestCallback
 import ir.tapsell.plus.AdShowListener
 import ir.tapsell.plus.TapsellPlus
 import ir.tapsell.plus.TapsellPlusBannerType
-import ir.tapsell.plus.TapsellPlusInitListener
-import ir.tapsell.plus.model.AdNetworkError
-import ir.tapsell.plus.model.AdNetworks
 import ir.tapsell.plus.model.TapsellPlusAdModel
 import ir.tapsell.plus.model.TapsellPlusErrorModel
 
+/**
+ * Ghadmino ad flow mirrors ExcelFarsi-Android:
+ * Adivery is primary for interstitial/app-open/banner; Tapsell is fallback.
+ * Publisher placement IDs remain Ghadmino-specific.
+ */
 object GhadminoAdsManager {
-
     private const val TAG = "GhadminoAds"
-    private const val FULLSCREEN_COOLDOWN_MS = 15 * 60 * 1000L
-    private const val MIN_SESSION_MS = 5 * 60 * 1000L
+    private const val MIN_SESSION_BEFORE_INTERSTITIAL_MS = 5 * 60 * 1000L
+    private const val INTERSTITIAL_COOLDOWN_MS = 15 * 60 * 1000L
+    private const val APP_OPEN_BACKGROUND_MS = 10 * 60 * 1000L
     private const val MIN_NAVIGATIONS = 6
+    private const val MIN_ATTEMPT_INTERVAL_MS = 60 * 1000L
 
-    private const val PREFS = "ghadmino_ads"
-    private const val LAST_FULLSCREEN = "last_fullscreen"
-
-    @Volatile private var initialized = false
-    @Volatile private var tapsellInitializationStarted = false
-    @Volatile private var tapsellInitialized = false
-    private var sessionStartedAt = 0L
+    @Volatile private var tapsellInterstitialInFlight = false
     private var navigationCount = 0
+    private var sessionStartedAt = 0L
+    private var lastInterstitialAt = 0L
+    private var lastInterstitialAttemptAt = 0L
+    private var lastAppBackgroundAt = 0L
 
-    private fun prefs(context: Context) =
-        context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    private val mainHandler = Handler(Looper.getMainLooper())
 
+    fun registerAdiveryListener() {
+        Adivery.addGlobalListener(object : AdiveryListener() {
+            override fun onInterstitialAdLoaded(placementId: String) { log("Adivery interstitial loaded") }
+            override fun onInterstitialAdShown(placementId: String) { log("Adivery interstitial shown") }
+            override fun onInterstitialAdClosed(placementId: String) { log("Adivery interstitial closed") }
+            override fun onAppOpenAdLoaded(placementId: String) { log("Adivery app-open loaded") }
+            override fun onAppOpenAdShown(placementId: String) { log("Adivery app-open shown") }
+            override fun onAppOpenAdClosed(placementId: String) { log("Adivery app-open closed") }
+            override fun log(placementId: String, message: String) { log("Adivery: $message") }
+        })
+    }
+
+    /** Prepare Adivery placements early, without showing an ad on cold start. */
+    fun prepare(activity: Activity) {
+        if (sessionStartedAt == 0L) sessionStartedAt = System.currentTimeMillis()
+        if (activity.isFinishing || activity.isDestroyed) return
+        runCatching { Adivery.prepareInterstitialAd(activity, AdsConfig.ADIVERY_INTERSTITIAL) }
+            .onFailure { Log.w(TAG, "Could not prepare Adivery interstitial", it) }
+        runCatching { Adivery.prepareAppOpenAd(activity, AdsConfig.ADIVERY_APP_OPEN) }
+            .onFailure { Log.w(TAG, "Could not prepare Adivery app-open", it) }
+    }
+
+    /** Compatibility entry point for ad slots created after Activity startup. */
     fun initialize(context: Context) {
         if (sessionStartedAt == 0L) sessionStartedAt = System.currentTimeMillis()
-        if (!initialized) {
-            synchronized(this) {
-                if (!initialized) {
-                    Adivery.setLoggingEnabled(BuildConfig.DEBUG)
-                    Adivery.configure(context.applicationContext as Application, AdsConfig.ADIVERY_APP_KEY)
-                    initialized = true
-                }
-            }
-        }
-
-        if (context is Activity && !tapsellInitializationStarted) {
-            synchronized(this) {
-                if (!tapsellInitializationStarted) {
-                    tapsellInitializationStarted = true
-                    TapsellPlus.initialize(
-                        context.applicationContext as Application,
-                        AdsConfig.TAPSELL_APP_KEY,
-                        object : TapsellPlusInitListener {
-                            override fun onInitializeSuccess(adNetworks: AdNetworks) {
-                                tapsellInitialized = true
-                                Log.d(TAG, "Tapsell initialized: ${adNetworks.name}")
-                            }
-
-                            override fun onInitializeFailed(
-                                adNetworks: AdNetworks,
-                                adNetworkError: AdNetworkError
-                            ) {
-                                tapsellInitialized = false
-                                tapsellInitializationStarted = false
-                                Log.w(TAG, "Tapsell init failed: ${adNetworks.name} - ${adNetworkError.errorMessage}")
-                            }
-                        }
-                    )
-                }
-            }
-        }
+        (context as? Activity)?.let { prepare(it) }
     }
 
-    /** Safe App-Open placement; never blocks startup. */
-    fun showAppOpen(activity: Activity, onFinished: () -> Unit = {}) {
-        initialize(activity)
-        if (isFinishingOrDestroyed(activity) || !canShowFullscreen(activity)) {
-            onFinished()
-            return
-        }
-
-        val placement = AdsConfig.ADIVERY_APP_OPEN
-        var shown = false
-        val listener = object : AdiveryListener() {
-            override fun onAppOpenAdLoaded(placementId: String) {
-                if (placementId == placement && !shown && Adivery.isLoaded(placement)) {
-                    Adivery.showAd(placement)
-                }
-            }
-            override fun onAppOpenAdShown(placementId: String) {
-                if (placementId == placement) {
-                    shown = true
-                    markFullscreenShown(activity)
-                }
-            }
-            override fun onAppOpenAdClicked(placementId: String) = Unit
-            override fun onAppOpenAdClosed(placementId: String) {
-                if (placementId != placement) return
-                Adivery.removePlacementListener(placement)
-                onFinished()
-            }
-            override fun log(placementId: String, message: String) {
-                Log.d(TAG, "Adivery app-open: $message")
-            }
-        }
-
-        Adivery.addPlacementListener(placement, listener)
-        Adivery.prepareAppOpenAd(activity, placement)
-        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-            if (!shown && !Adivery.isLoaded(placement)) {
-                Adivery.removePlacementListener(placement)
-                onFinished()
-            }
-        }, 2500L)
-    }
-
-    fun showInterstitial(activity: Activity, onFinished: () -> Unit = {}) {
+    fun onUserNavigation(activity: Activity) {
         navigationCount++
         val now = System.currentTimeMillis()
-        if (navigationCount < MIN_NAVIGATIONS || now - sessionStartedAt < MIN_SESSION_MS) {
-            onFinished()
-            return
+        if (navigationCount < MIN_NAVIGATIONS) return
+        if (now - sessionStartedAt < MIN_SESSION_BEFORE_INTERSTITIAL_MS) return
+        if (now - lastInterstitialAt < INTERSTITIAL_COOLDOWN_MS) return
+        if (now - lastInterstitialAttemptAt < MIN_ATTEMPT_INTERVAL_MS) return
+        if (activity.isFinishing || activity.isDestroyed) return
+
+        lastInterstitialAttemptAt = now
+        if (runCatching { Adivery.isLoaded(AdsConfig.ADIVERY_INTERSTITIAL) }.getOrDefault(false)) {
+            runCatching { Adivery.showAd(AdsConfig.ADIVERY_INTERSTITIAL) }
+                .onSuccess { lastInterstitialAt = now }
+                .onFailure {
+                    Log.w(TAG, "Adivery interstitial show failed", it)
+                    requestTapsellInterstitial(activity)
+                }
+        } else {
+            requestTapsellInterstitial(activity)
         }
-        showInterstitialInternal(activity) { onFinished() }
     }
 
-    private fun showInterstitialInternal(
-        activity: Activity,
-        onFinished: (String) -> Unit
-    ) {
-        initialize(activity)
-        if (isFinishingOrDestroyed(activity) || !canShowFullscreen(activity)) {
-            onFinished("برای جلوگیری از مزاحمت، تبلیغ تمام‌صفحه فعلاً نمایش داده نشد.")
-            return
-        }
-        val placement = AdsConfig.ADIVERY_INTERSTITIAL
-        var finished = false
-        var shown = false
-        var adiveryShowRequested = false
-        var fallbackStarted = false
-        var listener: AdiveryListener? = null
+    /** Kept for existing callers; navigation gating is applied here too. */
+    fun showInterstitial(activity: Activity, onFinished: () -> Unit = {}) {
+        onUserNavigation(activity)
+        onFinished()
+    }
 
-        fun finish(message: String) {
-            if (finished) return
-            finished = true
-            listener?.let { Adivery.removePlacementListener(placement) }
-            onFinished(message)
-        }
+    private fun requestTapsellInterstitial(activity: Activity) {
+        if (!AdsRuntime.tapsellReady || tapsellInterstitialInFlight ||
+            activity.isFinishing || activity.isDestroyed
+        ) return
+        tapsellInterstitialInFlight = true
 
-        fun requestTapsell(index: Int = 0) {
-            val zones = listOf(AdsConfig.TAPSELL_INTERSTITIAL)
-            if (finished || isFinishingOrDestroyed(activity)) return
-            if (!tapsellInitialized || index >= zones.size) {
-                finish("فعلاً تبلیغی در دسترس نیست.")
+        fun requestZone(zoneId: String, tryInstantBannerIfEmpty: Boolean) {
+            if (activity.isFinishing || activity.isDestroyed) {
+                tapsellInterstitialInFlight = false
                 return
             }
-            val zone = zones[index]
-            TapsellPlus.requestInterstitialAd(activity, zone, object : AdRequestCallback() {
+            TapsellPlus.requestInterstitialAd(activity, zoneId, object : AdRequestCallback() {
                 override fun response(ad: TapsellPlusAdModel) {
-                    val id = ad.responseId
-                    if (id.isNullOrBlank() || finished || isFinishingOrDestroyed(activity)) {
-                        requestTapsell(index + 1)
+                    tapsellInterstitialInFlight = false
+                    if (activity.isFinishing || activity.isDestroyed) return
+                    val responseId = ad.responseId
+                    if (responseId.isNullOrBlank()) {
+                        if (tryInstantBannerIfEmpty) requestZone(AdsConfig.TAPSELL_INSTANT_BANNER, false)
                         return
                     }
-                    TapsellPlus.showInterstitialAd(activity, id, object : AdShowListener() {
-                        override fun onOpened(ad: TapsellPlusAdModel) {
-                            markFullscreenShown(activity)
-                        }
+                    TapsellPlus.showInterstitialAd(activity, responseId, object : AdShowListener() {
                         override fun onClosed(ad: TapsellPlusAdModel) {
-                            finish("تبلیغ تمام شد.")
+                            lastInterstitialAt = System.currentTimeMillis()
+                            log("Tapsell instant video closed")
+                            prepare(activity)
                         }
                         override fun onError(error: TapsellPlusErrorModel) {
-                            Log.w(TAG, "Tapsell fullscreen failed: ${error.errorMessage}")
-                            requestTapsell(index + 1)
+                            log("Tapsell instant video show error: $error")
                         }
                     })
                 }
+
                 override fun error(message: String) {
-                    Log.w(TAG, "Tapsell zone $zone unavailable: $message")
-                    requestTapsell(index + 1)
+                    log("Tapsell request failed ($zoneId): $message")
+                    if (tryInstantBannerIfEmpty && AdsRuntime.tapsellReady) {
+                        requestZone(AdsConfig.TAPSELL_INSTANT_BANNER, false)
+                    } else {
+                        tapsellInterstitialInFlight = false
+                    }
                 }
             })
         }
 
-        fun startTapsellFallback() {
-            if (finished || fallbackStarted || isFinishingOrDestroyed(activity)) return
-            fallbackStarted = true
-            listener?.let { Adivery.removePlacementListener(placement) }
-            requestTapsell()
-        }
+        runCatching { requestZone(AdsConfig.TAPSELL_INSTANT_VIDEO, true) }
+            .onFailure {
+                tapsellInterstitialInFlight = false
+                Log.w(TAG, "Tapsell instant video request failed", it)
+            }
+    }
 
-        val adiveryListener = object : AdiveryListener() {
-            override fun onInterstitialAdLoaded(placementId: String) {
-                if (!finished && !fallbackStarted && !adiveryShowRequested &&
-                    placementId == placement &&
-                    runCatching { Adivery.isLoaded(placement) }.getOrDefault(false)
-                ) {
-                    adiveryShowRequested = true
-                    runCatching { Adivery.showAd(placement) }
-                        .onFailure { startTapsellFallback() }
-                }
-            }
-            override fun onInterstitialAdShown(placementId: String) {
-                if (placementId == placement && !fallbackStarted) {
-                    shown = true
-                    markFullscreenShown(activity)
-                }
-            }
-            override fun onInterstitialAdClicked(placementId: String) = Unit
-            override fun onInterstitialAdClosed(placementId: String) {
-                if (placementId != placement || fallbackStarted) return
-                finish("تبلیغ تمام شد.")
-            }
-            override fun log(placementId: String, message: String) {
-                Log.d(TAG, "Adivery interstitial: $message")
-            }
-        }
-        listener = adiveryListener
-        Adivery.addPlacementListener(placement, adiveryListener)
+    fun onAppBackgrounded() {
+        lastAppBackgroundAt = System.currentTimeMillis()
+    }
 
-        if (runCatching { Adivery.isLoaded(placement) }.getOrDefault(false)) {
-            adiveryShowRequested = true
-            runCatching { Adivery.showAd(placement) }
-                .onFailure { startTapsellFallback() }
+    fun onAppForegrounded(activity: Activity) {
+        val now = System.currentTimeMillis()
+        val wasAwayLongEnough = lastAppBackgroundAt > 0L &&
+            now - lastAppBackgroundAt >= APP_OPEN_BACKGROUND_MS
+        lastAppBackgroundAt = 0L
+        if (!wasAwayLongEnough || activity.isFinishing || activity.isDestroyed) return
+        if (now - lastInterstitialAt < INTERSTITIAL_COOLDOWN_MS) return
+
+        if (runCatching { Adivery.isLoaded(AdsConfig.ADIVERY_APP_OPEN) }.getOrDefault(false)) {
+            runCatching {
+                Adivery.showAppOpenAd(activity, AdsConfig.ADIVERY_APP_OPEN)
+                lastInterstitialAt = now
+            }.onFailure { Log.w(TAG, "Adivery app-open show failed", it) }
         } else {
-            runCatching { Adivery.prepareInterstitialAd(activity, placement) }
-                .onFailure { startTapsellFallback() }
-            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                if (!finished && !shown && !fallbackStarted) startTapsellFallback()
-            }, 3000L)
+            runCatching { Adivery.prepareAppOpenAd(activity, AdsConfig.ADIVERY_APP_OPEN) }
+                .onFailure { Log.w(TAG, "Could not refresh Adivery app-open", it) }
         }
     }
 
@@ -244,46 +174,41 @@ object GhadminoAdsManager {
         initialize(activity)
         if (container.childCount > 0) return
         loadAdiveryBanner(activity, container) {
-            if (tapsellInitialized && !isFinishingOrDestroyed(activity)) {
-                requestTapsellBanner(activity, container, AdsConfig.TAPSELL_STANDARD_BANNER)
-            }
+            requestTapsellStandardBanner(activity, container, 0)
         }
     }
 
-    private fun requestTapsellBanner(activity: Activity, container: ViewGroup, zone: String) {
-        if (container.childCount > 0 || isFinishingOrDestroyed(activity)) return
-        TapsellPlus.requestStandardBannerAd(activity, zone, TapsellPlusBannerType.BANNER_320x50,
+    private fun requestTapsellStandardBanner(activity: Activity, container: ViewGroup, attempt: Int) {
+        if (activity.isFinishing || activity.isDestroyed || container.childCount > 0) return
+        if (!AdsRuntime.tapsellReady) {
+            if (attempt < 10) mainHandler.postDelayed({
+                requestTapsellStandardBanner(activity, container, attempt + 1)
+            }, 1_000L)
+            return
+        }
+        TapsellPlus.requestStandardBannerAd(
+            activity,
+            AdsConfig.TAPSELL_STANDARD_BANNER,
+            TapsellPlusBannerType.BANNER_320x50,
             object : AdRequestCallback() {
                 override fun response(ad: TapsellPlusAdModel) {
-                    val id = ad.responseId
-                    if (id.isNullOrBlank() || container.childCount > 0 || isFinishingOrDestroyed(activity)) return
-                    TapsellPlus.showStandardBannerAd(activity, id, container, object : AdShowListener() {
-                        override fun onOpened(ad: TapsellPlusAdModel) = Unit
+                    if (activity.isFinishing || activity.isDestroyed || container.childCount > 0) return
+                    TapsellPlus.showStandardBannerAd(activity, ad.responseId, container, object : AdShowListener() {
+                        override fun onOpened(ad: TapsellPlusAdModel) { log("Tapsell banner opened") }
                         override fun onError(error: TapsellPlusErrorModel) {
+                            Log.w(TAG, "Tapsell banner show failed: $error")
                             container.removeAllViews()
-                            Log.w(TAG, "Tapsell banner show failed: ${error.errorMessage}")
                         }
                     })
                 }
-                override fun error(message: String) { Log.w(TAG, "Tapsell banner unavailable: $message") }
-            })
+                override fun error(message: String) { log("Tapsell banner request failed: $message") }
+            }
+        )
     }
 
-    private fun loadAdiveryBanner(activity: Activity, container: ViewGroup, onFailed: () -> Unit = {}) {
-        if (container.childCount > 0) return
-
-        val handler = android.os.Handler(android.os.Looper.getMainLooper())
-        var resolved = false
-        lateinit var banner: AdiveryBannerAdView
-        val timeout = Runnable {
-            if (!resolved) {
-                resolved = true
-                Log.w(TAG, "Adivery banner timed out; trying Tapsell fallback")
-                container.removeView(banner)
-                onFailed()
-            }
-        }
-        banner = AdiveryBannerAdView(activity).apply {
+    private fun loadAdiveryBanner(activity: Activity, container: ViewGroup, onFailed: () -> Unit) {
+        if (container.childCount > 0 || activity.isFinishing || activity.isDestroyed) return
+        val banner = AdiveryBannerAdView(activity).apply {
             layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
@@ -291,135 +216,83 @@ object GhadminoAdsManager {
             setPlacementId(AdsConfig.ADIVERY_BANNER)
             setBannerSize(BannerSize.BANNER)
             setBannerAdListener(object : AdiveryAdListener() {
-                override fun onAdLoaded() {
-                    if (!resolved) {
-                        resolved = true
-                        handler.removeCallbacks(timeout)
-                    }
-                }
+                override fun onAdLoaded() { log("Adivery banner loaded") }
                 override fun onAdShown() = Unit
                 override fun onAdClicked() = Unit
                 override fun onError(reason: String) {
-                    if (resolved) return
-                    resolved = true
-                    handler.removeCallbacks(timeout)
-                    Log.w(TAG, "Adivery banner unavailable: $reason")
+                    Log.w(TAG, "Adivery banner failed: $reason")
                     container.removeView(this@apply)
                     onFailed()
                 }
             })
         }
-
         container.addView(banner)
         banner.loadAd()
-        handler.postDelayed(timeout, 5000L)
     }
-
 
     fun loadInstantBanner(activity: Activity, container: ViewGroup) {
-        initialize(activity)
-        if (container.childCount > 0) return
-        loadAdiveryBanner(activity, container) {
-            if (tapsellInitialized && !isFinishingOrDestroyed(activity)) {
-                requestTapsellBanner(activity, container, AdsConfig.TAPSELL_INSTANT_BANNER)
-            }
-        }
+        loadBanner(activity, container)
     }
 
+    /**
+     * Native-slot parity requires a Ghadmino-specific Adivery Native placement ID.
+     * Until that ID is configured, retain the existing Ghadmino banner -> Tapsell
+     * native-banner fallback rather than borrowing Excel Farsi's publisher ID.
+     */
     fun loadNativeBanner(activity: Activity, container: ViewGroup) {
         initialize(activity)
         if (container.childCount > 0) return
         loadAdiveryBanner(activity, container) {
-            if (!tapsellInitialized || isFinishingOrDestroyed(activity) || container.childCount > 0) return@loadAdiveryBanner
-            TapsellPlus.requestNativeAd(
-                activity,
-                AdsConfig.TAPSELL_NATIVE_BANNER,
-                object : AdRequestCallback() {
-                    override fun response(ad: TapsellPlusAdModel) {
-                        val id = ad.responseId
-                        if (id.isNullOrBlank() || isFinishingOrDestroyed(activity) || container.childCount > 0) return
-                        val holder = TapsellPlus.createAdHolder(
-                            activity,
-                            container,
-                            ir.tapsell.plus.R.layout.native_banner
-                        )
-                        TapsellPlus.showNativeAd(
-                            activity,
-                            id,
-                            holder,
-                            object : AdShowListener() {
-                                override fun onOpened(ad: TapsellPlusAdModel) = Unit
-                                override fun onError(error: TapsellPlusErrorModel) {
-                                    Log.w(TAG, "Tapsell native banner unavailable: ${error.errorMessage}")
-                                    container.removeAllViews()
-                                }
-                            }
-                        )
-                    }
-                    override fun error(message: String) {
-                        Log.w(TAG, "Tapsell native banner request failed: $message")
-                    }
+            if (!AdsRuntime.tapsellReady || activity.isFinishing || activity.isDestroyed ||
+                container.childCount > 0
+            ) return@loadAdiveryBanner
+            TapsellPlus.requestNativeAd(activity, AdsConfig.TAPSELL_NATIVE_BANNER, object : AdRequestCallback() {
+                override fun response(ad: TapsellPlusAdModel) {
+                    val id = ad.responseId
+                    if (id.isNullOrBlank() || activity.isFinishing || activity.isDestroyed ||
+                        container.childCount > 0
+                    ) return
+                    val holder = TapsellPlus.createAdHolder(
+                        activity, container, ir.tapsell.plus.R.layout.native_banner
+                    )
+                    TapsellPlus.showNativeAd(activity, id, holder, object : AdShowListener() {
+                        override fun onOpened(ad: TapsellPlusAdModel) = Unit
+                        override fun onError(error: TapsellPlusErrorModel) {
+                            Log.w(TAG, "Tapsell native banner failed: $error")
+                            container.removeAllViews()
+                        }
+                    })
                 }
-            )
+                override fun error(message: String) { log("Tapsell native banner request failed: $message") }
+            })
         }
     }
 
     fun loadNativeVideo(activity: Activity, container: ViewGroup) {
         initialize(activity)
-        if (!tapsellInitialized || container.childCount > 0) return
-
-        TapsellPlus.requestNativeVideo(
-            activity,
-            AdsConfig.TAPSELL_NATIVE_VIDEO,
-            object : AdRequestCallback() {
-                override fun response(ad: TapsellPlusAdModel) {
-                    val responseId = ad.responseId
-                    if (responseId.isNullOrBlank() || isFinishingOrDestroyed(activity)) return
-
-                    val holder = ir.tapsell.plus.TapsellPlusVideoAdHolder.Builder()
-                        .setContentViewTemplate(ir.ghadmino.stepcounter.R.layout.ghadmino_native_video_ad)
-                        .setAppInstallationViewTemplate(
-                            ir.tapsell.sdk.R.layout.tapsell_app_installation_video_ad_template
-                        )
-                        .setAdContainer(container)
-                        .build()
-
-                    TapsellPlus.showNativeVideo(
-                        activity,
-                        responseId,
-                        holder,
-                        object : AdShowListener() {
-                            override fun onOpened(ad: TapsellPlusAdModel) {
-                                Log.d(TAG, "Tapsell native video opened")
-                            }
-
-                            override fun onError(error: TapsellPlusErrorModel) {
-                                Log.w(TAG, "Tapsell native video unavailable: " + error.errorMessage)
-                                container.removeAllViews()
-                            }
-                        }
-                    )
-                }
-
-                override fun error(message: String) {
-                    Log.w(TAG, "Tapsell native video request failed: " + message)
-                }
+        if (!AdsRuntime.tapsellReady || container.childCount > 0 ||
+            activity.isFinishing || activity.isDestroyed
+        ) return
+        TapsellPlus.requestNativeVideo(activity, AdsConfig.TAPSELL_NATIVE_VIDEO, object : AdRequestCallback() {
+            override fun response(ad: TapsellPlusAdModel) {
+                val responseId = ad.responseId
+                if (responseId.isNullOrBlank() || activity.isFinishing || activity.isDestroyed) return
+                val holder = ir.tapsell.plus.TapsellPlusVideoAdHolder.Builder()
+                    .setContentViewTemplate(ir.ghadmino.stepcounter.R.layout.ghadmino_native_video_ad)
+                    .setAppInstallationViewTemplate(ir.tapsell.sdk.R.layout.tapsell_app_installation_video_ad_template)
+                    .setAdContainer(container)
+                    .build()
+                TapsellPlus.showNativeVideo(activity, responseId, holder, object : AdShowListener() {
+                    override fun onOpened(ad: TapsellPlusAdModel) { log("Tapsell native video opened") }
+                    override fun onError(error: TapsellPlusErrorModel) {
+                        Log.w(TAG, "Tapsell native video failed: ${error.errorMessage}")
+                        container.removeAllViews()
+                    }
+                })
             }
-        )
+            override fun error(message: String) { log("Tapsell native video request failed: $message") }
+        })
     }
 
-    private fun canShowFullscreen(context: Context): Boolean {
-        val last = prefs(context).getLong(LAST_FULLSCREEN, 0L)
-        return System.currentTimeMillis() - last >= FULLSCREEN_COOLDOWN_MS
-    }
-
-    private fun markFullscreenShown(context: Context) {
-        prefs(context).edit()
-            .putLong(LAST_FULLSCREEN, System.currentTimeMillis())
-            .apply()
-    }
-
-    private fun isFinishingOrDestroyed(activity: Activity): Boolean =
-        activity.isFinishing ||
-            (android.os.Build.VERSION.SDK_INT >= 17 && activity.isDestroyed)
+    private fun log(message: String) = Log.d(TAG, message)
 }
