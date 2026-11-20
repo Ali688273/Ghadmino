@@ -129,9 +129,11 @@ fun ManualActivityScreen(onChanged: () -> Unit = {}) {
     }
 }
 
-private fun formatDate(date: String): String = try {
-    val parsed = SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(date) ?: return date
-    SimpleDateFormat("yyyy/MM/dd", Locale.US).format(parsed)
-} catch (_: Exception) {
-    date
+private fun formatDate(date: String): String {
+    return try {
+        val parsed = SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(date) ?: return date
+        SimpleDateFormat("yyyy/MM/dd", Locale.US).format(parsed)
+    } catch (_: Exception) {
+        date
+    }
 }
