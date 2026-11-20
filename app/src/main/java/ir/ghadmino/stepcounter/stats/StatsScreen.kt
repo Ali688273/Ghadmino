@@ -564,6 +564,7 @@ private fun chartData(
     } else {
         val key = SimpleDateFormat("yyyy-MM", Locale.US)
         val label = SimpleDateFormat("MM", Locale.US)
+        var previousYear: Int? = null
         (11 downTo 0).map { offset ->
             val date = Calendar.getInstance().apply {
                 set(Calendar.DAY_OF_MONTH, 1)
@@ -571,8 +572,21 @@ private fun chartData(
             }.time
             val prefix = key.format(date)
             val calendar = Calendar.getInstance().apply { time = date }
-            val label = if (useSolarCalendar) jalaliMonthLabel(calendar)
-                else SimpleDateFormat("yyyy/MM", Locale.US).format(date)
+            val year = if (useSolarCalendar) {
+                gregorianToJalali(
+                    calendar.get(Calendar.YEAR),
+                    calendar.get(Calendar.MONTH) + 1,
+                    calendar.get(Calendar.DAY_OF_MONTH)
+                ).first
+            } else {
+                calendar.get(Calendar.YEAR)
+            }
+            val label = if (previousYear != year) {
+                toPersianDigits(year.toString())
+            } else {
+                ""
+            }
+            previousYear = year
             Point(label, rows.filterKeys { it.startsWith(prefix) }.values.sum())
         }
     }
