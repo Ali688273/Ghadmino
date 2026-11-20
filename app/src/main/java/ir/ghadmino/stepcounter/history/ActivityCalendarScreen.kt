@@ -15,7 +15,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import ir.ghadmino.stepcounter.activity.ManualActivityRepository
 import ir.ghadmino.stepcounter.profile.ProfileRepository
-import ir.ghadmino.stepcounter.stats.SpeedHistoryRepository
 import ir.ghadmino.stepcounter.step.StepCounterService
 import ir.ghadmino.stepcounter.step.StepHistory
 import ir.ghadmino.stepcounter.workout.WorkoutRepository
@@ -51,7 +50,6 @@ fun ActivityCalendarScreen(goal: Int) {
     val workouts = WorkoutRepository.load(context).filter { dateOf(it.startedAt) == selectedDate }
     val totalWorkoutDistance = workouts.sumOf { it.distanceMeters }
     val totalWorkoutCalories = workouts.sumOf { it.calories }
-    val dailySpeed = SpeedHistoryRepository.maximumForDate(context, selectedDate)
     val estimatedDistanceKm = selectedSteps * profile.strideCm.coerceIn(30, 150) / 100000.0
     val estimatedCalories = estimateWalkingCalories(selectedSteps, profile.weightKg)
 
@@ -118,9 +116,6 @@ fun ActivityCalendarScreen(goal: Int) {
             item { Text("فاصله بر اساس طول گام ثبت‌شده در پروفایل محاسبه شده و کالری یک برآورد است.", style = MaterialTheme.typography.bodySmall) }
             item {
                 ReportCard("تمرین‌های ثبت‌شده", workouts.size.toString() + " جلسه • " + String.format(Locale.US, "%.2f km • %d kcal", totalWorkoutDistance / 1000.0, totalWorkoutCalories))
-            }
-            item {
-                ReportCard("سرعت ثبت‌شده", if (dailySpeed > 0f) String.format(Locale.US, "%.1f km/h", dailySpeed) else "برای این روز رکورد سرعت ذخیره‌شده‌ای نیست")
             }
             item {
                 val goalState = if (selectedSteps + manualSteps >= goal) "هدف روزانه تکمیل شده" else "هدف روزانه تکمیل نشده"
