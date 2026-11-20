@@ -43,7 +43,6 @@ import ir.ghadmino.stepcounter.health.HealthConnectScreen
 import ir.ghadmino.stepcounter.health.HealthConnectRepository
 import ir.ghadmino.stepcounter.free.StepSource
 import ir.ghadmino.stepcounter.free.StepSourceRepository
-import ir.ghadmino.stepcounter.workout.WorkoutScreen
 import ir.ghadmino.stepcounter.plan.StepPlanScreen
 import ir.ghadmino.stepcounter.activity.ManualActivityScreen
 import ir.ghadmino.stepcounter.history.ActivityCalendarScreen
@@ -367,9 +366,6 @@ fun GhadminoApp(onThemeChanged: (String) -> Unit, onFontScaleChanged: (Float) ->
         "health" -> FullPageDialog("Health Connect", onClose = { morePage = null }) {
             HealthConnectScreen()
         }
-        "workout" -> FullPageDialog("تمرین پیاده‌روی", onClose = { morePage = null }) {
-            WorkoutScreen()
-        }
         "plan" -> FullPageDialog("برنامه افزایش قدم", onClose = { morePage = null }) {
             StepPlanScreen()
         }
@@ -541,7 +537,6 @@ private fun MorePage(
         MoreItem("🎨", "شخصی‌سازی رایگان", "قاب و نشان پروفایل، پنج تم ویجت و آمار تکمیلی فعالیت؛ همه رایگان.") { onOpen("extras") }
         MoreItem("📅", "تقویم فعالیت", "فعالیت روزهای گذشته را انتخاب کن و گزارش هر روز را ببین.") { onOpen("calendar") }
         MoreItem("📈", "تحلیل فعالیت", "امتیاز فعالیت، زمان‌های پرتحرک و وضعیت رسیدن به هدف را ببین.") { onOpen("insights") }
-        MoreItem("🏃", "تمرین پیاده‌روی", "یک جلسه پیاده‌روی را شروع کن، متوقف کن و ثبت کن.") { onOpen("workout") }
         MoreItem("📆", "برنامه افزایش قدم", "برای افزایش تدریجی قدم‌ها برنامه بساز و پیشرفتت را دنبال کن.") { onOpen("plan") }
         MoreItem("🧰", "۲۰ قابلیت رایگان", "ابزارهای منبع قدم، اتصال سلامت، رکوردها، هدف‌گذاری، خروجی و عیب‌یابی.") { onOpen("free") }
         GhadminoNativeAdCards(videoOnly = true)
