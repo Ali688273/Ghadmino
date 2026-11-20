@@ -161,7 +161,7 @@ fun StatsScreen(stats: GhadminoStats, goal: Int) {
                             Text(StatsRepository.label(row.first), style = MaterialTheme.typography.bodyMedium)
                             Text(row.second.toString() + " قدم", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                         }
-                        if (index != recent.lastIndex) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                        if (index != recent.lastIndex) Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                     }
                 }
             }
