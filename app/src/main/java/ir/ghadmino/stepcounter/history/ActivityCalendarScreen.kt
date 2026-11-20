@@ -163,8 +163,8 @@ private data class CalendarMonth(val label: String, val days: List<String?>)
 private fun buildCalendarMonth(offset: Int, solar: Boolean): CalendarMonth {
     if (solar) {
         // ICU guarantees a real Persian calendar; java.util.Calendar can fall back to Gregorian.
-        val calendar = android.icu.util.Calendar.getInstance(java.util.TimeZone.getDefault(), android.icu.util.ULocale("fa_IR@calendar=persian"))
-        calendar.time = Date()
+        val calendar = android.icu.util.Calendar.getInstance(android.icu.util.TimeZone.getDefault(), android.icu.util.ULocale("fa_IR@calendar=persian"))
+        calendar.timeInMillis = System.currentTimeMillis()
         calendar.add(android.icu.util.Calendar.MONTH, offset)
         calendar.set(android.icu.util.Calendar.DAY_OF_MONTH, 1)
         calendar.set(android.icu.util.Calendar.HOUR_OF_DAY, 12)
@@ -184,7 +184,7 @@ private fun buildCalendarMonth(offset: Int, solar: Boolean): CalendarMonth {
         return CalendarMonth(persianMonthNames[monthIndex.coerceIn(0, 11)] + " " + year, result)
     }
     val calendar = Calendar.getInstance()
-    calendar.time = Date()
+    calendar.timeInMillis = System.currentTimeMillis()
     calendar.add(Calendar.MONTH, offset)
     calendar.set(Calendar.DAY_OF_MONTH, 1)
     calendar.set(Calendar.HOUR_OF_DAY, 12)
@@ -204,20 +204,20 @@ private fun buildCalendarMonth(offset: Int, solar: Boolean): CalendarMonth {
 private fun dayNumber(date: String, solar: Boolean): String {
     val parsed = parseDate(date) ?: return date.substringAfterLast("-")
     if (solar) {
-        val calendar = android.icu.util.Calendar.getInstance(java.util.TimeZone.getDefault(), android.icu.util.ULocale("fa_IR@calendar=persian"))
-        calendar.time = parsed
+        val calendar = android.icu.util.Calendar.getInstance(android.icu.util.TimeZone.getDefault(), android.icu.util.ULocale("fa_IR@calendar=persian"))
+        calendar.timeInMillis = parsed.time
         return calendar.get(android.icu.util.Calendar.DAY_OF_MONTH).toString()
     }
     val calendar = Calendar.getInstance()
-    calendar.time = parsed
+    calendar.timeInMillis = parsed.time
     return calendar.get(Calendar.DAY_OF_MONTH).toString()
 }
 
 private fun formatDate(date: String, solar: Boolean): String {
     val parsed = parseDate(date) ?: return date
     if (!solar) return SimpleDateFormat("yyyy/MM/dd", Locale.US).format(parsed)
-    val calendar = android.icu.util.Calendar.getInstance(java.util.TimeZone.getDefault(), android.icu.util.ULocale("fa_IR@calendar=persian"))
-    calendar.time = parsed
+    val calendar = android.icu.util.Calendar.getInstance(android.icu.util.TimeZone.getDefault(), android.icu.util.ULocale("fa_IR@calendar=persian"))
+    calendar.timeInMillis = parsed.time
     val value = String.format(Locale.US, "%04d/%02d/%02d", calendar.get(android.icu.util.Calendar.YEAR), calendar.get(android.icu.util.Calendar.MONTH) + 1, calendar.get(android.icu.util.Calendar.DAY_OF_MONTH))
     return value.map { digit ->
         when (digit) {
