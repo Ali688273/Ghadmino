@@ -68,6 +68,7 @@ class GhadminoWidgetProvider : AppWidgetProvider() {
                 )
                 manager.updateAppWidget(id, views)
             }
+            GhadminoWeekWidgetProvider.updateAll(context)
         }
     }
 }
