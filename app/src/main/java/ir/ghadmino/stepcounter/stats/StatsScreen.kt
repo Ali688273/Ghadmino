@@ -1,6 +1,8 @@
 package ir.ghadmino.stepcounter.stats
 
 import android.content.Context
+import android.content.Intent
+import ir.ghadmino.stepcounter.analytics.ActivityAnalyticsRepository
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Canvas
@@ -172,6 +174,20 @@ fun StatsScreen(stats: GhadminoStats, goal: Int) {
                         Spacer(Modifier.width(8.dp))
                         Text("مسافت و کالری تخمینی‌اند و بر اساس پروفایل و فعالیت ثبت‌شده محاسبه می‌شوند.")
                     }
+                }
+            }
+            item {
+                OutlinedButton(
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, ActivityAnalyticsRepository.shareText(context))
+                        }
+                        context.startActivity(Intent.createChooser(intent, "اشتراک گزارش"))
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("اشتراک گزارش فعالیت")
                 }
             }
         }
