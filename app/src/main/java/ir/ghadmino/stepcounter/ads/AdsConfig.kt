@@ -11,9 +11,6 @@ object AdsConfig {
     const val TAPSELL_APP_KEY =
         "hfmftdctrtdblgddobrkecorgahjgtbdkopofapghnlhfsqgthaggoqlkgbrertdosblad"
 
-    const val TAPSELL_REWARDED =
-        "6ab8ba2c8f55014cb9ac9ff3"
-
     const val TAPSELL_INTERSTITIAL =
         "6ab8ba8d3df3c67e7db5713c"
 
@@ -37,9 +34,6 @@ object AdsConfig {
 
     const val ADIVERY_INTERSTITIAL =
         "2308d203-4ab5-483a-84e0-563f18983827"
-
-    const val ADIVERY_REWARDED =
-        "96e4e4c8-6fbd-4a47-b2e5-925a723a0d20"
 
     const val ADIVERY_BANNER =
         "e5afe0ce-ab8c-47ec-ab6a-25bd60814f27"
