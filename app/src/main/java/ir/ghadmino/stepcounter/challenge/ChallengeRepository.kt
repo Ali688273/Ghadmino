@@ -1,7 +1,6 @@
 package ir.ghadmino.stepcounter.challenge
 
 import android.content.Context
-import ir.ghadmino.stepcounter.reward.CoinWallet
 import ir.ghadmino.stepcounter.level.LevelRepository
 import ir.ghadmino.stepcounter.step.StepHistory
 import java.text.SimpleDateFormat
@@ -13,8 +12,7 @@ data class Challenge(
     val title: String,
     val description: String,
     val days: Int,
-    val dailyTarget: Int,
-    val reward: Int
+    val dailyTarget: Int
 )
 
 data class ChallengeProgress(
@@ -27,9 +25,9 @@ data class ChallengeProgress(
 
 object ChallengeRepository {
     val challenges = listOf(
-        Challenge("seven_day_5k", "چالش ۷ روزه", "۷ روز پیاپی حداقل ۵۰۰۰ قدم", 7, 5000, 150),
-        Challenge("seven_day_10k", "چالش ۷ روزه حرفه‌ای", "۷ روز پیاپی حداقل ۱۰۰۰۰ قدم", 7, 10000, 300),
-        Challenge("thirty_day_8k", "چالش ۳۰ روزه", "۳۰ روز پیاپی حداقل ۸۰۰۰ قدم", 30, 8000, 1000)
+        Challenge("seven_day_5k", "چالش ۷ روزه", "۷ روز پیاپی حداقل ۵۰۰۰ قدم", 7, 5000),
+        Challenge("seven_day_10k", "چالش ۷ روزه حرفه‌ای", "۷ روز پیاپی حداقل ۱۰۰۰۰ قدم", 7, 10000),
+        Challenge("thirty_day_8k", "چالش ۳۰ روزه", "۳۰ روز پیاپی حداقل ۸۰۰۰ قدم", 30, 8000)
     )
 
     fun progress(context: Context, challenge: Challenge): Int {
@@ -54,8 +52,7 @@ object ChallengeRepository {
 
     fun isClaimed(context: Context, id: String): Boolean {
         val prefs = context.getSharedPreferences("ghadmino_challenges", Context.MODE_PRIVATE)
-        return prefs.getBoolean("claimed_" + id, false) ||
-            CoinWallet.isRewardClaimed(context, "challenge_claimed_" + id)
+        return prefs.getBoolean("claimed_" + id, false)
     }
 
 
@@ -67,13 +64,7 @@ object ChallengeRepository {
             return false
         }
 
-        val claimed = CoinWallet.claimRewardOnce(
-            context,
-            "challenge_claimed_" + challenge.id,
-            challenge.reward
-        )
-        if (!claimed) return false
-
+        prefs.edit().putBoolean(claimedKey, true).apply()
         LevelRepository.recordMission(context)
         return true
     }
