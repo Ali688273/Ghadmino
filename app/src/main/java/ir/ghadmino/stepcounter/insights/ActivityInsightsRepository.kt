@@ -1,7 +1,6 @@
 package ir.ghadmino.stepcounter.insights
 
 import android.content.Context
-import android.icu.util.PersianCalendar
 import ir.ghadmino.stepcounter.step.StepCounterService
 import ir.ghadmino.stepcounter.step.StepHistory
 import java.text.SimpleDateFormat
@@ -18,9 +17,6 @@ data class ActivityInsights(
     val peakSteps: Int,
     val goalProgress: Int,
     val etaMinutes: Int?,
-    val bestDaySteps: Int,
-    val bestDayDate: String,
-    val bestStreak: Int,
     val message: String
 )
 
@@ -63,8 +59,6 @@ object ActivityInsightsRepository {
                 (if (steps >= 10000) 10f else steps / 1000f) +
                 (if (recentAverage >= goal) 10f else 0f)
             ).roundToInt().coerceIn(0, 100)
-        val bestDay = recent.maxByOrNull { it.second } ?: (today() to 0)
-        val bestStreak = StepHistory.currentStreak(context, goal)
         val message = when {
             score >= 90 -> "امروز عالی پیش رفتی؛ فقط ادامه بده."
             score >= 70 -> "عملکرد امروز خیلی خوب است."
@@ -72,27 +66,11 @@ object ActivityInsightsRepository {
             else -> "با چند دقیقه پیاده‌روی می‌توانی امتیازت را بهتر کنی."
         }
         return ActivityInsights(
-            score, activeHours, peakHour, peakSteps, goalProgress, eta,
-            bestDay.second, formatDate(bestDay.first), bestStreak, message
+            score, activeHours, peakHour, peakSteps, goalProgress, eta, message
         )
     }
 
     fun formatHour(hour: Int): String = String.format(Locale.US, "%02d:00", hour)
-
-    private fun formatDate(date: String): String {
-        return try {
-            val parsed = SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(date) ?: return date
-            val calendar = PersianCalendar().apply { time = parsed }
-            String.format(
-                Locale.US, "%04d/%02d/%02d",
-                calendar.get(Calendar.YEAR),
-                calendar.get(Calendar.MONTH) + 1,
-                calendar.get(Calendar.DAY_OF_MONTH)
-            )
-        } catch (_: Exception) {
-            date
-        }
-    }
 
     private fun today() = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
 
