@@ -1,7 +1,10 @@
 package ir.ghadmino.stepcounter.stats
 
 import android.content.Context
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -11,6 +14,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.*
@@ -42,6 +47,9 @@ fun StatsScreen(stats: GhadminoStats, goal: Int) {
     val context = LocalContext.current
     var period by remember { mutableIntStateOf(7) }
     var type by remember { mutableStateOf("line") }
+    var trendExpanded by remember { mutableStateOf(false) }
+    var recordsExpanded by remember { mutableStateOf(false) }
+    var recentExpanded by remember { mutableStateOf(false) }
     val data = remember(period) { chartData(context, period) }
     val report = remember(period, goal) { StatsRepository.period(context, goal, period) }
 
@@ -50,7 +58,7 @@ fun StatsScreen(stats: GhadminoStats, goal: Int) {
     ) {
         LazyColumn(
             Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(14.dp)
         ) {
             item {
@@ -95,61 +103,65 @@ fun StatsScreen(stats: GhadminoStats, goal: Int) {
                 }
             }
             item {
-                Card(
-                    Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
+                ExpandableReportCard(
+                    title = "روند و پیشرفت",
+                    subtitle = "مقایسه عملکرد و هدف روزانه",
+                    icon = { Icon(Icons.Default.TrendingUp, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                    expanded = trendExpanded,
+                    onToggle = { trendExpanded = !trendExpanded },
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
                 ) {
-                    Column(Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.TrendingUp, null)
-                            Spacer(Modifier.width(8.dp))
-                            Text("روند و پیشرفت", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                        }
-                        val trend = StatsRepository.trend(context, goal)
-                        Text(
-                            when {
-                                trend > 0 -> "این هفته نسبت به هفته قبل " + trend + "٪ بیشتر بوده است."
-                                trend < 0 -> "این هفته نسبت به هفته قبل " + (-trend) + "٪ کمتر بوده است."
-                                else -> "تغییر محسوسی نسبت به هفته قبل ثبت نشده است."
-                            }
-                        )
-                        Text("هدف روزانه: " + goal + " قدم")
-                        Text("زنجیره فعلی: " + stats.streak + " روز • طولانی‌ترین: " + stats.longestStreak.value + " روز")
+                    val trend = StatsRepository.trend(context, goal)
+                    Text(
+                        when {
+                            trend > 0 -> "این هفته نسبت به هفته قبل " + trend + "٪ بیشتر بوده است."
+                            trend < 0 -> "این هفته نسبت به هفته قبل " + (-trend) + "٪ کمتر بوده است."
+                            else -> "تغییر محسوسی نسبت به هفته قبل ثبت نشده است."
+                        },
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        DetailPill(Modifier.weight(1f), "هدف روزانه", goal.toString() + " قدم")
+                        DetailPill(Modifier.weight(1f), "زنجیره فعلی", stats.streak.toString() + " روز")
                     }
+                    Spacer(Modifier.height(8.dp))
+                    Text("طولانی‌ترین زنجیره: " + stats.longestStreak.value + " روز", style = MaterialTheme.typography.bodyMedium)
                 }
             }
             item {
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.EmojiEvents, null)
-                            Spacer(Modifier.width(8.dp))
-                            Text("رکوردها", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                        }
-                        Text("بهترین روز: " + StatsRepository.label(stats.bestDay.first) + " — " + stats.bestDay.second + " قدم")
-                        Text("رکورد زنجیره: " + stats.longestStreak.value + " روز")
-                    }
+                ExpandableReportCard(
+                    title = "رکوردها",
+                    subtitle = "بهترین عملکردهای ثبت‌شده",
+                    icon = { Icon(Icons.Default.EmojiEvents, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                    expanded = recordsExpanded,
+                    onToggle = { recordsExpanded = !recordsExpanded }
+                ) {
+                    DetailPill(Modifier.fillMaxWidth(), "بهترین روز", StatsRepository.label(stats.bestDay.first) + " — " + stats.bestDay.second + " قدم")
+                    Spacer(Modifier.height(8.dp))
+                    DetailPill(Modifier.fillMaxWidth(), "رکورد زنجیره", stats.longestStreak.value.toString() + " روز")
                 }
             }
             item {
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.CalendarMonth, null)
-                            Spacer(Modifier.width(8.dp))
-                            Text("۷ روز اخیر", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                ExpandableReportCard(
+                    title = "۷ روز اخیر",
+                    subtitle = "مشاهده قدم‌های هر روز",
+                    icon = { Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                    expanded = recentExpanded,
+                    onToggle = { recentExpanded = !recentExpanded }
+                ) {
+                    val recent = StepHistory.recent(context, 7)
+                    recent.forEachIndexed { index, row ->
+                        Row(
+                            Modifier.fillMaxWidth().padding(vertical = 9.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(StatsRepository.label(row.first), style = MaterialTheme.typography.bodyMedium)
+                            Text(row.second.toString() + " قدم", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                         }
-                        val recent = StepHistory.recent(context, 7)
-                        recent.forEach { row ->
-                            Row(
-                                Modifier.fillMaxWidth().padding(vertical = 7.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(StatsRepository.label(row.first))
-                                Text(row.second.toString() + " قدم", fontWeight = FontWeight.Bold)
-                            }
-                            Divider()
-                        }
+                        if (index != recent.lastIndex) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                     }
                 }
             }
@@ -162,6 +174,68 @@ fun StatsScreen(stats: GhadminoStats, goal: Int) {
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ExpandableReportCard(
+    title: String,
+    subtitle: String,
+    icon: @Composable () -> Unit,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    containerColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.surface,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth().animateContentSize(),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 13.dp)) {
+            Row(
+                Modifier.fillMaxWidth().clickable(onClick = onToggle),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+                ) {
+                    Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) { icon() }
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Icon(
+                    if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (expanded) "بستن جزئیات" else "نمایش جزئیات",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+            AnimatedVisibility(visible = expanded) {
+                Column(
+                    Modifier.fillMaxWidth().padding(top = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    content = content
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetailPill(modifier: Modifier, label: String, value: String) {
+    Surface(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)
+    ) {
+        Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -197,7 +271,7 @@ private fun ActivityChart(data: List<Point>, line: Boolean, goal: Int) {
     val chartColor = scheme.primary
 
     Column {
-        Canvas(Modifier.fillMaxWidth().height(220.dp)) {
+        Canvas(Modifier.fillMaxWidth().height(270.dp)) {
             val left = 14f
             val right = size.width - 10f
             val top = 12f
